@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Staat alle lees- en schrijfopacties toe voor elke ingelogde gebruiker.
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

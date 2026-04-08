@@ -1,0 +1,152 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Safe admin check: handles missing user document gracefully
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email in ["billy@pearsonline.nl", "billy@trooper.es"] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    // Safe employee check: handles missing user document gracefully
+    function isEmployee() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'employee';
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId);
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+    }
+
+    // Parent Clients
+    match /parentClients/{parentClientId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.ownerId == request.auth.uid || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == resource.data.ownerId)
+      );
+      allow create: if isAdmin() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAdmin() && resource.data.ownerId == request.auth.uid;
+      allow delete: if isAdmin() && resource.data.ownerId == request.auth.uid;
+
+      // Child Accounts
+      match /childAccounts/{childAccountId} {
+        allow read: if isAuthenticated() && (
+          isAdmin() ||
+          resource.data.ownerId == request.auth.uid || 
+          resource.data.assignedEmployeeId == request.auth.uid ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == resource.data.ownerId)
+        );
+        allow create: if isAdmin() && request.resource.data.ownerId == request.auth.uid;
+        allow update: if (isAdmin() || isEmployee()) && (
+          resource.data.ownerId == request.auth.uid || 
+          resource.data.assignedEmployeeId == request.auth.uid
+        );
+        allow delete: if isAdmin() && resource.data.ownerId == request.auth.uid;
+      }
+    }
+
+    // Checklist Runs
+    match /checklistRuns/{runId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.ownerId == request.auth.uid || 
+        resource.data.managerId == request.auth.uid
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && isOwner(resource.data.ownerId);
+    }
+
+    // Checklist Templates (subcollection of users)
+    match /users/{userId}/checklistTemplates/{templateId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        request.auth.uid == userId || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == userId)
+      );
+      allow write: if isAdmin();
+    }
+
+    // KPI Data
+    match /kpiData/{kpiDataId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.ownerId == request.auth.uid || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == resource.data.ownerId)
+      );
+      allow write: if isAuthenticated() && (
+        isAdmin() ||
+        request.resource.data.ownerId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == request.resource.data.ownerId)
+      );
+    }
+
+    // Reports
+    match /reports/{reportId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.ownerId == request.auth.uid || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == resource.data.ownerId)
+      );
+      allow write: if isAuthenticated() && (
+        isAdmin() ||
+        (isEmployee() &&
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         request.resource.data.ownerId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId)
+      );
+    }
+
+    // Todos
+    match /users/{userId}/todos/{todoId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // Projects
+    match /projects/{projectId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.ownerId == request.auth.uid || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == resource.data.ownerId)
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow delete: if isAuthenticated() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

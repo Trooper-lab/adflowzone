@@ -1,0 +1,14 @@
+{
+  "apphosting": [
+    {
+      "backendId": "studio",
+      "rootDir": "./"
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}
