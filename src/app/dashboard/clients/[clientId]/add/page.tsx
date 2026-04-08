@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useUser, useCollection } from '@/firebase';
-import { addDoc, collection, query, where } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useDoc } from '@/firebase';
+import { addDoc, collection, query, where, doc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { format, isPast, isToday, setDay, addWeeks, setDate, addMonths } from 'date-fns';
@@ -79,6 +79,14 @@ function ChildAccountForm({ parentClientId }: { parentClientId: string }) {
     const { user } = useUser();
     const router = useRouter();
     const { toast } = useToast();
+
+    const userDocRef = useMemo(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+    const { data: appUser } = useDoc(userDocRef);
+
+    const isAdmin = useMemo(() => {
+        const role = (appUser as any)?.role?.toLowerCase();
+        return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+    }, [appUser, user?.email]);
 
     const checklistsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -259,7 +267,7 @@ function ChildAccountForm({ parentClientId }: { parentClientId: string }) {
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium font-headline">Financials</h3>
                         <Separator />
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div className={cn("grid grid-cols-1 gap-4", isAdmin ? "md:grid-cols-2" : "md:grid-cols-1")}>
                             <FormField
                                 control={form.control}
                                 name="monthlyClickBudget"
@@ -277,23 +285,25 @@ function ChildAccountForm({ parentClientId }: { parentClientId: string }) {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="managementFee.amount"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Monthly Management Fee</FormLabel>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">€</span>
-                                            <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} className="pl-7" />
-                                        </div>
-                                    </FormControl>
-                                    <FormDescription>Your fee for managing this account.</FormDescription>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {isAdmin && (
+                                <FormField
+                                    control={form.control}
+                                    name="managementFee.amount"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Monthly Management Fee</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">€</span>
+                                                <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} className="pl-7" />
+                                            </div>
+                                        </FormControl>
+                                        <FormDescription>Your fee for managing this account.</FormDescription>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -453,7 +463,7 @@ function ChildAccountForm({ parentClientId }: { parentClientId: string }) {
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
-                                                        {checklistTemplates?.map((c: ChecklistTemplate) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                                        {checklistTemplates?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage />

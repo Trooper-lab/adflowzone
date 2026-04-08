@@ -128,7 +128,7 @@ export default function EditChildAccountPage() {
             monthlyClickBudget: account.monthlyClickBudget || 0,
             managementFee: {
                 amount: account.managementFee?.amount || 0,
-                frequency: 'monthly'
+                frequency: 'monthly' as const
             },
             targetKpiValues: account.targetKpiValues || [],
             isPaused: account.isPaused || false,
@@ -310,23 +310,25 @@ export default function EditChildAccountPage() {
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="managementFee.amount"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Monthly Management Fee</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">€</span>
-                                                <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} className="pl-7" />
-                                            </div>
-                                        </FormControl>
-                                        <FormDescription>Your fee for managing this account.</FormDescription>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                {isAdmin && (
+                                    <FormField
+                                        control={form.control}
+                                        name="managementFee.amount"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Monthly Management Fee</FormLabel>
+                                            <FormControl>
+                                                <div className="relative">
+                                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">€</span>
+                                                    <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} className="pl-7" />
+                                                </div>
+                                            </FormControl>
+                                            <FormDescription>Your fee for managing this account.</FormDescription>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                             </div>
                         </div>
                         

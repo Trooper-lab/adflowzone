@@ -23,6 +23,13 @@ export function GlobalSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const { user } = useUser();
   const firestore = useFirestore();
+  const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+  const { data: appUser } = useDoc(userDocRef);
+  
+  const isAdmin = React.useMemo(() => {
+    const role = (appUser as any)?.role?.toLowerCase();
+    return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+  }, [appUser, user?.email]);
   const router = useRouter();
   const params = useParams();
   const clientId = params.clientId as string;
@@ -67,7 +74,9 @@ export function GlobalSearch() {
 
       } else {
         // Manager Dashboard: Fetch all clients and accounts
-        const parentClientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
+        const managerUid = isAdmin ? user.uid : (appUser as any)?.managerId;
+        if (!managerUid) return;
+        const parentClientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
         const clientsSnapshot = await getDocs(parentClientsQuery);
         const parentClients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ParentClient));
 
@@ -79,7 +88,9 @@ export function GlobalSearch() {
         }));
 
         const childAccountPromises = parentClients.map(client =>
-          getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
+          isAdmin 
+            ? getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
+            : getDocs(query(collection(firestore, 'parentClients', client.id, 'childAccounts'), where('assignedEmployeeId', '==', user.uid)))
         );
         const childAccountSnapshots = await Promise.all(childAccountPromises);
         
@@ -100,7 +111,7 @@ export function GlobalSearch() {
       }
     };
     fetchAllData();
-  }, [open, user, firestore, isClientPortal, clientId, parentClient]);
+  }, [open, user, firestore, isClientPortal, clientId, parentClient, isAdmin, appUser]);
 
   const runCommand = (command: () => unknown) => {
     setOpen(false)

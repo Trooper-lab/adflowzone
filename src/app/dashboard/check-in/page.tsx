@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, Timestamp, collectionGroup, onSnapshot } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,38 +31,88 @@ export default function CheckInPage() {
     const [recentNotes, setRecentNotes] = useState<{ date: Date, text: string, taskDesc: string, runName: string }[]>([]);
     const [recentTodos, setRecentTodos] = useState<Todo[]>([]);
 
+    const userDocRef = useMemo(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+    const [appUser, setAppUser] = useState<any>(null);
     useEffect(() => {
-        if (!firestore || !user) return;
+        if (!userDocRef) return;
+        const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setAppUser({ id: docSnap.id, ...docSnap.data() });
+            }
+        });
+        return () => unsubscribe();
+    }, [userDocRef]);
+    const isAdmin = useMemo(() => {
+        const role = (appUser as any)?.role?.toLowerCase();
+        return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+    }, [appUser, user?.email]);
+
+    useEffect(() => {
+        if (!firestore || !user || !appUser) return;
 
         const fetchAccounts = async () => {
             setLoadingAccounts(true);
             try {
-                const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
-                const clientsSnap = await getDocs(clientsQuery);
-                const clients = clientsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient));
-                const clientMap = new Map(clients.map(c => [c.id, c.clientName]));
-
                 const allAccounts: EnrichedAccount[] = [];
-                for (const client of clients) {
-                    const accSnap = await getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'));
-                    accSnap.forEach(d => {
+                const clientMap = new Map<string, string>();
+
+                if (isAdmin) {
+                    const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
+                    const clientsSnap = await getDocs(clientsQuery);
+                    
+                    clientsSnap.docs.forEach(d => {
+                        clientMap.set(d.id, (d.data() as ParentClient).clientName);
+                    });
+
+                    for (const clientDoc of clientsSnap.docs) {
+                        const accSnap = await getDocs(collection(firestore, 'parentClients', clientDoc.id, 'childAccounts'));
+                        accSnap.forEach(d => {
+                            allAccounts.push({
+                                id: d.id,
+                                ...d.data(),
+                                parentName: clientMap.get(clientDoc.id) || 'Onbekend'
+                            } as EnrichedAccount);
+                        });
+                    }
+                } else {
+                    const assignedQuery = query(
+                        collectionGroup(firestore, 'childAccounts'), 
+                        where('assignedEmployeeId', '==', user.uid)
+                    );
+                    const childSnap = await getDocs(assignedQuery);
+                    const accountsData = childSnap.docs.map(d => ({ id: d.id, ...d.data() } as ChildAccount));
+
+                    const parentIds = [...new Set(accountsData.map(a => a.parentClientId))];
+                    for (let i = 0; i < parentIds.length; i += 10) {
+                        const chunk = parentIds.slice(i, i + 10);
+                        if (chunk.length > 0) {
+                            const pSnap = await getDocs(query(collection(firestore, 'parentClients'), where('__name__', 'in', chunk)));
+                            pSnap.docs.forEach(p => clientMap.set(p.id, (p.data() as ParentClient).clientName || 'Onbekend'));
+                        }
+                    }
+
+                    accountsData.forEach(account => {
                         allAccounts.push({
-                            id: d.id,
-                            ...d.data(),
-                            parentName: clientMap.get(client.id) || 'Onbekend'
-                        } as EnrichedAccount);
+                            ...account,
+                            parentName: clientMap.get(account.parentClientId) || 'Onbekend',
+                        });
                     });
                 }
                 setAccounts(allAccounts.filter(a => !a.isPaused));
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Fout bij ophalen accounts:", e);
+                console.error("Error Code:", e.code);
+                console.error("Error Message:", e.message);
+                if (e.code === 'permission-denied') {
+                    console.error("Check explicitly if assignedEmployeeId matches:", user.uid);
+                }
             } finally {
                 setLoadingAccounts(false);
             }
         };
 
         fetchAccounts();
-    }, [firestore, user]);
+    }, [firestore, user, appUser, isAdmin]);
 
     useEffect(() => {
         const fetchActivity = async () => {
@@ -83,9 +133,9 @@ export default function CheckInPage() {
                 const runsSnap = await getDocs(runsQuery);
                 const runs = runsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ChecklistRun));
                 
-                // 2. Fetch Completed Todos
+                // 2. Fetch Completed Todos (Fetch from manager's collection)
                 const todosQuery = query(
-                    collection(firestore, 'users', user.uid, 'todos'),
+                    collection(firestore, 'users', account.ownerId, 'todos'),
                     where('childAccountId', '==', selectedAccountId),
                     where('completed', '==', true)
                 );
@@ -94,19 +144,28 @@ export default function CheckInPage() {
 
                 // Filter 30 days
                 const recentRuns = runs.filter(run => {
-                    const date = run.completedAt instanceof Timestamp ? run.completedAt.toDate() : parseISO(run.completedAt as unknown as string);
+                    const completedAt = run.completedAt as any;
+                    const date = completedAt && typeof completedAt === 'object' && 'toDate' in completedAt 
+                        ? completedAt.toDate() 
+                        : (typeof completedAt === 'string' ? parseISO(completedAt) : new Date(completedAt));
                     return isAfter(date, thirtyDaysAgo);
                 });
 
                 const recentCompletedTodos = todos.filter(todo => {
-                    const date = todo.completedAt instanceof Timestamp ? todo.completedAt.toDate() : parseISO(todo.completedAt as unknown as string);
+                    const completedAt = todo.completedAt as any;
+                    const date = completedAt && typeof completedAt === 'object' && 'toDate' in completedAt 
+                        ? completedAt.toDate() 
+                        : (typeof completedAt === 'string' ? parseISO(completedAt) : new Date(completedAt));
                     return isAfter(date, thirtyDaysAgo);
                 });
 
                 // Extract notes
                 const notes: any[] = [];
                 recentRuns.forEach(run => {
-                    const runDate = run.completedAt instanceof Timestamp ? run.completedAt.toDate() : parseISO(run.completedAt as unknown as string);
+                    const completedAt = run.completedAt as any;
+                    const runDate = completedAt && typeof completedAt === 'object' && 'toDate' in completedAt 
+                        ? completedAt.toDate() 
+                        : (typeof completedAt === 'string' ? parseISO(completedAt) : new Date(completedAt));
                     run.tasks.forEach(t => {
                         if (t.notes?.trim()) {
                             notes.push({
@@ -126,8 +185,10 @@ export default function CheckInPage() {
                 });
                 setRecentNotes(notes.sort((a, b) => b.date.getTime() - a.date.getTime()));
                 setRecentTodos(recentCompletedTodos.sort((a, b) => {
-                    const da = a.completedAt instanceof Timestamp ? a.completedAt.toDate() : parseISO(a.completedAt!);
-                    const db = b.completedAt instanceof Timestamp ? b.completedAt.toDate() : parseISO(b.completedAt!);
+                    const ca = a.completedAt as any;
+                    const cb = b.completedAt as any;
+                    const da = ca && typeof ca === 'object' && 'toDate' in ca ? ca.toDate() : (typeof ca === 'string' ? parseISO(ca) : new Date(ca));
+                    const db = cb && typeof cb === 'object' && 'toDate' in cb ? cb.toDate() : (typeof cb === 'string' ? parseISO(cb) : new Date(cb));
                     return db.getTime() - da.getTime();
                 }));
 
@@ -282,7 +343,10 @@ export default function CheckInPage() {
                                     ) : (
                                         <div className="divide-y divide-[#2A3552]">
                                             {recentTodos.map((todo, i) => {
-                                                const doneDate = todo.completedAt instanceof Timestamp ? todo.completedAt.toDate() : parseISO(todo.completedAt!);
+                                                const completedAt = todo.completedAt as any;
+                                                const doneDate = completedAt && typeof completedAt === 'object' && 'toDate' in completedAt 
+                                                    ? completedAt.toDate() 
+                                                    : (typeof completedAt === 'string' ? parseISO(completedAt) : new Date(completedAt));
                                                 return (
                                                     <div key={i} className="p-4 flex items-start gap-4 hover:bg-white/5 transition-colors">
                                                         <div className="mt-1 flex-shrink-0">

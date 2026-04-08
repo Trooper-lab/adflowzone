@@ -128,6 +128,9 @@ export type ChildAccount = {
   todoRunIds?: string[];
   reportIds?: string[];
   isPaused?: boolean;
+  accountGoal?: { id: string; value: string };
+  currency?: { id: string; symbol: string };
+  timeZone?: { id: string; offset: string };
 };
 
 export type ChecklistRunTask = {

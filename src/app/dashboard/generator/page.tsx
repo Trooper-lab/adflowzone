@@ -6,8 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { generateSearchAdCopy } from '@/ai/flows/generate-search-ad-copy';
 import { generatePMaxAdCopy } from '@/ai/flows/generate-pmax-ad-copy';
 import { AdCopyInputSchema, type AdCopyInput, type SearchAdCopyOutput, type PMaxAdCopyOutput, type ParentClient, type ChildAccount } from '@/lib/types';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc } from '@/firebase';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,6 +68,13 @@ const tones = [
 export default function AdCopyGeneratorPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+  const { data: appUser } = useDoc(userDocRef);
+  
+  const isAdmin = useMemo(() => {
+    const role = (appUser as any)?.role?.toLowerCase();
+    return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+  }, [appUser, user?.email]);
   const [loading, setLoading] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchAdCopyOutput | null>(null);
   const [pmaxResult, setPmaxResult] = useState<PMaxAdCopyOutput | null>(null);
@@ -77,19 +85,24 @@ export default function AdCopyGeneratorPage() {
   const [accountsLoading, setAccountsLoading] = useState(true);
 
   useEffect(() => {
-    if (!firestore || !user) return;
+    if (!firestore || !user || (!appUser && !isAdmin)) return;
 
     const fetchAllAccounts = async () => {
         setAccountsLoading(true);
         try {
-            const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
+            const managerUid = isAdmin ? user.uid : (appUser as any)?.managerId;
+            if (!managerUid) return;
+
+            const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
             const clientsSnapshot = await getDocs(clientsQuery);
             const parentClients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ParentClient));
             
             const parentClientMap = new Map(parentClients.map(c => [c.id, c.clientName]));
 
             const childAccountPromises = parentClients.map(client =>
-                getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
+                isAdmin 
+                    ? getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
+                    : getDocs(query(collection(firestore, 'parentClients', client.id, 'childAccounts'), where('assignedEmployeeId', '==', user.uid)))
             );
             const childAccountSnapshots = await Promise.all(childAccountPromises);
             
@@ -113,7 +126,7 @@ export default function AdCopyGeneratorPage() {
     };
 
     fetchAllAccounts();
-  }, [firestore, user]);
+  }, [firestore, user, appUser, isAdmin]);
 
   const form = useForm<AdCopyInput>({
     resolver: zodResolver(AdCopyInputSchema),

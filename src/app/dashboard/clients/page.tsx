@@ -205,7 +205,7 @@ export default function ClientsPage() {
       ) : (
         <>
             {/* Global Portfolio Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className={cn("grid grid-cols-1 gap-6", isAdmin ? "md:grid-cols-3" : "md:grid-cols-2")}>
                 <Card className="bg-[#1C243A] border-[#2A3552]">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Totaal Portfolio Budget</CardTitle>
@@ -215,15 +215,17 @@ export default function ClientsPage() {
                         <span className="text-xs text-muted-foreground">/ maand</span>
                     </CardContent>
                 </Card>
-                <Card className="bg-[#1C243A] border-[#2A3552]">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Totaal Management Fees</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex items-baseline gap-2">
-                        <div className="text-3xl font-bold text-blue-400">€{globalStats.totalFees.toLocaleString('nl-NL')}</div>
-                        <span className="text-xs text-muted-foreground">/ maand</span>
-                    </CardContent>
-                </Card>
+                {isAdmin && (
+                    <Card className="bg-[#1C243A] border-[#2A3552]">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Totaal Management Fees</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex items-baseline gap-2">
+                            <div className="text-3xl font-bold text-blue-400">€{globalStats.totalFees.toLocaleString('nl-NL')}</div>
+                            <span className="text-xs text-muted-foreground">/ maand</span>
+                        </CardContent>
+                    </Card>
+                )}
                 <Card className="bg-[#1C243A] border-[#2A3552]">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Actieve Accounts</CardTitle>
@@ -243,7 +245,7 @@ export default function ClientsPage() {
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4">Contactpersoon</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 text-center">Accounts</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 text-right">Totaal Budget</TableHead>
-                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 text-right">Totaal Fee</TableHead>
+                            {isAdmin && <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 text-right">Totaal Fee</TableHead>}
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 text-right px-6">Acties</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -287,9 +289,11 @@ export default function ClientsPage() {
                                 <TableCell className="py-4 text-right font-semibold text-green-400">
                                     €{client.totalBudget.toLocaleString('nl-NL')}
                                 </TableCell>
-                                <TableCell className="py-4 text-right font-semibold text-blue-400">
-                                    €{client.totalFee.toLocaleString('nl-NL')}
-                                </TableCell>
+                                {isAdmin && (
+                                    <TableCell className="py-4 text-right font-semibold text-blue-400">
+                                        €{client.totalFee.toLocaleString('nl-NL')}
+                                    </TableCell>
+                                )}
                                 <TableCell className="py-4 text-right px-6">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>

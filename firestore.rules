@@ -28,7 +28,7 @@ service cloud.firestore {
     function isEmployee() {
       return isAuthenticated() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'employee';
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['employee', 'Employee'];
     }
 
     // ===============================================================
@@ -42,106 +42,63 @@ service cloud.firestore {
       allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
     }
 
+    // Child Accounts (Top-level for collectionGroup support)
+    match /{path=**}/childAccounts/{childAccountId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isEmployee() || 
+        resource.data.assignedEmployeeId == request.auth.uid ||
+        (resource.data.get('assignedEmployees', [])).hasAny([request.auth.uid])
+      );
+      allow create, delete: if isAdmin();
+      allow update: if isAuthenticated() && (isAdmin() || isEmployee());
+    }
+
     // Parent Clients
     match /parentClients/{parentClientId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.ownerId == request.auth.uid || 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == resource.data.ownerId)
-      );
-      allow create: if isAdmin() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isAdmin() && resource.data.ownerId == request.auth.uid;
-      allow delete: if isAdmin() && resource.data.ownerId == request.auth.uid;
+      allow read: if isAuthenticated() && (isAdmin() || isEmployee());
+      allow create, update, delete: if isAdmin();
 
-      // Child Accounts
-      match /childAccounts/{childAccountId} {
-        allow read: if isAuthenticated() && (
-          isAdmin() ||
-          resource.data.ownerId == request.auth.uid || 
-          resource.data.assignedEmployeeId == request.auth.uid ||
-          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == resource.data.ownerId)
-        );
-        allow create: if isAdmin() && request.resource.data.ownerId == request.auth.uid;
-        allow update: if (isAdmin() || isEmployee()) && (
-          resource.data.ownerId == request.auth.uid || 
-          resource.data.assignedEmployeeId == request.auth.uid
-        );
-        allow delete: if isAdmin() && resource.data.ownerId == request.auth.uid;
-      }
     }
 
     // Checklist Runs
     match /checklistRuns/{runId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.ownerId == request.auth.uid || 
-        resource.data.managerId == request.auth.uid
-      );
+      allow read: if isAuthenticated() && (isAdmin() || isEmployee() || isOwner(resource.data.ownerId));
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && isOwner(resource.data.ownerId);
+      allow update: if isAuthenticated() && (
+        isOwner(resource.data.ownerId) ||
+        (
+          resource.data.get('parentClientId', 'X') != 'X' && 
+          resource.data.get('childAccountId', 'Y') != 'Y' &&
+          exists(/databases/$(database)/documents/parentClients/$(resource.data.get('parentClientId', 'X'))/childAccounts/$(resource.data.get('childAccountId', 'Y'))) &&
+          get(/databases/$(database)/documents/parentClients/$(resource.data.get('parentClientId', 'X'))/childAccounts/$(resource.data.get('childAccountId', 'Y'))).data.get('assignedEmployeeId', '') == request.auth.uid
+        )
+      );
     }
 
     // Checklist Templates (subcollection of users)
     match /users/{userId}/checklistTemplates/{templateId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        request.auth.uid == userId || 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == userId)
-      );
-      allow write: if isAdmin();
+      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
     // KPI Data
     match /kpiData/{kpiDataId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.ownerId == request.auth.uid || 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == resource.data.ownerId)
-      );
-      allow write: if isAuthenticated() && (
-        isAdmin() ||
-        request.resource.data.ownerId == request.auth.uid ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == request.resource.data.ownerId)
-      );
+      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
     // Reports
     match /reports/{reportId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.ownerId == request.auth.uid || 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == resource.data.ownerId)
-      );
-      allow write: if isAuthenticated() && (
-        isAdmin() ||
-        (isEmployee() &&
-         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         request.resource.data.ownerId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId)
-      );
+      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
     // Todos
     match /users/{userId}/todos/{todoId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+      allow read, write: if isOwner(userId) || isAdmin() || isEmployee();
     }
 
     // Projects
     match /projects/{projectId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.ownerId == request.auth.uid || 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == resource.data.ownerId)
-      );
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (isAdmin() || resource.data.ownerId == request.auth.uid);
-      allow delete: if isAuthenticated() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
     // Default deny

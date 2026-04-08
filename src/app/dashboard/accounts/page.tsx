@@ -105,7 +105,11 @@ export default function UnifiedPortfolioPage() {
                 
                 // 2. Fetch all child accounts and employees in parallel
                 const [childAccountSnapshots, teamSnapshot] = await Promise.all([
-                    Promise.all(parentClients.map(client => getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts')))),
+                    Promise.all(parentClients.map(client => 
+                        isAdmin 
+                            ? getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
+                            : getDocs(query(collection(firestore, 'parentClients', client.id, 'childAccounts'), where('assignedEmployeeId', '==', user.uid)))
+                    )),
                     isAdmin ? getDocs(query(collection(firestore, 'users'), where('managerId', '==', user.uid))) : Promise.resolve({ docs: [] })
                 ]);
                 
@@ -254,17 +258,19 @@ export default function UnifiedPortfolioPage() {
                         <div className="text-3xl font-bold">€{totals.budget.toLocaleString('nl-NL')}</div>
                     </CardContent>
                 </Card>
-                <Card className="bg-[#1C243A] border-[#2A3552]">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Management Omzet</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex items-center gap-4">
-                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
-                            <Briefcase className="size-5" />
-                        </div>
-                        <div className="text-3xl font-bold">€{totals.fee.toLocaleString('nl-NL')}</div>
-                    </CardContent>
-                </Card>
+                {isAdmin && (
+                    <Card className="bg-[#1C243A] border-[#2A3552]">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Management Omzet</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex items-center gap-4">
+                            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                                <Briefcase className="size-5" />
+                            </div>
+                            <div className="text-3xl font-bold">€{totals.fee.toLocaleString('nl-NL')}</div>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
 
             <div className="space-y-4">
@@ -301,10 +307,12 @@ export default function UnifiedPortfolioPage() {
                                                 <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-[0.1em] mb-0.5">Budget</p>
                                                 <p className="text-sm font-bold text-green-400">€{group.totalBudget.toLocaleString('nl-NL')}</p>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-[0.1em] mb-0.5">Management</p>
-                                                <p className="text-sm font-bold text-blue-400">€{group.totalFee.toLocaleString('nl-NL')}</p>
-                                            </div>
+                                            {isAdmin && (
+                                                <div className="text-right">
+                                                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-[0.1em] mb-0.5">Management</p>
+                                                    <p className="text-sm font-bold text-blue-400">€{group.totalFee.toLocaleString('nl-NL')}</p>
+                                                </div>
+                                            )}
                                             <ChevronDown className="size-4 text-slate-600 transition-transform duration-200 chevron" />
                                         </div>
                                     </div>
@@ -315,13 +323,13 @@ export default function UnifiedPortfolioPage() {
                                 <div className="space-y-1 mt-2">
                                     <div className={cn(
                                         "grid px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500",
-                                        isAdmin ? "grid-cols-[1fr_120px_100px_120px_120px]" : "grid-cols-[1fr_100px_120px_120px]"
+                                        isAdmin ? "grid-cols-[1fr_120px_100px_120px_120px]" : "grid-cols-[1fr_100px_120px]"
                                     )}>
                                         <span>Account Informatie</span>
                                         {isAdmin && <span>Medewerker</span>}
                                         <span className="text-center">Dekking</span>
                                         <span className="text-right">Click Budget</span>
-                                        <span className="text-right pr-4">Fee</span>
+                                        {isAdmin && <span className="text-right pr-4">Fee</span>}
                                     </div>
                                     {group.accounts.map((account) => (
                                         <Link 
@@ -329,7 +337,7 @@ export default function UnifiedPortfolioPage() {
                                             href={`/dashboard/accounts/${account.id}?parent=${account.parentClientId}`}
                                             className={cn(
                                                 "grid items-center px-4 py-3 rounded-lg bg-[#1C243A] border border-white/5 group hover:bg-blue-500/5 hover:border-blue-500/20 transition-all",
-                                                isAdmin ? "grid-cols-[1fr_120px_100px_120px_120px]" : "grid-cols-[1fr_100px_120px_120px]"
+                                                isAdmin ? "grid-cols-[1fr_120px_100px_120px_120px]" : "grid-cols-[1fr_100px_120px]"
                                             )}
                                         >
                                             <div className="flex flex-col">
@@ -367,9 +375,11 @@ export default function UnifiedPortfolioPage() {
                                             <div className="text-right">
                                                 <span className="text-sm font-semibold text-slate-300">€{account.monthlyClickBudget?.toLocaleString('nl-NL') || '0'}</span>
                                             </div>
-                                            <div className="text-right pr-4">
-                                                <span className="text-sm font-semibold text-blue-400/80">€{account.managementFee?.amount?.toLocaleString('nl-NL') || '0'}</span>
-                                            </div>
+                                            {isAdmin && (
+                                                <div className="text-right pr-4">
+                                                    <span className="text-sm font-semibold text-blue-400/80">€{account.managementFee?.amount?.toLocaleString('nl-NL') || '0'}</span>
+                                                </div>
+                                            )}
                                         </Link>
                                     ))}
                                 </div>

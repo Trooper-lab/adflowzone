@@ -38,13 +38,15 @@ function KpiEntryDialog({
     period, 
     open, 
     onOpenChange, 
-    onSave 
+    onSave,
+    managerUid
 } : { 
     account: ChildAccount, 
     period: string, 
     open: boolean, 
     onOpenChange: (open: boolean) => void,
-    onSave: () => void 
+    onSave: () => void,
+    managerUid: string
 }) {
     const firestore = useFirestore();
     const { user } = useUser();
@@ -78,7 +80,7 @@ function KpiEntryDialog({
         const newDocRef = doc(kpiDataCollection);
 
         const kpiDoc: Omit<KpiData, 'id'> = {
-            ownerId: user.uid,
+            ownerId: managerUid,
             childAccountId: account.id,
             periodType: 'monthly',
             startDate: startOfMonth(new Date(period)).toISOString(),
@@ -193,6 +195,7 @@ export default function ReportDashboard() {
     const [accounts, setAccounts] = useState<EnrichedAccount[]>([]);
     const [reportsByAccount, setReportsByAccount] = useState<Record<string, MonthlyReport[]>>({});
     const [currentMonth, setCurrentMonth] = useState(subMonths(new Date(), 1));
+    const managerUidForKpi = useMemo(() => isAdmin ? user?.uid : appUser?.managerId, [isAdmin, user, appUser]);
     const [kpiModalState, setKpiModalState] = useState<{ open: boolean; account: ChildAccount | null }>({ open: false, account: null });
     const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'draft' | 'finalized' | 'sent' | 'confirmed' | 'skipped' | 'history'>('all');
     
@@ -803,7 +806,7 @@ export default function ReportDashboard() {
             )}
 
 
-            {kpiModalState.account && (
+            {kpiModalState.account && managerUidForKpi && (
                 <KpiEntryDialog
                     account={kpiModalState.account}
                     period={selectedPeriod}
@@ -814,6 +817,7 @@ export default function ReportDashboard() {
                            handleGenerateReport({ ...kpiModalState.account, hasKpiDataForMonth: true });
                         }
                     }}
+                    managerUid={managerUidForKpi}
                 />
             )}
         </div>

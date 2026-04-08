@@ -822,7 +822,9 @@ export default function ChecklistsPage() {
 
             // Fetch all child accounts
             const childAccountPromises = parentClients.map(client =>
-                getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
+                isAdmin 
+                    ? getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
+                    : getDocs(query(collection(firestore, 'parentClients', client.id, 'childAccounts'), where('assignedEmployeeId', '==', user.uid)))
             );
             const childAccountSnapshots = await Promise.all(childAccountPromises);
             
@@ -840,16 +842,11 @@ export default function ChecklistsPage() {
             const accountMap = new Map(allChildAccounts.map(a => [a.id, a.nickname]));
             setAllAccounts(allChildAccounts);
 
-            // Filter checklists for employees - only show those connected to their accounts
-            const filteredChecklists = isAdmin ? checklistData : checklistData.filter(template => 
-                allChildAccounts.some(acc => acc.connectedChecklists?.some(c => c.checklistId === template.id))
-            );
-            setChecklists(filteredChecklists);
+            // Show all checklists to employees so they can manage team templates
+            setChecklists(checklistData);
             
             // Fetch checklist runs
-            const runsQuery = isAdmin 
-                ? query(collection(firestore, 'checklistRuns'), where('managerId', '==', managerUid))
-                : query(collection(firestore, 'checklistRuns'), where('ownerId', '==', user.uid));
+            const runsQuery = query(collection(firestore, 'checklistRuns'), where('managerId', '==', managerUid));
             const runsSnapshot = await getDocs(runsQuery);
             
             const runsData = runsSnapshot.docs.map(doc => {
@@ -873,7 +870,8 @@ export default function ChecklistsPage() {
                     checklistName: checklistMap.get(data.checklistId) || 'Unknown Checklist',
                     accountNickname: accountMap.get(data.childAccountId) || 'Unknown Account',
                 } as EnrichedChecklistRun;
-            }).sort((a, b) => (b.completedAt?.getTime() || 0) - (a.completedAt?.getTime() || 0));
+            }).filter(run => isAdmin || allChildAccounts.some(acc => acc.id === run.childAccountId))
+            .sort((a, b) => (b.completedAt?.getTime() || 0) - (a.completedAt?.getTime() || 0));
 
             const grouped = runsData.reduce((acc, run) => {
                 const key = run.checklistId;

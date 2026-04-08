@@ -13,6 +13,7 @@ import { Loader2, PlusCircle, Pencil, Globe, Mail, User, Wallet, Briefcase } fro
 import Link from 'next/link';
 import type { ChildAccount, ParentClient } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 function LoadingState() {
   return (
@@ -33,6 +34,15 @@ export default function ClientDetailPage() {
   }, [firestore, clientId]);
 
   const { data: parentClient, loading: parentLoading } = useDoc(parentClientRef);
+
+  const { user } = useUser();
+  const userDocRef = useMemo(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+  const { data: appUser } = useDoc(userDocRef);
+
+  const isAdmin = useMemo(() => {
+    const role = (appUser as any)?.role?.toLowerCase();
+    return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+  }, [appUser, user?.email]);
 
   const childAccountsQuery = useMemo(() => {
     if (!firestore || !clientId) return null;
@@ -71,7 +81,7 @@ export default function ClientDetailPage() {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div className={cn("grid grid-cols-1 gap-6", isAdmin ? "md:grid-cols-2" : "md:grid-cols-1")}>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium">Total Monthly Click Budget</CardTitle>
@@ -81,15 +91,17 @@ export default function ClientDetailPage() {
                         <div className="text-2xl font-bold">€{totals.budget.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Total Monthly Management Fee</CardTitle>
-                        <Briefcase className="size-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">€{totals.fee.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
+                {isAdmin && (
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium">Total Monthly Management Fee</CardTitle>
+                            <Briefcase className="size-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">€{totals.fee.toLocaleString()}</div>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
             <Card>
                 <CardHeader>
@@ -113,14 +125,14 @@ export default function ClientDetailPage() {
                     <Table>
                     <TableHeader>
                         <TableRow>
-                        <TableHead>Nickname</TableHead>
-                        <TableHead>Google Ads ID</TableHead>
-                        <TableHead>Mng. Fee</TableHead>
-                        <TableHead>Click Budget</TableHead>
+                            <TableHead>Nickname</TableHead>
+                            <TableHead>Google Ads ID</TableHead>
+                            {isAdmin && <TableHead>Mng. Fee</TableHead>}
+                            <TableHead>Click Budget</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {childAccounts.map((account: ChildAccount) => (
+                        {childAccounts.map((account: any) => (
                         <TableRow key={account.id}>
                             <TableCell className="font-medium">
                                 <Link href={`/dashboard/accounts/${account.id}?parent=${clientId}`} className="hover:underline text-primary">
@@ -128,8 +140,8 @@ export default function ClientDetailPage() {
                                 </Link>
                             </TableCell>
                             <TableCell>{account.googleAdsClientId}</TableCell>
-                            <TableCell>€{account.managementFee?.amount?.toLocaleString() || '0'}</TableCell>
-                             <TableCell>€{account.monthlyClickBudget?.toLocaleString() || '0'}</TableCell>
+                            {isAdmin && <TableCell>€{account.managementFee?.amount?.toLocaleString() || '0'}</TableCell>}
+                            <TableCell>€{account.monthlyClickBudget?.toLocaleString() || '0'}</TableCell>
                         </TableRow>
                         ))}
                     </TableBody>

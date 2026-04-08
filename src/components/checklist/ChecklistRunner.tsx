@@ -375,23 +375,22 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
             runAt: serverTimestamp(),
             completedAt: allCompleted ? serverTimestamp() : null,
         });
-        
         const accountRef = doc(firestore, 'parentClients', account.parentClientId, 'childAccounts', account.id);
-        
-        // Prepare account update
-        const updates: any = {
+        await updateDoc(accountRef, {
             checklistRunIds: arrayUnion(runRef.id)
-        };
+        });
+      }
 
-        if (allCompleted && connectedChecklist) {
-            updates.connectedChecklists = (account.connectedChecklists || []).map(c => 
-                (c.checklistId === connectedChecklist.checklistId && c.startDate === connectedChecklist.startDate)
-                ? { ...c, lastRunAt: new Date().toISOString() }
-                : c
-            );
-        }
-
-        await updateDoc(accountRef, updates);
+      // Update auto-planner if it was completed
+      if (allCompleted && connectedChecklist) {
+          const accountRef = doc(firestore, 'parentClients', account.parentClientId, 'childAccounts', account.id);
+          const updates: any = {};
+          updates.connectedChecklists = (account.connectedChecklists || []).map(c => 
+              (c.checklistId === connectedChecklist.checklistId && c.startDate === connectedChecklist.startDate)
+              ? { ...c, lastRunAt: new Date().toISOString() }
+              : c
+          );
+          await updateDoc(accountRef, updates);
       }
         
         toast({
@@ -400,8 +399,8 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
         });
         
         onOpenChange(false);
-        if (allCompleted) {
-           onComplete();
+        if (onComplete) {
+            onComplete();
         }
     } catch (e) {
       console.error('Fout bij opslaan checklist run:', e);

@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useUser } from '@/firebase';
-import { addDoc, collection, getDocs } from 'firebase/firestore';
+import { useFirestore, useUser, useDoc } from '@/firebase';
+import { addDoc, collection, getDocs, doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Plus, CalendarIcon, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, Plus, CalendarIcon, PlusCircle, Trash2, Users } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,7 +27,7 @@ import { checklists } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import type { ConnectedChecklist } from '@/lib/types';
+import type { ConnectedChecklist, AppUser } from '@/lib/types';
 
 
 const parentClientSchema = z.object({
@@ -276,6 +276,14 @@ function ChildAccountForm({ parentClientId }: { parentClientId: string }) {
     const router = useRouter();
     const { toast } = useToast();
 
+    const userDocRef = useMemo(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+    const { data: appUser } = useDoc(userDocRef);
+
+    const isAdmin = useMemo(() => {
+        const role = (appUser as any)?.role?.toLowerCase();
+        return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+    }, [appUser, user?.email]);
+
     const form = useForm<ChildAccountFormData>({
         resolver: zodResolver(childAccountSchema),
         defaultValues: {
@@ -449,7 +457,7 @@ function ChildAccountForm({ parentClientId }: { parentClientId: string }) {
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium font-headline">Financials</h3>
                         <Separator />
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div className={cn("grid grid-cols-1 gap-4", isAdmin ? "md:grid-cols-2" : "md:grid-cols-1")}>
                             <FormField
                                 control={form.control}
                                 name="monthlyClickBudget"
@@ -467,23 +475,25 @@ function ChildAccountForm({ parentClientId }: { parentClientId: string }) {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="managementFee.amount"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Monthly Management Fee</FormLabel>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">€</span>
-                                            <Input type="number" placeholder="0.00" {...field} className="pl-7" />
-                                        </div>
-                                    </FormControl>
-                                    <FormDescription>Your fee for managing this account.</FormDescription>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {isAdmin && (
+                                <FormField
+                                    control={form.control}
+                                    name="managementFee.amount"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Monthly Management Fee</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">€</span>
+                                                <Input type="number" placeholder="0.00" {...field} className="pl-7" />
+                                            </div>
+                                        </FormControl>
+                                        <FormDescription>Your fee for managing this account.</FormDescription>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
                         </div>
                     </div>
 

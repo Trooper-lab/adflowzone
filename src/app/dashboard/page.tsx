@@ -449,7 +449,11 @@ export default function DashboardPage() {
             }
 
             // 2. Fetch Accounts
-            const childAccountPromises = parentClients.map(client => getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts')));
+            const childAccountPromises = parentClients.map(client => 
+                isAdmin
+                    ? getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
+                    : getDocs(query(collection(firestore, 'parentClients', client.id, 'childAccounts'), where('assignedEmployeeId', '==', user.uid)))
+            );
             const childAccountSnapshots = await Promise.all(childAccountPromises);
             const allChildAccounts = childAccountSnapshots.flatMap(snapshot => snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChildAccount)));
             
@@ -464,7 +468,7 @@ export default function DashboardPage() {
 
             // 3. Fetch In Progress Runs & Projects safely
             const [runsSnapshot, projectsSnapshot] = await Promise.all([
-                getDocs(query(collection(firestore, 'checklistRuns'), where('managerId', '==', managerUid), where('status', '==', 'in_progress'))),
+                getDocs(query(collection(firestore, 'checklistRuns'), where(isAdmin ? 'managerId' : 'ownerId', '==', isAdmin ? managerUid : user.uid), where('status', '==', 'in_progress'))),
                 getDocs(query(collection(firestore, 'projects'), where('ownerId', '==', user.uid)))
             ]).catch(e => {
                 console.error("DASHBOARD_ERROR: Secondary data fetch failed", e);
@@ -540,7 +544,11 @@ export default function DashboardPage() {
                 });
             });
             
-            allTasks.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+            allTasks.sort((a, b) => {
+                if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
+                if (b.status === 'in_progress' && a.status !== 'in_progress') return 1;
+                return a.dueDate.getTime() - b.dueDate.getTime();
+            });
             setScheduledTasks(allTasks);
 
         } catch (e: any) {
