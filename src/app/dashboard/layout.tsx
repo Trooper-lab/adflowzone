@@ -35,6 +35,7 @@ import {
   ShieldCheck,
   MessageSquareText,
   Loader2,
+  Briefcase,
 } from 'lucide-react';
 import {LogoIcon} from '@/components/icons';
 import {Button} from '@/components/ui/button';
@@ -98,6 +99,7 @@ export default function DashboardLayout({children}: {children: React.ReactNode})
     {
       title: "Extra",
       items: [
+        {href: '/dashboard/campaign-briefings', label: 'Campaign Briefings', icon: Briefcase},
         {href: '/dashboard/generator', label: 'AI Ad Generator', icon: WandSparkles},
       ]
     },

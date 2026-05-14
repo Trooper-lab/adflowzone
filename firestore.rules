@@ -107,6 +107,14 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    // Briefings
+    match /briefings/{briefingId} {
+      allow get: if isAuthenticated() || (resource.data.shareToken != null && resource.data.shareToken != "");
+      allow list: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+    }
+
     // Default deny
     match /{allPaths=**} {
       allow read, write: if false;

@@ -1,5 +1,7 @@
 
 import { z } from 'zod';
+// Diagnostic Check
+
 
 // AI Ad Copy Generator Schemas
 export const AdCopyInputSchema = z.object({
@@ -231,4 +233,89 @@ export type Project = {
   endDate?: string;
   milestones: ProjectMilestone[];
   budget?: number;
+};
+
+// --- Campaign Briefing Generator Types ---
+
+export const BriefingContextSchema = z.object({
+  clientName: z.string(),
+  website: z.string(),
+  industry: z.string(),
+  primaryGoals: z.string(),
+  targetAudience: z.string(),
+  tone: z.string().optional(),
+  language: z.enum(['english', 'dutch']),
+  additionalNotes: z.string().optional(),
+});
+export type BriefingContext = z.infer<typeof BriefingContextSchema>;
+
+export const CampaignStructureOutputSchema = z.object({
+  campaigns: z.array(z.object({
+    id: z.string(), // Client-side temp ID
+    name: z.string(),
+    type: z.enum(['search', 'pmax']),
+    objective: z.string(),
+    suggestedBudget: z.string(),
+    rationale: z.string(),
+  })),
+});
+export type CampaignStructureOutput = z.infer<typeof CampaignStructureOutputSchema>;
+
+export const AdGroupOutputSchema = z.object({
+  adGroups: z.array(z.object({
+    id: z.string(), // Client-side temp ID
+    name: z.string(),
+    keywords: z.array(z.string()).optional(), // For Search
+    headlines: z.array(z.string()),
+    longHeadlines: z.array(z.string()).optional(), // For PMax
+    descriptions: z.array(z.string()),
+    imagePrompts: z.array(z.string()).optional(), // For PMax
+    callToAction: z.string().optional(),
+  })),
+});
+export type AdGroupOutput = z.infer<typeof AdGroupOutputSchema>;
+
+export const GenerateAdGroupsInputSchema = z.object({
+  context: BriefingContextSchema,
+  campaign: z.object({
+    name: z.string(),
+    type: z.enum(['search', 'pmax']),
+    objective: z.string(),
+  }),
+});
+
+export type GenerateAdGroupsInput = z.infer<typeof GenerateAdGroupsInputSchema>;
+
+export type AdGroupBriefing = {
+  id: string;
+  name: string;
+  keywords?: string[];
+  headlines: string[];
+  longHeadlines?: string[];
+  descriptions: string[];
+  imagePrompts?: string[];
+  callToAction?: string;
+};
+
+export type CampaignBriefing = {
+  id: string;
+  name: string;
+  type: 'search' | 'pmax';
+  objective: string;
+  suggestedBudget: string;
+  rationale: string;
+  adGroups: AdGroupBriefing[];
+};
+
+export type Briefing = {
+  id: string;
+  ownerId: string;
+  childAccountId?: string; // Optional link to existing account
+  title: string;
+  context: BriefingContext;
+  campaigns: CampaignBriefing[];
+  status: 'draft' | 'approved';
+  shareToken: string;
+  createdAt: string;
+  updatedAt: string;
 };
