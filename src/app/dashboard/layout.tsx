@@ -33,6 +33,7 @@ import {
   Database,
   Rocket,
   ShieldCheck,
+  MessageSquareText,
   Loader2,
 } from 'lucide-react';
 import {LogoIcon} from '@/components/icons';
@@ -43,6 +44,7 @@ import {useEffect, useMemo} from 'react';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
+import { FeedbackWidget } from '@/components/FeedbackWidget';
 import type { AppUser } from '@/lib/types';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
@@ -103,6 +105,7 @@ export default function DashboardLayout({children}: {children: React.ReactNode})
       title: "Administratie",
       items: [
         {href: '/dashboard/employees', label: 'Gebruikers & Toegang', icon: ShieldCheck},
+        {href: '/dashboard/feedback', label: 'Platform Feedback', icon: MessageSquareText},
       ]
     }] : [])
   ];
@@ -222,6 +225,7 @@ export default function DashboardLayout({children}: {children: React.ReactNode})
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-slate-950/20">{children}</main>
       </SidebarInset>
+      <FeedbackWidget />
     </SidebarProvider>
   );
 }

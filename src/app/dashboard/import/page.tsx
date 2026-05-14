@@ -3,20 +3,20 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, doc, writeBatch, arrayUnion, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, writeBatch, arrayUnion, getDoc, Timestamp, addDoc, updateDoc, orderBy, limit as firestoreLimit, serverTimestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { 
-    Database, 
-    Copy, 
-    Check, 
-    Play, 
-    ArrowRight, 
-    Terminal, 
-    Info, 
-    Loader2, 
+    Database,
+    Copy,
+    Check,
+    Play,
+    ArrowRight,
+    Terminal,
+    Info,
+    Loader2,
     RefreshCw,
     AlertCircle,
     CheckCircle2,
@@ -24,11 +24,15 @@ import {
     Zap,
     X,
     LayoutGrid,
-    Target
+    Target,
+    Sparkles,
+    ExternalLink
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { ParentClient, ChildAccount, KpiData } from '@/lib/types';
+import type { ParentClient, ChildAccount, KpiData, ChecklistRun, ChecklistTemplate } from '@/lib/types';
+import { generateChecklistDraft } from '@/ai/flows/generate-checklist-draft';
+import Link from 'next/link';
 import { subMonths, format, parseISO, startOfMonth } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { Combobox } from '@/components/ui/combobox';
@@ -147,6 +151,10 @@ export default function DataImportPage() {
     const [selectedAccountId, setSelectedAccountId] = useState<string>('');
     const [activeBridge, setActiveBridge] = useState<string>(SCRIPTS.MCC_MONTHLY.id);
 
+    // AI Draft generation state (using inferred types to avoid TSX generic parsing ambiguity)
+    const [generatingFor, setGeneratingFor] = useState(new Set<string>());
+    const [createdRunIds, setCreatedRunIds] = useState(new Map<string, string>()); // accountId → runId
+
     useEffect(() => {
         if (!firestore || !user) return;
 
@@ -264,6 +272,109 @@ export default function DataImportPage() {
 
     const selectedAccount = accounts.find(a => a.id === selectedAccountId);
 
+    const handleGenerateDraft = async (item: (typeof matchedResults)[number]) => {
+        if (!item.account || !firestore || !user) return;
+        const account = item.account as ChildAccount;
+
+        // Account needs a connected checklist to generate a draft
+        const connectedChecklist = account.connectedChecklists?.[0];
+        if (!connectedChecklist) {
+            toast({
+                variant: 'destructive',
+                title: 'Geen checklist gekoppeld',
+                description: `${account.nickname} heeft nog geen checklist. Koppel er eerst een op de accountpagina.`,
+            });
+            return;
+        }
+
+        setGeneratingFor(prev => new Set([...prev, account.id]));
+
+        try {
+            // 1. Fetch the checklist template
+            const templateRef = doc(firestore, 'users', user.uid, 'checklistTemplates', connectedChecklist.checklistId);
+            const templateSnap = await getDoc(templateRef);
+            if (!templateSnap.exists()) throw new Error('Checklist template niet gevonden. Is de template verwijderd?');
+            const template = { id: templateSnap.id, ...templateSnap.data() } as ChecklistTemplate;
+
+            if (!template.tasks?.length) throw new Error('De checklist heeft geen taken om in te vullen.');
+
+            // 2. Fetch the last 3 completed checklist runs for context
+            const runsQuery = query(
+                collection(firestore, 'checklistRuns'),
+                where('childAccountId', '==', account.id),
+                where('status', '==', 'complete'),
+                orderBy('completedAt', 'desc'),
+                firestoreLimit(3)
+            );
+            const runsSnap = await getDocs(runsQuery);
+            const recentRuns = runsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ChecklistRun));
+
+            // 3. Build context string from recent run notes
+            const recentRunsContext = recentRuns.length > 0
+                ? recentRuns.map(run => {
+                    const dateStr = run.completedAt?.toDate?.()?.toLocaleDateString('nl-NL') ?? 'onbekend';
+                    const notedTasks = (run.tasks ?? []).filter(t => t.notes?.trim());
+                    if (!notedTasks.length) return `Run ${dateStr}: geen notities.`;
+                    return `Run ${dateStr}:\n${notedTasks.map(t => `  - ${t.description}: ${t.notes}`).join('\n')}`;
+                }).join('\n\n')
+                : '';
+
+            // 4. Call the AI flow
+            toast({ title: '🤖 AI aan het werk...', description: `Checklist draft genereren voor ${account.nickname}.` });
+            const result = await generateChecklistDraft({
+                accountNickname:  account.nickname,
+                primaryGoal:      account.primaryGoal,
+                kpiValues:        item.kpiValues,
+                targetKpiValues:  account.targetKpiValues,
+                tasks:            template.tasks,
+                recentRunsContext,
+            });
+
+            // 5. Map suggestions onto tasks
+            const runTasks = template.tasks.map(task => {
+                const suggestion = result.suggestions.find(s => s.taskId === task.id);
+                return {
+                    taskId:      task.id,
+                    description: task.description,
+                    completed:   suggestion?.autoComplete ?? false,
+                    notes:       suggestion?.suggestedNote ?? '',
+                };
+            });
+
+            // 6. Write the ChecklistRun to Firestore as in_progress
+            const runRef = await addDoc(collection(firestore, 'checklistRuns'), {
+                ownerId:           user.uid,
+                childAccountId:    account.id,
+                parentClientId:    account.parentClientId,
+                checklistId:       template.id,
+                status:            'in_progress',
+                runAt:             serverTimestamp(),
+                completedAt:       null,
+                completedByName:   'AI Agent',
+                durationSeconds:   0,
+                tasks:             runTasks,
+            });
+
+            // 7. Add run ID to account
+            await updateDoc(
+                doc(firestore, 'parentClients', account.parentClientId, 'childAccounts', account.id),
+                { checklistRunIds: arrayUnion(runRef.id) }
+            );
+
+            setCreatedRunIds(prev => new Map([...prev, [account.id, runRef.id]]));
+            toast({
+                title: '✨ Draft aangemaakt!',
+                description: `AI checklist draft klaar voor ${account.nickname}. Open de accountpagina om te reviewen.`,
+            });
+
+        } catch (e: any) {
+            console.error('Draft generation error:', e);
+            toast({ variant: 'destructive', title: 'Fout bij genereren', description: e.message });
+        } finally {
+            setGeneratingFor(prev => { const next = new Set(prev); next.delete(account.id); return next; });
+        }
+    };
+
     return (
         <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -378,14 +489,14 @@ export default function DataImportPage() {
                             <CardDescription>Plak de volledige logs uit Google Ads hieronder.</CardDescription>
                         </CardHeader>
                         <CardContent className="pt-6 space-y-4">
-                            <Textarea 
+                            <Textarea
                                 placeholder='Plak hier de logs uit Google Ads...'
                                 className="h-[250px] bg-slate-950 border-slate-800 font-mono text-[10px] text-green-400 focus:ring-green-500/20"
                                 value={rawJson}
                                 onChange={(e) => setRawJson(e.target.value)}
                             />
-                            <Button 
-                                onClick={handleParseJson} 
+                            <Button
+                                onClick={handleParseJson}
                                 className="w-full bg-blue-600 hover:bg-blue-500 font-bold uppercase tracking-widest text-xs h-12"
                                 disabled={!rawJson.trim()}
                             >
@@ -401,40 +512,66 @@ export default function DataImportPage() {
                                 <Badge variant="outline" className="text-[10px] border-slate-700">{parsedData.length} items</Badge>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <div className="divide-y divide-slate-800 max-h-[400px] overflow-auto pr-2 custom-scrollbar">
+                                <div className="divide-y divide-slate-800 max-h-[500px] overflow-auto pr-2 custom-scrollbar">
                                     {matchedResults.map((item, i) => (
-                                        <div key={i} className="py-3 flex items-center justify-between group">
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-bold text-slate-200 truncate">
-                                                    {item.account?.nickname || 'Onbekend Account'}
-                                                </p>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[10px] text-slate-500 font-mono">{item.googleAdsClientId}</span>
-                                                    <span className="text-[10px] text-blue-400/70 font-bold uppercase">{format(parseISO(item.startDate), 'MMM yyyy', {locale: nl})}</span>
+                                        <div key={i} className="py-3 space-y-2 group">
+                                            <div className="flex items-center justify-between">
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-bold text-slate-200 truncate">
+                                                        {item.account?.nickname || 'Onbekend Account'}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-[10px] text-slate-500 font-mono">{item.googleAdsClientId}</span>
+                                                        <span className="text-[10px] text-blue-400/70 font-bold uppercase">{format(parseISO(item.startDate), 'MMM yyyy', {locale: nl})}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="text-right">
+                                                        <p className="text-xs font-black text-green-400">€{item.kpiValues.spend?.toLocaleString('nl-NL') ?? '—'}</p>
+                                                        <p className="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Spend</p>
+                                                    </div>
+                                                    {item.account ? (
+                                                        <div className="p-1.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20">
+                                                            <CheckCircle2 className="size-4" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-1.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">
+                                                            <X className="size-4" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-right">
-                                                    <p className="text-xs font-black text-green-400">€{item.kpiValues.spend.toLocaleString('nl-NL')}</p>
-                                                    <p className="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Spend</p>
+
+                                            {item.account && (
+                                                <div className="flex justify-end">
+                                                    {createdRunIds.has(item.account.id) ? (
+                                                        <p className="text-[10px] font-bold text-green-400 flex items-center gap-1.5">
+                                                            <Check className="size-3" /> Draft aangemaakt
+                                                        </p>
+                                                    ) : (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-7 text-[10px] font-black uppercase tracking-widest border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
+                                                            disabled={generatingFor.has(item.account.id)}
+                                                            onClick={() => handleGenerateDraft(item)}
+                                                        >
+                                                            {generatingFor.has(item.account.id) ? (
+                                                                <><Loader2 className="mr-1.5 size-3 animate-spin" /> Genereren...</>
+                                                            ) : (
+                                                                <><Sparkles className="mr-1.5 size-3" /> AI Draft genereren</>
+                                                            )}
+                                                        </Button>
+                                                    )}
                                                 </div>
-                                                {item.account ? (
-                                                    <div className="p-1.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20">
-                                                        <CheckCircle2 className="size-4" />
-                                                    </div>
-                                                ) : (
-                                                    <div className="p-1.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">
-                                                        <X className="size-4" />
-                                                    </div>
-                                                )}
-                                            </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
-                                
-                                <div className="pt-6 border-t border-slate-800">
-                                    <Button 
-                                        onClick={handleImport} 
+
+                                <div className="pt-4 border-t border-slate-800">
+                                    <Button
+                                        onClick={handleImport}
                                         disabled={isSaving || !matchedResults.some(a => a.account)}
                                         className="w-full bg-green-600 hover:bg-green-500 text-white font-black h-12 shadow-lg shadow-green-900/20 active:scale-95 transition-all"
                                     >
