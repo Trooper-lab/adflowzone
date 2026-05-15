@@ -245,7 +245,23 @@ export const BriefingContextSchema = z.object({
   targetAudience: z.string(),
   tone: z.string().optional(),
   language: z.enum(['english', 'dutch']),
+  rawNotes: z.string().optional(),
   additionalNotes: z.string().optional(),
+  // Strategic Inputs
+  monthlyBudget: z.string().optional(),
+  campaignTypes: z.array(z.string()).optional(),
+  desiredCampaignCount: z.number().optional(),
+  budgetDistributionPreference: z.string().optional(),
+  bidStrategyPreference: z.string().optional(),
+  focusProducts: z.string().optional(),
+  competitors: z.string().optional(),
+  // New Fields
+  targetLocations: z.string().optional(),
+  targetLanguages: z.string().optional(),
+  usps: z.string().optional(),
+  offer: z.string().optional(),
+  negativeKeywordsBase: z.string().optional(),
+  conversionValue: z.string().optional(),
 });
 export type BriefingContext = z.infer<typeof BriefingContextSchema>;
 
@@ -258,6 +274,34 @@ export const CampaignStructureOutputSchema = z.object({
     suggestedBudget: z.string(),
     rationale: z.string(),
   })),
+  budgetAllocation: z.object({
+    searchBudget: z.string(),
+    pmaxBudget: z.string(),
+    totalBudget: z.string(),
+    rationale: z.string(),
+  }).optional(),
+  bidStrategy: z.object({
+    phases: z.array(z.object({
+      name: z.string(),
+      description: z.string(),
+    })),
+    note: z.string().optional(),
+  }).optional(),
+  kpis: z.array(z.object({
+    name: z.string(),
+    value: z.string(),
+    note: z.string().optional(),
+  })).optional(),
+  tracking: z.array(z.object({
+    goal: z.string(),
+    method: z.string(),
+    priority: z.enum(['high', 'medium', 'low']),
+  })).optional(),
+  timeline: z.array(z.object({
+    dateRange: z.string(),
+    milestone: z.string(),
+    tasks: z.array(z.string()),
+  })).optional(),
 });
 export type CampaignStructureOutput = z.infer<typeof CampaignStructureOutputSchema>;
 
@@ -271,6 +315,18 @@ export const AdGroupOutputSchema = z.object({
     descriptions: z.array(z.string()),
     imagePrompts: z.array(z.string()).optional(), // For PMax
     callToAction: z.string().optional(),
+    negativeKeywords: z.array(z.string()).optional(),
+    extensions: z.object({
+      sitelinks: z.array(z.object({ title: z.string(), description: z.string() })),
+      callouts: z.array(z.string()),
+      leadForm: z.object({ title: z.string(), fields: z.array(z.string()) }).optional(),
+    }).optional(),
+    audienceSignals: z.object({
+      customIntent: z.array(z.string()),
+      inMarket: z.array(z.string()),
+      customerMatch: z.array(z.string()),
+      demographics: z.string(),
+    }).optional(),
   })),
 });
 export type AdGroupOutput = z.infer<typeof AdGroupOutputSchema>;
@@ -282,9 +338,30 @@ export const GenerateAdGroupsInputSchema = z.object({
     type: z.enum(['search', 'pmax']),
     objective: z.string(),
   }),
+  existingAdGroups: z.array(z.string()).optional(),
 });
 
 export type GenerateAdGroupsInput = z.infer<typeof GenerateAdGroupsInputSchema>;
+export const AdGroupSuggestionSchema = z.object({
+  suggestions: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+  })),
+});
+export type AdGroupSuggestion = z.infer<typeof AdGroupSuggestionSchema>;
+
+export const GenerateSingleAdGroupInputSchema = z.object({
+  context: BriefingContextSchema,
+  campaign: z.object({
+    name: z.string(),
+    type: z.enum(['search', 'pmax']),
+    objective: z.string(),
+  }),
+  adGroupTitle: z.string(),
+  adGroupDescription: z.string(),
+});
+export type GenerateSingleAdGroupInput = z.infer<typeof GenerateSingleAdGroupInputSchema>;
+
 
 export type AdGroupBriefing = {
   id: string;
@@ -295,6 +372,48 @@ export type AdGroupBriefing = {
   descriptions: string[];
   imagePrompts?: string[];
   callToAction?: string;
+  negativeKeywords?: string[];
+  extensions?: {
+    sitelinks: { title: string; description: string }[];
+    callouts: string[];
+    leadForm?: { title: string; fields: string[] };
+  };
+  audienceSignals?: {
+    customIntent: string[];
+    inMarket: string[];
+    customerMatch: string[];
+    demographics: string;
+  };
+};
+
+export type BudgetAllocation = {
+  searchBudget: string;
+  pmaxBudget: string;
+  totalBudget: string;
+  rationale: string;
+};
+
+export type BidStrategyPhase = {
+  name: string;
+  description: string;
+};
+
+export type KPI = {
+  name: string;
+  value: string;
+  note?: string;
+};
+
+export type TrackingGoal = {
+  goal: string;
+  method: string;
+  priority: 'high' | 'medium' | 'low';
+};
+
+export type TimelineStep = {
+  dateRange: string;
+  milestone: string;
+  tasks: string[];
 };
 
 export type CampaignBriefing = {
@@ -305,6 +424,7 @@ export type CampaignBriefing = {
   suggestedBudget: string;
   rationale: string;
   adGroups: AdGroupBriefing[];
+  negativeKeywords?: string[]; // Campaign-level negatives
 };
 
 export type Briefing = {
@@ -314,6 +434,14 @@ export type Briefing = {
   title: string;
   context: BriefingContext;
   campaigns: CampaignBriefing[];
+  budgetAllocation?: BudgetAllocation;
+  bidStrategy?: {
+    phases: BidStrategyPhase[];
+    note?: string;
+  };
+  kpis?: KPI[];
+  tracking?: TrackingGoal[];
+  timeline?: TimelineStep[];
   status: 'draft' | 'approved';
   shareToken: string;
   createdAt: string;

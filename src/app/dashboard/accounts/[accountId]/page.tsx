@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Activity, ArrowLeft, Briefcase, Clock, Goal,
-  History, ListChecks, Loader2, Settings, Trash2,
+  History, ListChecks, Loader2, Settings, StickyNote, Trash2,
   TrendingUp, Users, Zap,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -467,6 +467,16 @@ export default function AccountDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-400"
+          >
+            <Link href={`/dashboard/campaign-briefings/new?accountId=${accountId}&parent=${parentClientId}`}>
+              <StickyNote className="mr-2 size-3.5" /> Nieuwe Blueprint
+            </Link>
+          </Button>
           <div className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide', healthPill(stats.healthScore))}>
             <Activity className="size-3.5" />
             Health {stats.healthScore}%

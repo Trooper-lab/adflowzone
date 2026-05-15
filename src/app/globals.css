@@ -37,6 +37,18 @@
     --sidebar-accent-foreground: 222.2 47.4% 11.2%;
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 222.2 84% 4.9%;
+
+    /* Blueprint Tokens */
+    --blueprint-green: 146 56% 23%;     /* #1a5c2e */
+    --blueprint-green-dark: 145 63% 14%; /* #0d3a1c */
+    --blueprint-accent: 38 92% 55%;      /* #f5a623 */
+    --blueprint-light: 135 25% 97%;      /* #f4f9f5 */
+    --blueprint-border: 138 24% 87%;     /* #d4e6d9 */
+    --blueprint-text: 132 21% 14%;       /* #1c2b1f */
+    --blueprint-muted: 135 15% 42%;      /* #5a7a62 */
+    --blueprint-blue: 214 82% 51%;       /* #1a73e8 */
+    --blueprint-purple: 282 44% 47%;     /* #8e44ad */
+    --blueprint-red: 6 63% 46%;          /* #c0392b */
   }
 
   .dark {
@@ -129,4 +141,47 @@
     .no-spinners {
       -moz-appearance: textfield;
     }
+
+    /* Blueprint Utilities */
+    .blueprint-header {
+      background: linear-gradient(135deg, hsl(var(--blueprint-green)), hsl(var(--blueprint-green-dark)));
+      color: white;
+    }
+    .blueprint-card {
+      background: white;
+      border: 1px solid hsl(var(--blueprint-border));
+      border-radius: 13px;
+      box-shadow: 0 2px 10px hsla(146, 56%, 23%, 0.06);
+    }
+    .blueprint-section-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: hsl(var(--blueprint-green));
+      border-bottom: 3px solid hsl(var(--blueprint-accent));
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .blueprint-pill {
+      background: hsla(0, 0%, 100%, 0.11);
+      border: 1px solid hsla(0, 0%, 100%, 0.18);
+      border-radius: 20px;
+      padding: 4px 13px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .blueprint-kw {
+      border-radius: 5px;
+      padding: 3px 9px;
+      font-size: 0.79rem;
+      font-weight: 600;
+    }
+    .blueprint-kw-ex { background: #e8f5e9; border: 1.5px solid #4caf50; color: #1b5e20; }
+    .blueprint-kw-ph { background: #e3f2fd; border: 1.5px solid #2196f3; color: #0d47a1; }
+    .blueprint-kw-br { background: #fff3e0; border: 1.5px solid #ff9800; color: #e65100; }
+    .blueprint-kw-ng { background: #fce4ec; border: 1.5px solid #e91e63; color: #880e4f; }
 }

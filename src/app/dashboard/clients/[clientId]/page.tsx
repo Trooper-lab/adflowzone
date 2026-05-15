@@ -204,6 +204,16 @@ export default function ClientDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-400"
+          >
+            <Link href={`/dashboard/campaign-briefings/new?clientId=${clientId}`}>
+              <StickyNote className="mr-2 size-3.5" /> Nieuwe Blueprint
+            </Link>
+          </Button>
           {isAdmin && (
             <Button
               variant="outline"
