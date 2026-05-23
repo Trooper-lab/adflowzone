@@ -77,6 +77,24 @@
       ]
     },
     {
+      "collectionGroup": "kpiData",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "childAccountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startDate",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "todoRuns",
       "queryScope": "COLLECTION",
       "fields": [

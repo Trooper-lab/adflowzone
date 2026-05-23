@@ -13,7 +13,7 @@ const extractBriefingContextFlow = ai.defineFlow(
   {
     name: 'extractBriefingContextFlow',
     inputSchema: ExtractBriefingContextInputSchema,
-    outputSchema: BriefingContextSchema,
+    outputSchema: BriefingContextSchema.partial(),
   },
   async (input) => {
     const { output } = await ai.generate({
@@ -37,11 +37,16 @@ const extractBriefingContextFlow = ai.defineFlow(
            - targetAudience: Ideal customer profile.
            - language: 'dutch' or 'english'.
            - tone: Brand voice/tone.
+           - marketingHook: Define the core marketing angle or hook (e.g. "We sell the fastest shoes", "Risk-free trial").
+           - primaryConversion: The primary conversion action (e.g., "Purchase", "Lead Form", "Phone Call").
+           - primaryCta: The exact Call to Action text to use (e.g. "Koop Nu", "Vraag Offerte Aan").
            - monthlyBudget: Extract budget if mentioned (e.g., "€5000").
            - campaignTypes: Array of 'search', 'pmax', 'display', 'video', 'shopping'.
            - desiredCampaignCount: Number of campaigns requested.
-           - budgetDistributionPreference: How to split budget (e.g., "70/30 Search/PMax").
-           - bidStrategyPreference: Preferred bidding strategy.
+           - budgetSplitSearch: Suggested budget percentage for Search (0-100).
+           - budgetSplitPmax: Suggested budget percentage for PMax (0-100).
+           - biddingStrategySearch: Preferred bidding strategy for Search (e.g. "Maximize Clicks", "Target CPA").
+           - biddingStrategyPmax: Preferred bidding strategy for PMax (e.g. "Maximize Conversions", "Target ROAS").
            - focusProducts: Specific products or services to prioritize.
            - competitors: Main competitors mentioned.
            - targetLocations: Geographic areas to target.
@@ -62,15 +67,18 @@ const extractBriefingContextFlow = ai.defineFlow(
       },
     });
 
-    return output ?? {
-        clientName: '',
-        website: '',
-        industry: '',
-        primaryGoals: '',
-        targetAudience: '',
-        language: 'dutch',
-        tone: 'Professional',
+    const result = output ?? {};
+    
+    return {
+        clientName: result.clientName || input.currentContext?.clientName || '',
+        website: result.website || input.currentContext?.website || '',
+        industry: result.industry || input.currentContext?.industry || '',
+        primaryGoals: result.primaryGoals || input.currentContext?.primaryGoals || '',
+        targetAudience: result.targetAudience || input.currentContext?.targetAudience || '',
+        language: result.language || input.currentContext?.language || 'dutch',
+        tone: result.tone || input.currentContext?.tone || 'Professional',
         rawNotes: input.rawNotes,
+        ...result // Spread the rest of the optional fields
     } as BriefingContext;
   }
 );

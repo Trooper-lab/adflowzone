@@ -24,6 +24,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { sendReportByEmail } from '@/app/actions/send-report-email';
+import { fetchCampaignPerformance } from '@/app/actions/google-ads-campaigns';
 
 type EnrichedAccount = ChildAccount & {
     parentName: string;
@@ -374,6 +375,23 @@ export default function ReportDashboard() {
                  })
                  .map(todo => todo.id);
 
+            const currentMonthDate = startOfMonth(new Date());
+            const isCurrentMonth = selectedPeriodStart.getTime() === currentMonthDate.getTime();
+            const dateRange = isCurrentMonth ? 'THIS_MONTH' : 'LAST_MONTH';
+            
+            let campaignDataSnapshot = null;
+            if (account.googleAdsClientId) {
+                try {
+                    campaignDataSnapshot = await fetchCampaignPerformance(
+                        account.id,
+                        account.googleAdsClientId,
+                        dateRange
+                    );
+                } catch (e) {
+                    console.error("Kon campagnedata niet ophalen voor rapportage:", e);
+                }
+            }
+
             const newReport = {
                 ownerId: managerUid,
                 childAccountId: account.id,
@@ -383,6 +401,7 @@ export default function ReportDashboard() {
                 generatedAt: new Date().toISOString(),
                 completedChecklistRunIds: completedChecklistRunIds,
                 completedTodoRunIds: completedTodoIds,
+                campaignDataSnapshot: campaignDataSnapshot || undefined,
                 aiSummary: '',
                 keyInsights: [],
                 nextSteps: []

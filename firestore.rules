@@ -54,6 +54,16 @@ service cloud.firestore {
       allow update: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
+    // Documents subcollection explicitly matched
+    match /parentClients/{parentClientId}/childAccounts/{childAccountId}/documents/{documentId} {
+        allow read, write: if isAuthenticated() && (
+          isAdmin() || 
+          isEmployee() ||
+          get(/databases/$(database)/documents/parentClients/$(parentClientId)/childAccounts/$(childAccountId)).data.assignedEmployeeId == request.auth.uid ||
+          (get(/databases/$(database)/documents/parentClients/$(parentClientId)/childAccounts/$(childAccountId)).data.get('assignedEmployees', [])).hasAny([request.auth.uid])
+        );
+    }
+
     // Parent Clients
     match /parentClients/{parentClientId} {
       allow read: if isAuthenticated() && (isAdmin() || isEmployee());
@@ -86,6 +96,11 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
+    // Campaign Performance
+    match /campaignPerformance/{docId} {
+      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
+    }
+
     // Reports
     match /reports/{reportId} {
       allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
@@ -101,6 +116,11 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
+    // Time Entries
+    match /timeEntries/{entryId} {
+      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
+    }
+
     // Platform Feedback
     match /feedbacks/{feedbackId} {
       allow create: if isAuthenticated();
@@ -113,6 +133,16 @@ service cloud.firestore {
       allow list: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+    }
+
+    // Services
+    match /services/{serviceId} {
+      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
+    }
+
+    // Service Packages
+    match /servicePackages/{packageId} {
+      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
     // Default deny

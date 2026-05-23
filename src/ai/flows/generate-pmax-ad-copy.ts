@@ -32,7 +32,20 @@ const generatePMaxAdCopyFlow = ai.defineFlow(
         2. **Long Headlines (5 assets):** MAX 90 characters. Focus on benefits and storytelling.
         3. **Descriptions (5 assets):** MAX 90 characters. One should be short (60 chars), others up to 90.
         4. **Image Prompts (5 assets):** Creative prompts for an AI image generator that reflect the brand's ${input.tone} tone and product.
-        5. **Keywords (10-15 assets):** Search themes for audience signals.
+        5. **Keywords (10-15 assets):** Search themes for audience signals. These are Performance Max Search Themes and MUST NOT use any match type syntax (do NOT use [] or "").
+
+        **HEADLINE STRUCTURE STRATEGY (15 headlines total):**
+        The 15 headlines must be generated in exactly 3 groups of 5, returned in this exact order in the headlines array:
+        - Group 1 (Headlines 1-5, indices 0-4): Keyword-focused for quality score (e.g. matching keywords/search themes).
+        - Group 2 (Headlines 6-10, indices 5-9): USP-focused (Unique Selling Points, e.g. features, benefits, trust factors).
+        - Group 3 (Headlines 11-15, indices 10-14): Call to action (CTA) focused (e.g. "Koop nu online", "Vraag offerte aan").
+
+        **CAPITALIZATION RULES:**
+        - For Dutch ("dutch") language copy (headlines, long headlines, descriptions, etc.):
+          * Use strictly **Sentence Case** capitalization. This means only the first letter of the first word/sentence is capitalized (along with proper nouns if necessary).
+          * Do NOT capitalize every word (do NOT use Title Case like "Dit Is Een Kop").
+          * Do NOT use all-caps.
+          * Examples: Use "Schoenen online kopen" instead of "Schoenen Online Kopen", "Vraag een offerte aan" instead of "Vraag Een Offerte Aan".
 
         **POLICIES:**
         - No exclamation marks in ANY headline.

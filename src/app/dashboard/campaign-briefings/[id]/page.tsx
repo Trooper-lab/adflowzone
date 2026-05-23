@@ -8,6 +8,7 @@ import { Briefing, BriefingContext, CampaignBriefing, AdGroupBriefing } from '@/
 import { generateCampaignStructure } from '@/ai/flows/generate-campaign-structure';
 import { generateAdGroups, suggestAdGroups, generateSingleAdGroup } from '@/ai/flows/generate-ad-groups';
 import { extractBriefingContext } from '@/ai/flows/extract-briefing-context';
+import { rewriteAsset } from '@/ai/flows/rewrite-asset';
 import { AdGroupSuggestion } from '@/lib/types';
 
 
@@ -18,13 +19,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, WandSparkles, Save, ChevronLeft, Trash2, Type, Key, LayoutGrid, Briefcase, Globe, Target, Coins, MessageSquareText, FileText, Plus, Users, Euro, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, WandSparkles, Save, ChevronLeft, Trash2, Type, Key, LayoutGrid, Briefcase, Globe, Target, Coins, MessageSquareText, FileText, Plus, Users, Euro, CheckCircle2, AlertCircle, Send as SendIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { BlueprintView } from '@/components/briefing/BlueprintView';
 import { BriefingForm } from '@/components/briefing/BriefingForm';
+import { KeywordScout } from '@/components/briefing/KeywordScout';
+import { SendBriefingTab } from '@/components/briefing/SendBriefingTab';
 import { Separator } from '@/components/ui/separator';
 
 const CAMPAIGN_TYPES = [
@@ -57,7 +60,7 @@ function AdPreview({ headlines, descriptions, website }: { headlines: string[], 
   );
 }
 
-function AssetInput({ value, onChange, placeholder, index }: { value: string, onChange: (val: string) => void, placeholder: string, index: number }) {
+function AssetInput({ value, onChange, onRewrite, placeholder, index, loading }: { value: string, onChange: (val: string) => void, onRewrite?: () => void, placeholder: string, index: number, loading?: boolean }) {
     const limit = 30;
     const count = value?.length || 0;
     const isOver = count > limit;
@@ -68,16 +71,26 @@ function AssetInput({ value, onChange, placeholder, index }: { value: string, on
                 value={value || ''}
                 onChange={e => onChange(e.target.value)}
                 placeholder={`${placeholder} ${index + 1}`}
-                className={`h-9 text-xs bg-slate-900 border-slate-800 pr-12 font-medium ${isOver ? 'border-red-500/50 text-red-200' : 'focus:border-indigo-500/50'} text-slate-200`}
+                className={`h-9 text-xs bg-slate-900 border-slate-800 pr-20 font-medium ${isOver ? 'border-red-500/50 text-red-200' : 'focus:border-indigo-500/50'} text-slate-200`}
             />
-            <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black tracking-tighter ${isOver ? 'text-red-500' : count > 25 ? 'text-amber-500' : 'text-slate-600'}`}>
+            <div className={`absolute right-9 top-1/2 -translate-y-1/2 text-[9px] font-black tracking-tighter ${isOver ? 'text-red-500' : count > 25 ? 'text-amber-500' : 'text-slate-600'}`}>
                 {count}/{limit}
             </div>
+            {onRewrite && (
+              <button 
+                onClick={onRewrite} 
+                disabled={loading}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-50"
+                title="Herschrijf met AI"
+              >
+                {loading ? <Loader2 className="size-4 animate-spin" /> : <WandSparkles className="size-4" />}
+              </button>
+            )}
         </div>
     );
 }
 
-function AssetDescriptionInput({ value, onChange, placeholder, index }: { value: string, onChange: (val: string) => void, placeholder: string, index: number }) {
+function AssetDescriptionInput({ value, onChange, onRewrite, placeholder, index, loading }: { value: string, onChange: (val: string) => void, onRewrite?: () => void, placeholder: string, index: number, loading?: boolean }) {
     const limit = 90;
     const count = value?.length || 0;
     const isOver = count > limit;
@@ -93,6 +106,16 @@ function AssetDescriptionInput({ value, onChange, placeholder, index }: { value:
             <div className={`absolute right-3 bottom-2 text-[9px] font-black tracking-tighter ${isOver ? 'text-red-500' : count > 80 ? 'text-amber-500' : 'text-slate-600'}`}>
                 {count}/{limit}
             </div>
+            {onRewrite && (
+              <button 
+                onClick={onRewrite} 
+                disabled={loading}
+                className="absolute right-3 top-3 text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-50"
+                title="Herschrijf met AI"
+              >
+                {loading ? <Loader2 className="size-4 animate-spin" /> : <WandSparkles className="size-4" />}
+              </button>
+            )}
         </div>
     );
 }
@@ -111,9 +134,12 @@ export default function CampaignBriefingEditor() {
   const [extracting, setExtracting] = useState(false);
   const [generatingAdGroupsFor, setGeneratingAdGroupsFor] = useState<string | null>(null);
   const [suggestingFor, setSuggestingFor] = useState<string | null>(null);
+  const [rewritingAsset, setRewritingAsset] = useState<{ cIdx: number, agIdx: number, type: 'headline' | 'description', index: number } | null>(null);
   const [adGroupSuggestions, setAdGroupSuggestions] = useState<Record<string, { title: string, description: string }[]>>({});
+  const [closedSuggestions, setClosedSuggestions] = useState<Record<string, boolean>>({});
   const [manualAdGroup, setManualAdGroup] = useState<Record<string, { title: string, description: string }>>({});
   const [activeTab, setActiveTab] = useState('strategy');
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
 
   const [hasAutoGenerated, setHasAutoGenerated] = useState(false);
 
@@ -178,6 +204,30 @@ export default function CampaignBriefingEditor() {
     fetchBriefing();
   }, [firestore, user, id, isNew, router, toast]);
 
+  // Debounced auto-save on any briefing change
+  useEffect(() => {
+    if (isNew || !firestore || !user || !briefing.id) return;
+    
+    setSaveStatus('unsaved');
+    const timer = setTimeout(async () => {
+      setSaveStatus('saving');
+      const docRef = doc(firestore, 'briefings', briefing.id);
+      const dataToSave = JSON.parse(JSON.stringify({
+        ...briefing,
+        updatedAt: new Date().toISOString()
+      }));
+      try {
+        await updateDoc(docRef, dataToSave);
+        setSaveStatus('saved');
+      } catch(e) {
+        console.error('Debounced auto-save failed', e);
+        setSaveStatus('unsaved');
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [briefing, firestore, user, isNew]);
+
   const handleContextChange = (field: keyof BriefingContext, value: any) => {
     setBriefing(prev => ({ ...prev, context: { ...prev.context, [field]: value } }));
   };
@@ -193,31 +243,60 @@ export default function CampaignBriefingEditor() {
   const handleSave = async () => {
     if (!firestore || !user) return;
     setSaving(true);
+    setSaveStatus('saving');
     try {
       const docRef = doc(firestore, 'briefings', briefing.id);
-      const dataToSave = {
+      const dataToSave = JSON.parse(JSON.stringify({
         ...briefing,
         updatedAt: new Date().toISOString()
-      };
+      }));
       
       if (isNew) {
         await setDoc(docRef, dataToSave);
         toast({ title: 'Briefing aangemaakt!', description: 'De AI analyseert nu je input...' });
+        setSaveStatus('saved');
         router.push(`/dashboard/campaign-briefings/${briefing.id}`);
       } else {
         await updateDoc(docRef, dataToSave);
+        setSaveStatus('saved');
         toast({ title: 'Wijzigingen opgeslagen' });
       }
     } catch (e) {
       console.error(e);
+      setSaveStatus('unsaved');
       toast({ variant: 'destructive', title: 'Opslaan mislukt' });
     } finally {
       setSaving(false);
     }
   };
 
+  const handleRewriteAsset = async (cIdx: number, agIdx: number, type: 'headline' | 'description', index: number, currentValue: string, groupContext?: string) => {
+    if (!currentValue) return;
+    setRewritingAsset({ cIdx, agIdx, type, index });
+    try {
+      const campaign = briefing.campaigns[cIdx];
+      const adGroup = campaign.adGroups[agIdx];
+      const newValue = await rewriteAsset(briefing.context, type, currentValue, campaign.name, adGroup.name, groupContext);
+      
+      setBriefing(prev => {
+        const nc = [...prev.campaigns];
+        const current = [...nc[cIdx].adGroups[agIdx][type + 's' as 'headlines' | 'descriptions']];
+        current[index] = newValue;
+        (nc[cIdx].adGroups[agIdx] as any)[type + 's'] = current;
+        return {...prev, campaigns: nc};
+      });
+      toast({ title: 'Succesvol herschreven!', description: 'De AI heeft een nieuw alternatief gegenereerd.' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Fout bij herschrijven', description: e.message });
+    } finally {
+      setRewritingAsset(null);
+    }
+  };
+
   const handleGenerateStructure = useCallback(async (overrideContext?: BriefingContext) => {
-    const contextToUse = overrideContext || briefing.context;
+    const contextToUse = (overrideContext && typeof overrideContext === 'object' && 'clientName' in overrideContext)
+      ? overrideContext
+      : briefing.context;
     
     if (!contextToUse.clientName?.trim() || !contextToUse.website?.trim()) {
       toast({ 
@@ -245,14 +324,14 @@ export default function CampaignBriefingEditor() {
           bidStrategy: result.bidStrategy || prev.bidStrategy,
           kpis: result.kpis || prev.kpis,
           tracking: result.tracking || prev.tracking,
-          timeline: result.timeline || prev.timeline,
           updatedAt: new Date().toISOString()
         };
         
         // Auto-save the generated structure
         if (firestore) {
           const docRef = doc(firestore, 'briefings', updated.id);
-          updateDoc(docRef, updated).catch(err => console.error('Auto-save failed:', err));
+          const dataToSave = JSON.parse(JSON.stringify(updated));
+          updateDoc(docRef, dataToSave).catch(err => console.error('Auto-save failed:', err));
         }
         
         return updated;
@@ -318,6 +397,7 @@ export default function CampaignBriefingEditor() {
         existingAdGroups: campaign.adGroups.map(ag => ag.name)
       });
       setAdGroupSuggestions(prev => ({ ...prev, [campaignId]: result.suggestions }));
+      setClosedSuggestions(prev => ({ ...prev, [campaignId]: false }));
       toast({ title: 'Suggesties gegenereerd!' });
     } catch (e) {
       console.error(e);
@@ -336,6 +416,31 @@ export default function CampaignBriefingEditor() {
     if (!campaign) return;
 
     setGeneratingAdGroupsFor(campaignId);
+
+    // 1. Find the matching theme to extract exact keywords
+    const matchingTheme = briefing.context.keywordThemes?.find(t => t.name.toLowerCase().trim() === title.toLowerCase().trim());
+    const providedKeywords = matchingTheme ? matchingTheme.keywords : undefined;
+
+    // 2. Calculate aggregated metrics (volume and cpc) for these keywords
+    let totalVolume = 0;
+    let totalCpc = 0;
+    let cpcCount = 0;
+    
+    if (providedKeywords && briefing.context.fetchedKeywordIdeas) {
+      providedKeywords.forEach(kw => {
+        const idea = briefing.context.fetchedKeywordIdeas!.find(i => i.text === kw);
+        if (idea) {
+          totalVolume += (idea.avgMonthlySearches || 0);
+          if (idea.lowCpc) {
+            totalCpc += idea.lowCpc;
+            cpcCount++;
+          }
+        }
+      });
+    }
+    const avgCpc = cpcCount > 0 ? totalCpc / cpcCount : 0;
+    const metrics = providedKeywords ? { searchVolume: totalVolume, avgCpc } : undefined;
+
     try {
       const result = await generateSingleAdGroup({
         context: briefing.context,
@@ -345,20 +450,34 @@ export default function CampaignBriefingEditor() {
           objective: campaign.objective,
         },
         adGroupTitle: title,
-        adGroupDescription: description
+        adGroupDescription: description,
+        providedKeywords
       });
       
       const generatedAdGroups: AdGroupBriefing[] = result.adGroups.map(ag => ({
           ...ag,
-          id: ag.id || crypto.randomUUID()
+          id: ag.id || crypto.randomUUID(),
+          metrics
       }));
 
-      setBriefing(prev => ({
-        ...prev,
-        campaigns: prev.campaigns.map(c => 
-          c.id === campaignId ? { ...c, adGroups: [...c.adGroups, ...generatedAdGroups] } : c
-        )
-      }));
+      setBriefing(prev => {
+        const updated = {
+          ...prev,
+          campaigns: prev.campaigns.map(c => 
+            c.id === campaignId ? { ...c, adGroups: [...c.adGroups, ...generatedAdGroups] } : c
+          ),
+          updatedAt: new Date().toISOString()
+        };
+
+        // Auto-save the newly generated Ad Group
+        if (firestore && user) {
+          const docRef = doc(firestore, 'briefings', updated.id);
+          const dataToSave = JSON.parse(JSON.stringify(updated));
+          updateDoc(docRef, dataToSave).catch(err => console.error('Auto-save failed:', err));
+        }
+
+        return updated;
+      });
       
       // Clear suggestions and manual input for this campaign
       setAdGroupSuggestions(prev => {
@@ -402,6 +521,10 @@ export default function CampaignBriefingEditor() {
             <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-bold">
               <div className={`w-2 h-2 rounded-full ${briefing.status === 'approved' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
               {briefing.status === 'approved' ? 'Goedgekeurd' : 'Concept Fase'}
+              <span className="mx-2 text-slate-700">•</span>
+              {saveStatus === 'saved' && <span className="text-emerald-500 flex items-center gap-1"><CheckCircle2 className="size-3" /> Opgeslagen</span>}
+              {saveStatus === 'saving' && <span className="text-indigo-400 flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> Opslaan...</span>}
+              {saveStatus === 'unsaved' && <span className="text-amber-500 flex items-center gap-1"><AlertCircle className="size-3" /> Wachten...</span>}
             </div>
           </div>
         </div>
@@ -426,13 +549,19 @@ export default function CampaignBriefingEditor() {
         <div className="flex items-center justify-center md:justify-start mb-8 border-b border-slate-800 pb-px">
           <TabsList className="bg-transparent border-none gap-8 h-12 p-0">
             <TabsTrigger value="strategy" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent data-[state=active]:text-blue-400 text-slate-400 hover:text-slate-200 font-bold px-0 gap-2 h-12">
-                <Briefcase className="size-4" /> Strategie & Context
+                <Briefcase className="size-4" /> 1. Strategie & Context
+            </TabsTrigger>
+            <TabsTrigger value="keywords" className="rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:text-emerald-400 text-slate-400 hover:text-slate-200 font-bold px-0 gap-2 h-12">
+                <Target className="size-4" /> 2. Keyword Scout
             </TabsTrigger>
             <TabsTrigger value="editor" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent data-[state=active]:text-indigo-400 text-slate-400 hover:text-slate-200 font-bold px-0 gap-2 h-12">
-                <LayoutGrid className="size-4" /> Campagne Editor
+                <LayoutGrid className="size-4" /> 3. Campagne Editor
             </TabsTrigger>
-            <TabsTrigger value="blueprint" className="rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:text-emerald-400 text-slate-400 hover:text-slate-200 font-bold px-0 gap-2 h-12">
-                <FileText className="size-4" /> Blueprint Preview
+            <TabsTrigger value="blueprint" className="rounded-none border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:bg-transparent data-[state=active]:text-purple-400 text-slate-400 hover:text-slate-200 font-bold px-0 gap-2 h-12">
+                <FileText className="size-4" /> 4. Blueprint Preview
+            </TabsTrigger>
+            <TabsTrigger value="send" className="rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:text-emerald-400 text-slate-400 hover:text-slate-200 font-bold px-0 gap-2 h-12">
+                <SendIcon className="size-4" /> 5. Verstuur Briefing
             </TabsTrigger>
           </TabsList>
         </div>
@@ -440,17 +569,38 @@ export default function CampaignBriefingEditor() {
         {/* TAB 1: STRATEGY & CONTEXT */}
         <TabsContent value="strategy" className="mt-0 animate-in fade-in slide-in-from-left-4 duration-500">
           <BriefingForm 
-            key={briefing.updatedAt + (briefing.context.clientName || '')}
-            initialData={briefing.context}
-            onSubmit={(newContext) => {
+            context={briefing.context}
+            onChange={(newContext) => {
               setBriefing(prev => ({ ...prev, context: newContext }));
-              handleGenerateStructure(newContext);
+            }}
+            onSubmit={() => {
+              setActiveTab('keywords');
             }}
             onExtract={handleExtract}
-            loading={generatingStructure}
+            loading={false}
             extracting={extracting}
-            submitLabel="Update Strategy & Generate Structure"
+            submitLabel="Volgende: Keyword Scout"
           />
+        </TabsContent>
+
+        {/* TAB 2: KEYWORD SCOUT */}
+        <TabsContent value="keywords" className="mt-0 animate-in fade-in slide-in-from-right-4 duration-500">
+          <KeywordScout 
+            context={briefing.context}
+            onChange={(newContext) => {
+              setBriefing(prev => ({ ...prev, context: newContext }));
+            }}
+            onNext={() => {
+              handleGenerateStructure(briefing.context);
+            }}
+          />
+          {generatingStructure && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center flex-col gap-6">
+              <Loader2 className="size-16 animate-spin text-blue-500" />
+              <h2 className="text-2xl font-black text-white">AI bouwt de campagne structuur...</h2>
+              <p className="text-slate-400 text-center max-w-md">Dit kan even duren. De AI is nu de beste structuur aan het bepalen op basis van je keywords en strategie.</p>
+            </div>
+          )}
         </TabsContent>
 
         {/* TAB 2: EDITOR */}
@@ -508,7 +658,7 @@ export default function CampaignBriefingEditor() {
                     <p className="text-sm text-slate-400">Beheer de door AI voorgestelde campagnes en advertentiegroepen.</p>
                 </div>
                 <Button 
-                    onClick={handleGenerateStructure} 
+                    onClick={() => handleGenerateStructure()} 
                     disabled={generatingStructure} 
                     className="bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-xs h-11 px-6 rounded-xl shadow-lg shadow-indigo-900/40 transition-all hover:scale-[1.02]"
                 >
@@ -626,76 +776,79 @@ export default function CampaignBriefingEditor() {
                     </div>
 
                     {/* Ad Group Wizard UI */}
-                    {(adGroupSuggestions[campaign.id] || suggestingFor === campaign.id) && (
-                        <Card className="bg-slate-950/40 border-slate-800/50 mb-8 overflow-hidden animate-in slide-in-from-top-4 duration-300">
-                             <div className="p-4 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <div className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Ad Group Wizard</span>
-                                </div>
-                                <Button variant="ghost" size="sm" className="h-6 text-[9px] uppercase font-bold text-slate-600 hover:text-slate-400" 
-                                    onClick={() => setAdGroupSuggestions(prev => {
-                                        const n = {...prev};
-                                        delete n[campaign.id];
-                                        return n;
-                                    })}
-                                >
-                                    Annuleren
-                                </Button>
-                             </div>
-                             <div className="p-6">
-                                {suggestingFor === campaign.id ? (
-                                    <div className="flex flex-col items-center justify-center py-12 gap-4">
-                                        <Loader2 className="size-8 text-indigo-500 animate-spin" />
-                                        <p className="text-xs font-black uppercase tracking-widest text-slate-500">AI analyseert campagnes...</p>
+                    {(() => {
+                        const suggestions = adGroupSuggestions[campaign.id] || campaign.adGroupSuggestions || [];
+                        const hasSuggestions = (suggestions.length > 0 || suggestingFor === campaign.id) && !closedSuggestions[campaign.id];
+                        
+                        if (!hasSuggestions) return null;
+                        
+                        return (
+                            <Card className="bg-slate-950/40 border-slate-800/50 mb-8 overflow-hidden animate-in slide-in-from-top-4 duration-300">
+                                 <div className="p-4 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <div className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Ad Group Wizard</span>
                                     </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                                        {(adGroupSuggestions[campaign.id] || []).map((s, idx) => (
-                                            <div key={idx} className="group relative flex flex-col h-full bg-slate-900/40 rounded-2xl border border-slate-800 hover:border-indigo-500/30 transition-all p-5">
-                                                <div className="flex-1 space-y-2 mb-4">
-                                                    <h5 className="text-xs font-black text-indigo-400 uppercase tracking-wider">{s.title}</h5>
-                                                    <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-3">{s.description}</p>
+                                    <Button variant="ghost" size="sm" className="h-6 text-[9px] uppercase font-bold text-slate-600 hover:text-slate-400" 
+                                        onClick={() => setClosedSuggestions(prev => ({ ...prev, [campaign.id]: true }))}
+                                    >
+                                        Annuleren
+                                    </Button>
+                                 </div>
+                                 <div className="p-6">
+                                    {suggestingFor === campaign.id ? (
+                                        <div className="flex flex-col items-center justify-center py-12 gap-4">
+                                            <Loader2 className="size-8 text-indigo-500 animate-spin" />
+                                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">AI analyseert campagnes...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                                            {suggestions.map((s, idx) => (
+                                                <div key={idx} className="group relative flex flex-col h-full bg-slate-900/40 rounded-2xl border border-slate-800 hover:border-indigo-500/30 transition-all p-5">
+                                                    <div className="flex-1 space-y-2 mb-4">
+                                                        <h5 className="text-xs font-black text-indigo-400 uppercase tracking-wider">{s.title}</h5>
+                                                        <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-3">{s.description}</p>
+                                                    </div>
+                                                    <Button 
+                                                        size="sm" 
+                                                        className="w-full bg-indigo-600/10 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/20 text-[10px] font-black uppercase tracking-widest h-9"
+                                                        onClick={() => handleGenerateSingleAdGroup(campaign.id, s.title, s.description)}
+                                                        disabled={generatingAdGroupsFor === campaign.id}
+                                                    >
+                                                        {generatingAdGroupsFor === campaign.id ? <Loader2 className="size-3 animate-spin" /> : 'Kies deze'}
+                                                    </Button>
                                                 </div>
+                                            ))}
+                                            <div className="bg-slate-900/20 rounded-2xl border border-dashed border-slate-800 p-5 flex flex-col gap-3">
+                                                <h5 className="text-xs font-black text-slate-400 uppercase tracking-wider">Eigen Input</h5>
+                                                <Input 
+                                                    placeholder="Naam..." 
+                                                    className="h-9 text-xs bg-slate-950 border-slate-800"
+                                                    value={manualAdGroup[campaign.id]?.title || ''}
+                                                    onChange={e => setManualAdGroup(prev => ({ ...prev, [campaign.id]: { ...(prev[campaign.id] || {title:'', description:''}), title: e.target.value } }))}
+                                                />
+                                                <Textarea 
+                                                    placeholder="Focus/Thema..." 
+                                                    className="h-14 text-xs bg-slate-950 border-slate-800 resize-none leading-tight"
+                                                    value={manualAdGroup[campaign.id]?.description || ''}
+                                                    onChange={e => setManualAdGroup(prev => ({ ...prev, [campaign.id]: { ...(prev[campaign.id] || {title:'', description:''}), description: e.target.value } }))}
+                                                />
                                                 <Button 
                                                     size="sm" 
-                                                    className="w-full bg-indigo-600/10 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/20 text-[10px] font-black uppercase tracking-widest h-9"
-                                                    onClick={() => handleGenerateSingleAdGroup(campaign.id, s.title, s.description)}
+                                                    variant="outline"
+                                                    className="w-full border-slate-700 text-[10px] font-black uppercase tracking-widest h-9 hover:bg-indigo-600 hover:text-white"
+                                                    onClick={() => handleGenerateSingleAdGroup(campaign.id, manualAdGroup[campaign.id]?.title, manualAdGroup[campaign.id]?.description)}
                                                     disabled={generatingAdGroupsFor === campaign.id}
                                                 >
-                                                    {generatingAdGroupsFor === campaign.id ? <Loader2 className="size-3 animate-spin" /> : 'Kies deze'}
+                                                     {generatingAdGroupsFor === campaign.id ? <Loader2 className="size-3 animate-spin" /> : 'Genereer'}
                                                 </Button>
                                             </div>
-                                        ))}
-                                        <div className="bg-slate-900/20 rounded-2xl border border-dashed border-slate-800 p-5 flex flex-col gap-3">
-                                            <h5 className="text-xs font-black text-slate-400 uppercase tracking-wider">Eigen Input</h5>
-                                            <Input 
-                                                placeholder="Naam..." 
-                                                className="h-9 text-xs bg-slate-950 border-slate-800"
-                                                value={manualAdGroup[campaign.id]?.title || ''}
-                                                onChange={e => setManualAdGroup(prev => ({ ...prev, [campaign.id]: { ...(prev[campaign.id] || {title:'', description:''}), title: e.target.value } }))}
-                                            />
-                                            <Textarea 
-                                                placeholder="Focus/Thema..." 
-                                                className="h-14 text-xs bg-slate-950 border-slate-800 resize-none leading-tight"
-                                                value={manualAdGroup[campaign.id]?.description || ''}
-                                                onChange={e => setManualAdGroup(prev => ({ ...prev, [campaign.id]: { ...(prev[campaign.id] || {title:'', description:''}), description: e.target.value } }))}
-                                            />
-                                            <Button 
-                                                size="sm" 
-                                                variant="outline"
-                                                className="w-full border-slate-700 text-[10px] font-black uppercase tracking-widest h-9 hover:bg-indigo-600 hover:text-white"
-                                                onClick={() => handleGenerateSingleAdGroup(campaign.id, manualAdGroup[campaign.id]?.title, manualAdGroup[campaign.id]?.description)}
-                                                disabled={generatingAdGroupsFor === campaign.id}
-                                            >
-                                                 {generatingAdGroupsFor === campaign.id ? <Loader2 className="size-3 animate-spin" /> : 'Genereer'}
-                                            </Button>
                                         </div>
-                                    </div>
-                                )}
-                             </div>
-                        </Card>
-                    )}
+                                    )}
+                                 </div>
+                            </Card>
+                        );
+                    })()}
 
 
                     <div className="grid grid-cols-1 gap-6">
@@ -714,7 +867,21 @@ export default function CampaignBriefingEditor() {
                               <Trash2 className="size-4" />
                           </Button>
                           
-                          <div className="space-y-8">
+                          <div className="absolute top-4 left-5 flex items-center gap-4">
+                              <h4 className="text-sm font-bold text-white uppercase tracking-wider">{ag.name}</h4>
+                              {ag.metrics && (
+                                  <div className="flex gap-2">
+                                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] uppercase font-bold tracking-wider">
+                                          {ag.metrics.searchVolume.toLocaleString()} Vol.
+                                      </Badge>
+                                      <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px] uppercase font-bold tracking-wider">
+                                          ~ €{ag.metrics.avgCpc.toFixed(2)} CPC
+                                      </Badge>
+                                  </div>
+                              )}
+                          </div>
+
+                          <div className="space-y-8 mt-10">
                                 {/* ROW 1: Keywords & Preview */}
                                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                                     <div className="xl:col-span-2 space-y-2">
@@ -762,6 +929,7 @@ export default function CampaignBriefingEditor() {
                                                 index={i}
                                                 value={ag.descriptions[i] || ''}
                                                 placeholder="Beschrijving"
+                                                loading={rewritingAsset?.cIdx === cIdx && rewritingAsset?.agIdx === agIdx && rewritingAsset?.type === 'description' && rewritingAsset?.index === i}
                                                 onChange={val => setBriefing(prev => {
                                                     const nc = [...prev.campaigns];
                                                     const current = [...nc[cIdx].adGroups[agIdx].descriptions];
@@ -769,6 +937,7 @@ export default function CampaignBriefingEditor() {
                                                     nc[cIdx].adGroups[agIdx].descriptions = current;
                                                     return {...prev, campaigns: nc};
                                                 })}
+                                                onRewrite={() => handleRewriteAsset(cIdx, agIdx, 'description', i, ag.descriptions[i])}
                                             />
                                         ))}
                                     </div>
@@ -782,7 +951,11 @@ export default function CampaignBriefingEditor() {
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         {[0, 1, 2].map(colIdx => (
                                             <div key={colIdx} className="space-y-2 bg-slate-950/20 p-4 rounded-2xl border border-slate-800/50">
-                                                <div className="text-[9px] font-black uppercase text-slate-500 mb-2 tracking-widest">Groep {colIdx + 1}</div>
+                                                <div className="text-[9px] font-black uppercase text-slate-500 mb-2 tracking-widest">
+                                                    {colIdx === 0 && 'Groep 1: Zoekwoord gericht'}
+                                                    {colIdx === 1 && 'Groep 2: USPs'}
+                                                    {colIdx === 2 && 'Groep 3: CTAs'}
+                                                </div>
                                                 <div className="space-y-2">
                                                     {[0, 1, 2, 3, 4].map(i => (
                                                         <AssetInput 
@@ -790,6 +963,7 @@ export default function CampaignBriefingEditor() {
                                                             index={colIdx * 5 + i}
                                                             value={ag.headlines[colIdx * 5 + i] || ''}
                                                             placeholder="Kop"
+                                                            loading={rewritingAsset?.cIdx === cIdx && rewritingAsset?.agIdx === agIdx && rewritingAsset?.type === 'headline' && rewritingAsset?.index === colIdx * 5 + i}
                                                             onChange={val => setBriefing(prev => {
                                                                 const nc = [...prev.campaigns];
                                                                 const current = [...nc[cIdx].adGroups[agIdx].headlines];
@@ -797,6 +971,7 @@ export default function CampaignBriefingEditor() {
                                                                 nc[cIdx].adGroups[agIdx].headlines = current;
                                                                 return {...prev, campaigns: nc};
                                                             })}
+                                                            onRewrite={() => handleRewriteAsset(cIdx, agIdx, 'headline', colIdx * 5 + i, ag.headlines[colIdx * 5 + i], colIdx === 0 ? 'Group 1: Keyword-focused' : colIdx === 1 ? 'Group 2: USP/Hook-focused' : 'Group 3: CTA-focused')}
                                                         />
                                                     ))}
                                                 </div>
@@ -1088,6 +1263,12 @@ export default function CampaignBriefingEditor() {
             onStatusChange={(status) => setBriefing(prev => ({ ...prev, status }))}
            />
         </TabsContent>
+
+        {/* TAB 5: SEND BRIEFING */}
+        <TabsContent value="send" className="mt-0 animate-in fade-in slide-in-from-right-4 duration-500">
+          <SendBriefingTab briefing={briefing} />
+        </TabsContent>
+
       </Tabs>
     </div>
   );

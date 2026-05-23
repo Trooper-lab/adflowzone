@@ -5,7 +5,6 @@ import { Briefing, CampaignBriefing, AdGroupBriefing } from '@/lib/types';
 import { BudgetGrid } from './BudgetGrid';
 import { CampaignBlock } from './CampaignBlock';
 import { KPITable } from './KPITable';
-import { TimelineView } from './TimelineView';
 import { TrackingTable } from './TrackingTable';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -294,70 +293,11 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
           </div>
         </section>
 
-        {/* 3. IMPLEMENTATION ROADMAP */}
-        <section className="pt-24 border-t border-slate-100">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-            <div>
-              <div className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                <span className="w-4 h-[1px] bg-amber-600/30" />
-                Sectie 03
-              </div>
-              <h2 className="text-4xl font-black tracking-tight text-slate-900">Implementatie Roadmap</h2>
-            </div>
-            <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
-              <Share2 className="size-3 animate-pulse" />
-              Scroll horizontaal voor alle stappen
-            </div>
-          </div>
-          
-          <div className="relative -mx-12">
-            {/* Carousel Container */}
-            <div className="flex overflow-x-auto pb-12 gap-6 snap-x no-scrollbar scroll-smooth px-12">
-                {(timeline || []).map((step, i) => (
-                    <div key={i} className="min-w-[340px] max-w-[340px] snap-center">
-                        <Card className="h-full p-10 rounded-[2.5rem] border-0 shadow-xl shadow-slate-200/40 bg-white ring-1 ring-slate-100 flex flex-col hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group/step">
-                            <div className="flex items-center justify-between mb-8">
-                                <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 font-black text-sm border border-amber-100 group-hover/step:bg-amber-500 group-hover/step:text-white group-hover/step:border-amber-400 transition-all duration-500">
-                                    {i + 1}
-                                </div>
-                                <div className="bg-amber-100 text-amber-700 text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-widest border border-amber-200/50 shadow-sm">
-                                    {step.dateRange}
-                                </div>
-                            </div>
-                            <h4 className="text-2xl font-black text-slate-900 mb-6 leading-tight group-hover/step:text-amber-600 transition-colors">{step.milestone}</h4>
-                            <div className="space-y-3 mb-10 flex-1">
-                                {(step.tasks || []).map((task, idx) => (
-                                    <div key={idx} className="flex items-start gap-3">
-                                        <div className="w-1 h-1 rounded-full bg-amber-500 mt-2 shrink-0" />
-                                        <p className="text-sm text-slate-600 font-medium leading-relaxed opacity-80 group-hover/step:opacity-100 transition-opacity">
-                                            {task}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="pt-8 border-t border-slate-50 flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                    <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                                    Prioriteit: Hoog
-                                </div>
-                                <CheckCircle2 className="size-5 text-slate-200 group-hover/step:text-emerald-500 transition-colors" />
-                            </div>
-                        </Card>
-                    </div>
-                ))}
-            </div>
-            
-            {/* Subtle Gradient Overlays for horizontal scroll */}
-            <div className="absolute top-0 left-0 bottom-12 w-24 bg-gradient-to-r from-[#f8fafc] to-transparent pointer-events-none z-10" />
-            <div className="absolute top-0 right-0 bottom-12 w-24 bg-gradient-to-l from-[#f8fafc] to-transparent pointer-events-none z-10" />
-          </div>
-        </section>
-
-        {/* 4. TRACKING & DATA STRATEGIE */}
+        {/* 3. TRACKING & DATA STRATEGIE */}
         <section className="pt-12 border-t border-slate-100">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <div className="text-[10px] font-black text-purple-600 uppercase tracking-[0.2em] mb-2">Sectie 04</div>
+              <div className="text-[10px] font-black text-purple-600 uppercase tracking-[0.2em] mb-2">Sectie 03</div>
               <h2 className="text-3xl font-black tracking-tight text-slate-900">Tracking & Data Strategie</h2>
             </div>
           </div>

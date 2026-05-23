@@ -5,21 +5,23 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import {
   doc, updateDoc, arrayUnion, collection, query,
-  where, arrayRemove, getDoc, getDocs, writeBatch, Timestamp,
+  where, arrayRemove, getDoc, getDocs, writeBatch, Timestamp, orderBy, limit
 } from 'firebase/firestore';
 import type {
   ChildAccount, ChecklistTemplate, ConnectedChecklist,
-  KpiData, ParentClient, ChecklistRun, AppUser,
+  KpiData, ParentClient, ChecklistRun, AppUser, ServicePackage, Todo, Service, TimeEntry
 } from '@/lib/types';
 import {
   format, startOfMonth, addMonths, isPast, isToday,
   addDays, addWeeks, getDay, setDay, setDate,
   parseISO, subDays, differenceInDays, isValid,
 } from 'date-fns';
+import { nl } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription,
@@ -29,7 +31,8 @@ import {
 import {
   Activity, ArrowLeft, Briefcase, Clock, Goal,
   History, ListChecks, Loader2, Settings, StickyNote, Trash2,
-  TrendingUp, Users, Zap,
+  TrendingUp, Users, Zap, BarChart2, Package, CheckCircle2,
+  FolderOpen, AlertTriangle, Target, DollarSign
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -37,13 +40,16 @@ import { ChecklistRunner } from '@/components/checklist/ChecklistRunner';
 import Link from 'next/link';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
-// Extracted sub-components (unchanged)
+// Extracted sub-components
 import AccountTodos from '@/components/account/AccountTodos';
 import AccountReports from '@/components/account/AccountReports';
 import KpiStandardTable from '@/components/account/KpiStandardTable';
 import ChecklistHistory from '@/components/account/ChecklistHistory';
 import AddChecklistDialog from '@/components/account/AddChecklistDialog';
 import InProgressChecklists from '@/components/account/InProgressChecklists';
+import AccountCampaigns from '@/components/account/AccountCampaigns';
+import AccountDocuments from '@/components/account/AccountDocuments';
+import AccountSettings from '@/components/account/AccountSettings';
 
 // ─── Static maps ──────────────────────────────────────────────────────────────
 
@@ -99,13 +105,13 @@ function StatCard({
 }
 
 function Section({
-  title, icon: Icon, iconCn, right, children,
+  title, icon: Icon, iconCn, right, children, className
 }: {
   title: string; icon?: React.ElementType; iconCn?: string;
-  right?: React.ReactNode; children: React.ReactNode;
+  right?: React.ReactNode; children: React.ReactNode; className?: string;
 }) {
   return (
-    <div className="rounded-xl bg-[#1C243A] border border-[#2A3552] overflow-hidden">
+    <div className={cn("rounded-xl bg-[#1C243A] border border-[#2A3552] overflow-hidden", className)}>
       <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#2A3552] bg-white/[0.03]">
         <div className="flex items-center gap-2">
           {Icon && <Icon className={cn('size-4', iconCn ?? 'text-slate-500')} />}
@@ -131,6 +137,7 @@ export default function AccountDetailPage() {
   const { user } = useUser();
   const { toast } = useToast();
 
+  const [activeTab, setActiveTab] = useState('overzicht');
   const [isSaving, setIsSaving] = useState(false);
   const [activeChecklist, setActiveChecklist] = useState<ConnectedChecklist | null>(null);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
@@ -141,6 +148,8 @@ export default function AccountDetailPage() {
     healthScore: 0,
     lastRunDays: 0,
     pacingScore: 0,
+    recentRuns: [] as any[],
+    allRuns30d: [] as any[],
   });
   const [assignedEmployee, setAssignedEmployee] = useState<AppUser | null>(null);
 
@@ -212,6 +221,142 @@ export default function AccountDetailPage() {
     }
   }, [assignedEmployeeId, firestore]);
 
+  // Packages fetch
+  const packagesQuery = useMemoFirebase(
+    () => (firestore && managerUid ? query(collection(firestore, 'servicePackages'), where('ownerId', '==', managerUid)) : null),
+    [firestore, managerUid]
+  );
+  const { data: packagesData } = useCollection(packagesQuery);
+  const allPackages = useMemo(() => {
+    if (!packagesData) return [];
+    return packagesData as ServicePackage[];
+  }, [packagesData]);
+
+  // Open Todos fetch
+  const openTodosQuery = useMemoFirebase(
+    () => (firestore && managerUid && accountId ? query(
+      collection(firestore, 'users', managerUid, 'todos'),
+      where('childAccountId', '==', accountId as string),
+      where('status', 'in', ['todo', 'in_progress'])
+    ) : null),
+    [firestore, managerUid, accountId]
+  );
+  const { data: openTodosData } = useCollection(openTodosQuery);
+  const overdueTodosCount = useMemo(() => {
+      if (!openTodosData) return 0;
+      let count = 0;
+      const today = new Date();
+      openTodosData.forEach((d: any) => {
+          const t = d as Todo;
+          if (t.deadline && parseISO(t.deadline) < today) count++;
+      });
+      return count;
+  }, [openTodosData]);
+
+  // Time Entries fetch
+  const effectiveParentId = parentClientId || (childAccount as ChildAccount)?.parentClientId;
+  const timeEntriesQuery = useMemoFirebase(
+    () => (firestore && managerUid && effectiveParentId ? query(
+      collection(firestore, 'timeEntries'),
+      where('parentClientId', '==', effectiveParentId as string)
+    ) : null),
+    [firestore, managerUid, effectiveParentId]
+  );
+  const { data: timeEntriesRaw } = useCollection(timeEntriesQuery);
+  
+  const { recentTimeEntries, totalMinutes30d } = useMemo(() => {
+    let totalMins = 0;
+    const combined: any[] = [];
+    
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const cutoff = thirtyDaysAgo.toISOString();
+
+    // 1. Manual Time Entries
+    if (timeEntriesRaw) {
+        (timeEntriesRaw as TimeEntry[]).forEach(entry => {
+            if (entry.date >= cutoff && (entry.childAccountId === accountId || !entry.childAccountId || entry.childAccountId === 'none')) {
+                const mins = entry.durationMinutes || 0;
+                totalMins += mins;
+                combined.push({
+                    type: 'manual',
+                    title: entry.description || 'Handmatige tijd',
+                    date: parseISO(entry.date),
+                    mins: mins
+                });
+            }
+        });
+    }
+
+    // 2. Auto Checklist Runs
+    if (stats.allRuns30d) {
+        stats.allRuns30d.forEach(run => {
+            const mins = Math.round((run.durationSeconds || 0) / 60);
+            if (mins > 0) {
+                totalMins += mins;
+                combined.push({
+                    type: 'checklist',
+                    title: `Checklist: ${run.name || 'Onbekend'}`,
+                    date: run._parsedDate,
+                    mins: mins
+                });
+            }
+        });
+    }
+
+    combined.sort((a, b) => b.date.getTime() - a.date.getTime());
+    
+    return { recentTimeEntries: combined, totalMinutes30d: totalMins };
+  }, [timeEntriesRaw, accountId, stats.allRuns30d]);
+
+  // Hero KPI fetch
+  const heroKpiName = (childAccount as ChildAccount)?.kpisToTrack?.[0] || null;
+  const targetHeroKpi = (childAccount as ChildAccount)?.targetKpiValues?.find(t => t.kpi === heroKpiName)?.value;
+  const [latestHeroKpi, setLatestHeroKpi] = useState<{value: number | string, date: Date} | null>(null);
+
+  useEffect(() => {
+      if (!firestore || !childAccount || !heroKpiName) return;
+      const fetchLatestKpi = async () => {
+          const q = query(collection(firestore, 'kpiData'), where('childAccountId', '==', (childAccount as ChildAccount).id), orderBy('startDate', 'desc'), limit(1));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+              const data = snap.docs[0].data() as KpiData;
+              if (data.kpiValues && data.kpiValues[heroKpiName] !== undefined) {
+                  setLatestHeroKpi({ value: data.kpiValues[heroKpiName], date: parseISO(data.startDate) });
+              }
+          }
+      };
+      fetchLatestKpi();
+  }, [childAccount, firestore, heroKpiName, refetchTrigger]);
+
+  // MRR Calculation
+  const totalMrr = useMemo(() => {
+      if (!childAccount || !parentClient) return 0;
+      const acc = childAccount as ChildAccount;
+      const client = parentClient as ParentClient;
+      let mrr = 0;
+      const rate = client.hourlyRate || 0;
+
+      if ((!acc.connectedServices || acc.connectedServices.length === 0) && (!acc.connectedPackages || acc.connectedPackages.length === 0)) {
+          return (acc.managementFee?.amount || 0) + ((acc.fixedManagementHours || 0) * rate);
+      }
+
+      let totalHours = 0;
+      acc.connectedServices?.forEach(s => totalHours += (Number(s.hours) || 0));
+      mrr += totalHours * rate;
+
+      acc.connectedPackages?.forEach(pkgRef => {
+          const pkg = allPackages.find(p => p.id === pkgRef.packageId);
+          if (pkg) {
+              let pkgHours = 0;
+              pkg.services?.forEach((s: any) => pkgHours += (Number(s.hours) || 0));
+              mrr += pkgHours * rate;
+              if (pkg.packageDiscount) mrr -= pkg.packageDiscount;
+          }
+      });
+      return mrr + (acc.managementFee?.amount || 0);
+  }, [childAccount, parentClient, allPackages]);
+
   // ── Stats calculation ─────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -222,7 +367,7 @@ export default function AccountDetailPage() {
       const runsQuery = query(
         collection(firestore, 'checklistRuns'),
         where('childAccountId', '==', (childAccount as ChildAccount).id),
-        where('completedAt', '>=', thirtyDaysAgo.toISOString()),
+        where('completedAt', '>=', thirtyDaysAgo),
       );
 
       try {
@@ -230,6 +375,7 @@ export default function AccountDetailPage() {
         let checklists = 0;
         let comments = 0;
         let lastRunDate: Date | null = null;
+        const runsArray: any[] = [];
 
         snapshot.forEach((snap) => {
           const run = snap.data() as ChecklistRun;
@@ -246,9 +392,12 @@ export default function AccountDetailPage() {
           }
           if (completedAt && isValid(completedAt)) {
             if (!lastRunDate || completedAt > lastRunDate) lastRunDate = completedAt;
+            runsArray.push({ ...run, _parsedDate: completedAt });
           }
         });
 
+        runsArray.sort((a, b) => b._parsedDate.getTime() - a._parsedDate.getTime());
+        
         const connectedCount = (childAccount as ChildAccount).connectedChecklists?.length || 1;
         const expectedRuns = connectedCount * 2;
         const pacing = Math.min(Math.round((checklists / expectedRuns) * 100), 100);
@@ -261,6 +410,8 @@ export default function AccountDetailPage() {
           healthScore: Math.round((pacing + activityScore) / 2),
           lastRunDays: daysSinceLast,
           pacingScore: pacing,
+          recentRuns: runsArray.slice(0, 3),
+          allRuns30d: runsArray,
         });
       } catch (e) {
         console.error('Error calculating stats:', e);
@@ -481,252 +632,354 @@ export default function AccountDetailPage() {
             <Activity className="size-3.5" />
             Health {stats.healthScore}%
           </div>
-          <Button
-            variant="outline" size="sm" asChild
-            className="border-[#2A3552] bg-white/5 hover:bg-white/10 text-slate-300"
-          >
-            <Link href={`/dashboard/accounts/${accountId}/edit?parent=${parentClientId}`}>
-              <Settings className="mr-2 size-3.5" /> Instellingen
-            </Link>
-          </Button>
         </div>
       </div>
 
-      {/* ── Stats row ── */}
-      <div className={cn('grid gap-4', isAdmin ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3')}>
-        <StatCard
-          label="Click Budget"
-          value={`€${account.monthlyClickBudget?.toLocaleString('nl-NL') || '0'}`}
-          sub="per maand"
-          valueCn="text-green-400"
-          accent="bg-green-500/40"
-        />
-        {isAdmin && (
-          <StatCard
-            label="Management Fee"
-            value={`€${account.managementFee?.amount?.toLocaleString('nl-NL') || '0'}`}
-            sub="per maand"
-            valueCn="text-blue-400"
-            accent="bg-blue-500/40"
-          />
-        )}
-        <StatCard
-          label="Checklists (30d)"
-          value={stats.checklists30d.toString()}
-          sub={`${stats.comments30d} notities`}
-          valueCn="text-purple-400"
-          accent="bg-purple-500/40"
-        />
-        <StatCard
-          label="Laatste sync"
-          value={stats.lastRunDays === 0 ? 'Vandaag' : `${stats.lastRunDays}d geleden`}
-          valueCn={stats.lastRunDays > 7 ? 'text-red-400' : stats.lastRunDays > 3 ? 'text-yellow-400' : 'text-slate-100'}
-          accent={stats.lastRunDays > 7 ? 'bg-red-500/40' : 'bg-slate-500/40'}
-        />
-      </div>
-
-      {/* ── Standing bar ── */}
-      <div className="rounded-xl bg-[#1C243A] border border-[#2A3552] px-6 py-4">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
-          Account Standing — laatste 30 dagen
-        </p>
-        <div className="grid grid-cols-3 gap-8">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+        <TabsList className="bg-[#1C243A] border border-[#2A3552] w-full justify-start overflow-x-auto h-auto p-1 sticky top-0 z-10">
           {[
-            { label: 'Pacing',     value: `${stats.pacingScore}%`,        bar: stats.pacingScore,                     cn: healthColor(stats.pacingScore) },
-            { label: 'Activiteit', value: `${stats.lastRunDays}d geleden`, bar: Math.max(100 - stats.lastRunDays * 5, 0), cn: stats.lastRunDays > 7 ? 'text-red-400' : 'text-green-400' },
-            { label: 'Intensiteit', value: `${stats.checklists30d} runs`,  bar: Math.min(stats.checklists30d * 20, 100),  cn: 'text-blue-400' },
-          ].map(({ label, value, bar, cn: valCn }) => (
-            <div key={label} className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</span>
-                <span className={cn('text-[10px] font-bold', valCn)}>{value}</span>
-              </div>
-              <Progress value={bar} className="h-1.5 bg-slate-800/80" />
-            </div>
+            { value: 'overzicht', icon: Activity, label: 'Overzicht' },
+            { value: 'checklists', icon: ListChecks, label: 'Checklists & Taken' },
+            { value: 'campagnes', icon: TrendingUp, label: "Campagnes & KPI's" },
+            { value: 'diensten', icon: Package, label: 'Diensten & Pakketten' },
+            { value: 'documenten', icon: FolderOpen, label: 'Documenten & Links' },
+            { value: 'rapportages', icon: BarChart2, label: 'Rapportages' },
+          ].map(t => (
+            <TabsTrigger key={t.value} value={t.value} className="group flex items-center justify-center transition-all data-[state=active]:bg-blue-600 data-[state=active]:text-white py-2.5 px-4 rounded-md text-slate-400 hover:text-white hover:bg-white/5 data-[state=active]:hover:bg-blue-600">
+              <t.icon className="size-4 shrink-0" />
+              <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out group-hover:max-w-[200px] group-hover:opacity-100 group-hover:ml-2 group-data-[state=active]:max-w-[200px] group-data-[state=active]:opacity-100 group-data-[state=active]:ml-2 text-sm font-medium">{t.label}</span>
+            </TabsTrigger>
           ))}
-        </div>
-      </div>
+          {isAdmin && (
+              <TabsTrigger value="instellingen" className="group flex items-center justify-center transition-all data-[state=active]:bg-blue-600 data-[state=active]:text-white py-2.5 px-4 rounded-md text-slate-400 hover:text-white hover:bg-white/5 data-[state=active]:hover:bg-blue-600 ml-auto">
+                  <Settings className="size-4 shrink-0" />
+                  <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out group-hover:max-w-[200px] group-hover:opacity-100 group-hover:ml-2 group-data-[state=active]:max-w-[200px] group-data-[state=active]:opacity-100 group-data-[state=active]:ml-2 text-sm font-medium">Instellingen</span>
+              </TabsTrigger>
+          )}
+        </TabsList>
 
-      {/* ── Main content: 2-col ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* ── TAB: OVERZICHT (Compact, Financial & Standings) ── */}
+        <TabsContent value="overzicht" className="space-y-6 animate-in fade-in duration-500">
+          
+          {/* Alerts */}
+          {overdueTodosCount > 0 && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
+                  <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />
+                  <div>
+                      <h4 className="font-bold text-red-400">Operationele Achterstand</h4>
+                      <p className="text-sm text-red-300/80 mt-1">Er {overdueTodosCount === 1 ? 'is' : 'zijn'} {overdueTodosCount} openstaande to-do{overdueTodosCount === 1 ? '' : 's'} waarvan de deadline verstreken is. Pak dit zo snel mogelijk op om de voortgang te bewaken.</p>
+                  </div>
+              </div>
+          )}
 
-        {/* ── Left: checklist + KPI + history ── */}
-        <div className="lg:col-span-2 space-y-6">
+          <div className={cn('grid gap-4', isAdmin ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3')}>
+            {isAdmin ? (
+                <StatCard label="Totale MRR" value={`€${totalMrr.toLocaleString('nl-NL')}`} sub="Diensten & Pakketten" valueCn="text-blue-400" accent="bg-blue-500/40" />
+            ) : (
+                <StatCard label="Click Budget" value={`€${account.monthlyClickBudget?.toLocaleString('nl-NL') || '0'}`} sub="per maand" valueCn="text-green-400" accent="bg-green-500/40" />
+            )}
+            
+            <StatCard label="Urenbudget" value={`${account.fixedManagementHours || 0} uur`} sub="Vaste uren p/m" valueCn="text-slate-100" accent="bg-slate-500/40" />
+            
+            {isAdmin && (
+                <StatCard label="Click Budget" value={`€${account.monthlyClickBudget?.toLocaleString('nl-NL') || '0'}`} sub="per maand" valueCn="text-green-400" accent="bg-green-500/40" />
+            )}
 
-          {/* In-progress drafts */}
-          <InProgressChecklists account={account} onStart={handleStartChecklist} />
+            {heroKpiName ? (
+                <div className="relative rounded-xl bg-[#1C243A] border border-[#2A3552] p-5 overflow-hidden flex flex-col justify-between">
+                  <div className="absolute top-0 left-0 w-1 h-full rounded-l-xl bg-purple-500/40" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 pl-1 flex items-center gap-1.5"><Target className="size-3" /> Hero KPI: {heroKpiName}</p>
+                  <p className="text-3xl font-bold mt-2 pl-1 text-purple-400">{latestHeroKpi?.value !== undefined ? latestHeroKpi.value : '-'}</p>
+                  <p className="text-xs text-slate-600 mt-1 pl-1">
+                      {targetHeroKpi ? `Target: ${targetHeroKpi}` : 'Geen target ingesteld'} 
+                      {latestHeroKpi?.date && ` (${format(latestHeroKpi.date, 'MMM', { locale: nl })})`}
+                  </p>
+                </div>
+            ) : (
+                <StatCard label="Laatste sync" value={stats.lastRunDays === 0 ? 'Vandaag' : `${stats.lastRunDays}d geleden`} valueCn={stats.lastRunDays > 7 ? 'text-red-400' : stats.lastRunDays > 3 ? 'text-yellow-400' : 'text-slate-100'} accent={stats.lastRunDays > 7 ? 'bg-red-500/40' : 'bg-slate-500/40'} />
+            )}
+          </div>
 
-          {/* Active schedules */}
-          <Section
-            title="Actieve Checklists"
-            icon={ListChecks}
-            iconCn="text-emerald-400"
-            right={childAccountRef && managerUid
-              ? <AddChecklistDialog childAccountRef={childAccountRef} managerUid={managerUid} />
-              : null
-            }
-          >
-            <div className="p-5">
-              {!checklistsLoading && enrichedConnectedChecklists.length > 0 ? (
-                <div className="grid md:grid-cols-2 gap-4">
-                  {enrichedConnectedChecklists.map((checklist: any, index: number) => (
-                    <div
-                      key={index}
-                      className="rounded-lg border border-[#2A3552] bg-white/[0.02] hover:border-blue-500/30 hover:bg-blue-500/5 transition-all p-4"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="space-y-0.5">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            {getScheduleText(checklist)}
-                          </p>
-                          <p className="text-sm font-bold text-slate-100 leading-snug">
-                            {checklist.name}
-                          </p>
-                        </div>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-red-400 hover:bg-red-400/10 shrink-0">
-                              <Trash2 className="size-3.5" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="bg-[#1C243A] border-[#2A3552]">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="text-white">Planning verwijderen?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Stopt de automatisering voor {checklist.name}. Geschiedenis blijft bewaard.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="bg-white/5 border-[#2A3552]">Annuleren</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDisconnectChecklist(checklist)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Ontkoppelen
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="rounded-xl bg-[#1C243A] border border-[#2A3552] px-6 py-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Account Standing — laatste 30 dagen</p>
+                <div className="grid grid-cols-3 gap-8">
+                  {[
+                    { label: 'Pacing', value: `${stats.pacingScore}%`, bar: stats.pacingScore, cn: healthColor(stats.pacingScore) },
+                    { label: 'Activiteit', value: `${stats.lastRunDays}d geleden`, bar: Math.max(100 - stats.lastRunDays * 5, 0), cn: stats.lastRunDays > 7 ? 'text-red-400' : 'text-green-400' },
+                    { label: 'Intensiteit', value: `${stats.checklists30d} runs`, bar: Math.min(stats.checklists30d * 20, 100), cn: 'text-blue-400' },
+                  ].map(({ label, value, bar, cn: valCn }) => (
+                    <div key={label} className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</span>
+                        <span className={cn('text-[10px] font-bold', valCn)}>{value}</span>
                       </div>
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Volgende uitvoering</p>
-                          <p className="text-xs font-semibold text-slate-300 mt-0.5">
-                            {format(checklist.nextDueDate, 'PPP')}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => handleStartChecklist(checklist)}
-                          className="bg-blue-600 hover:bg-blue-500 text-white h-8 px-4 shadow-lg shadow-blue-900/20"
-                        >
-                          Uitvoeren
-                        </Button>
-                      </div>
+                      <Progress value={bar} className="h-1.5 bg-slate-800/80" />
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-10 border border-dashed border-[#2A3552] rounded-lg">
-                  <ListChecks className="size-8 mx-auto text-slate-700 mb-2" />
-                  <p className="text-sm text-slate-500">Geen actieve checklists gekoppeld.</p>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Koppel een template om prestaties bij te houden.
-                  </p>
+              </div>
+
+              {/* Recente Activiteit */}
+              <Section title="Laatste Activiteit" icon={History} iconCn="text-blue-400">
+                <div className="p-5">
+                    {stats.recentRuns && stats.recentRuns.length > 0 ? (
+                        <div className="space-y-4">
+                            {(stats.recentRuns as any[]).map((run, i) => (
+                                <div key={i} className="flex gap-3">
+                                    <div className="mt-0.5"><CheckCircle2 className="size-4 text-emerald-400" /></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-200">{run.name || 'Checklist uitgevoerd'}</p>
+                                        <p className="text-xs text-slate-500">{format(run._parsedDate, 'PPP', { locale: nl })} • {run.tasks?.filter((t: any) => t.notes?.trim()).length || 0} notities</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-slate-500 italic">Geen recente activiteit in de afgelopen 30 dagen.</p>
+                    )}
                 </div>
+              </Section>
+            </div>
+
+            <div className="space-y-6">
+              {/* Tijdregistratie (Laatste 30 dagen) */}
+              <Section title="Tijdregistratie (30d)" icon={Clock} iconCn="text-blue-400">
+                <div className="p-5">
+                    <div className="flex items-end gap-2 mb-4">
+                        <span className="text-2xl font-bold text-white">{Math.floor(totalMinutes30d / 60)}h {totalMinutes30d % 60}m</span>
+                        <span className="text-xs text-slate-500 mb-1">geregistreerd</span>
+                    </div>
+                    {recentTimeEntries.length > 0 ? (
+                        <div className="space-y-3">
+                            {recentTimeEntries.slice(0, 5).map((entry, i) => (
+                                <div key={i} className="flex justify-between items-start gap-3 py-2 border-b border-[#2A3552]/50 last:border-0 last:pb-0">
+                                    <div className="min-w-0">
+                                        <p className="text-sm text-slate-300 font-medium truncate">{entry.title}</p>
+                                        <p className="text-[10px] text-slate-500">
+                                            {format(entry.date, 'PPP', { locale: nl })} 
+                                            {entry.type === 'checklist' && ' • Systeem'}
+                                        </p>
+                                    </div>
+                                    <Badge variant="outline" className={cn("shrink-0", entry.type === 'checklist' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400')}>
+                                        {Math.floor(entry.mins / 60)}h {entry.mins % 60}m
+                                    </Badge>
+                                </div>
+                            ))}
+                            {recentTimeEntries.length > 5 && (
+                                <p className="text-xs text-slate-500 italic mt-2">+ {recentTimeEntries.length - 5} oudere registraties</p>
+                            )}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-slate-500 italic">Geen uren geregistreerd in de laatste 30 dagen.</p>
+                    )}
+                </div>
+              </Section>
+
+              {/* Actieve Diensten Samenvatting */}
+              <Section title="Actieve Diensten" icon={Package} iconCn="text-emerald-400">
+                <div className="p-5">
+                    {(!account.connectedPackages?.length && !account.connectedServices?.length) ? (
+                        <p className="text-sm text-slate-500 italic">Geen diensten of pakketten actief.</p>
+                    ) : (
+                        <div>
+                            {account.connectedPackages && account.connectedPackages.length > 0 && (
+                                <div className="mb-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Pakketten</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {account.connectedPackages.map((pkg, i) => (
+                                            <Badge key={i} variant="outline" className="bg-blue-500/5 border-blue-500/20 text-blue-400">
+                                                {pkg.packageName}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {account.connectedServices && account.connectedServices.length > 0 && (
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Losse Diensten</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {account.connectedServices.map((svc, i) => (
+                                            <Badge key={i} variant="outline" className="bg-black/20 border-[#2A3552] text-slate-300">
+                                                {svc.serviceName}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+              </Section>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── TAB: CHECKLISTS & TAKEN ── */}
+        <TabsContent value="checklists" className="space-y-6 animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <InProgressChecklists account={account} onStart={handleStartChecklist} />
+              
+              <Section title="Actieve Checklists" icon={ListChecks} iconCn="text-emerald-400" right={childAccountRef && managerUid ? <AddChecklistDialog childAccountRef={childAccountRef} managerUid={managerUid} /> : null}>
+                <div className="p-5">
+                  {!checklistsLoading && enrichedConnectedChecklists.length > 0 ? (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {enrichedConnectedChecklists.map((checklist: any, index: number) => (
+                        <div key={index} className="rounded-lg border border-[#2A3552] bg-white/[0.02] hover:border-blue-500/30 hover:bg-blue-500/5 transition-all p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="space-y-0.5">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{getScheduleText(checklist)}</p>
+                              <p className="text-sm font-bold text-slate-100 leading-snug">{checklist.name}</p>
+                            </div>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-red-400 hover:bg-red-400/10 shrink-0"><Trash2 className="size-3.5" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="bg-[#1C243A] border-[#2A3552]">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="text-white">Planning verwijderen?</AlertDialogTitle>
+                                  <AlertDialogDescription>Stopt de automatisering voor {checklist.name}. Geschiedenis blijft bewaard.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="bg-white/5 border-[#2A3552]">Annuleren</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDisconnectChecklist(checklist)} className="bg-red-600 hover:bg-red-700">Ontkoppelen</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                          <div className="flex items-end justify-between">
+                            <div>
+                              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Volgende uitvoering</p>
+                              <p className="text-xs font-semibold text-slate-300 mt-0.5">{format(checklist.nextDueDate, 'PPP')}</p>
+                            </div>
+                            <Button size="sm" onClick={() => handleStartChecklist(checklist)} className="bg-blue-600 hover:bg-blue-500 text-white h-8 px-4 shadow-lg shadow-blue-900/20">Uitvoeren</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 border border-dashed border-[#2A3552] rounded-lg">
+                      <ListChecks className="size-8 mx-auto text-slate-700 mb-2" />
+                      <p className="text-sm text-slate-500">Geen actieve checklists gekoppeld.</p>
+                      <p className="text-xs text-slate-600 mt-1">Koppel een template om prestaties bij te houden.</p>
+                    </div>
+                  )}
+                </div>
+              </Section>
+
+              <Section title="Uitgevoerde Checklists" icon={History} iconCn="text-blue-400">
+                <div className="p-5">
+                  <ChecklistHistory account={account} managerUid={managerUid} />
+                </div>
+              </Section>
+            </div>
+            
+            <div className="space-y-6">
+              {client && account && childAccountRef && (
+                <AccountTodos parentClient={client} childAccount={account} childAccountRef={childAccountRef} onRefetchNeeded={() => setRefetchTrigger((p) => p + 1)} />
               )}
             </div>
-          </Section>
+          </div>
+        </TabsContent>
 
-          {/* KPI tracker */}
-          <Section title="KPI Tracker" icon={TrendingUp} iconCn="text-emerald-400">
-            <div className="p-5">
-              <div className="grid grid-cols-[120px_1fr_80px] items-center gap-4 px-2 py-3 mb-2 text-[10px] font-black tracking-widest text-slate-600 uppercase">
-                <span>Maand</span>
-                <div className="grid grid-cols-6 gap-x-4">
-                  {account.kpisToTrack.map((kpi) => (
-                    <span key={kpi}>{kpi.substring(0, 6)}</span>
-                  ))}
-                </div>
-                <span className="text-right">Beheer</span>
-              </div>
-              <KpiStandardTable
-                childAccount={account}
-                onSave={handleSaveKpiData}
-                isSaving={isSaving}
-                onRefetchNeeded={() => setRefetchTrigger((p) => p + 1)}
-              />
-            </div>
-          </Section>
-
-          {/* History */}
-          <Section title="Uitgevoerde Checklists" icon={History} iconCn="text-blue-400">
-            <div className="p-5">
-              <ChecklistHistory account={account} managerUid={managerUid} />
-            </div>
-          </Section>
-        </div>
-
-        {/* ── Right sidebar ── */}
-        <div className="space-y-6">
-
-          {/* Todos */}
-          {client && account && childAccountRef && (
-            <AccountTodos
-              parentClient={client}
-              childAccount={account}
-              childAccountRef={childAccountRef}
-              onRefetchNeeded={() => setRefetchTrigger((p) => p + 1)}
-            />
-          )}
-
-          {/* Reports */}
-          {accountId && <AccountReports accountId={accountId as string} />}
-
-          {/* Account meta */}
-          <Section title="Account Info" icon={Goal} iconCn="text-blue-400">
-            <div className="p-5 space-y-4">
-              {account.accountGoal?.value && (
-                <div className="rounded-lg bg-white/5 border border-[#2A3552] px-4 py-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">
-                    Strategisch Doel
-                  </p>
-                  <p className="text-sm text-slate-300 italic leading-relaxed">
-                    "{account.accountGoal.value}"
-                  </p>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-white/5 border border-[#2A3552] px-3 py-2.5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Valuta</p>
-                  <p className="text-sm font-bold text-slate-200 mt-0.5">{account.currency?.id || 'EUR'}</p>
-                </div>
-                <div className="rounded-lg bg-white/5 border border-[#2A3552] px-3 py-2.5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tijdzone</p>
-                  <p className="text-sm font-bold text-slate-200 mt-0.5 truncate">{account.timeZone?.id || 'UTC'}</p>
-                </div>
-              </div>
-              {account.kpisToTrack?.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
-                    Gevolgde KPI's
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {account.kpisToTrack.map((kpi) => (
-                      <Badge
-                        key={kpi}
-                        className="text-[9px] font-bold uppercase bg-white/5 border-[#2A3552] text-slate-400 border"
-                      >
-                        {kpi}
-                      </Badge>
-                    ))}
+        {/* ── TAB: CAMPAGNES & KPI's ── */}
+        <TabsContent value="campagnes" className="space-y-6 animate-in fade-in duration-500">
+           <div className="grid grid-cols-1 gap-6">
+              <Section title="KPI Tracker" icon={TrendingUp} iconCn="text-emerald-400">
+                <div className="p-5">
+                  <div className="grid grid-cols-[120px_1fr_80px] items-center gap-4 px-2 py-3 mb-2 text-[10px] font-black tracking-widest text-slate-600 uppercase">
+                    <span>Maand</span>
+                    <div className="grid grid-cols-6 gap-x-4">
+                      {account.kpisToTrack.map((kpi) => (
+                        <span key={kpi}>{kpi.substring(0, 6)}</span>
+                      ))}
+                    </div>
+                    <span className="text-right">Beheer</span>
                   </div>
+                  <KpiStandardTable childAccount={account} onSave={handleSaveKpiData} isSaving={isSaving} onRefetchNeeded={() => setRefetchTrigger((p) => p + 1)} />
                 </div>
-              )}
+              </Section>
+
+              <Section title="Google Ads Campagnes (Blueprints)" icon={BarChart2} iconCn="text-blue-400">
+                <div className="p-5">
+                  <AccountCampaigns childAccount={account} />
+                </div>
+              </Section>
+           </div>
+        </TabsContent>
+
+        {/* ── TAB: DIENSTEN & PAKKETTEN ── */}
+        <TabsContent value="diensten" className="space-y-6 animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1 space-y-6">
+              <StatCard label="Totaal Uren" value={`${account.fixedManagementHours || 0} uur`} sub="Vaste uren per maand" valueCn="text-blue-400" accent="bg-blue-500/40" />
             </div>
-          </Section>
-        </div>
-      </div>
+
+            <div className="md:col-span-2 space-y-6">
+              {/* Connected Packages */}
+              <Section title="Gekoppelde Pakketten" icon={Package} iconCn="text-emerald-400">
+                <div className="p-5">
+                  {account.connectedPackages && account.connectedPackages.length > 0 ? (
+                    <div className="space-y-3">
+                      {account.connectedPackages.map((pkg, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 rounded-md bg-blue-500/5 border border-[#2A3552]">
+                          <div className="flex items-center gap-3">
+                            <Package className="size-5 text-blue-400" />
+                            <p className="text-sm font-bold text-slate-200">{pkg.packageName}</p>
+                          </div>
+                          <Badge variant="outline" className="bg-[#1C243A] text-slate-300 border-[#2A3552]">Pakket</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500 italic">Geen pakketten gekoppeld.</p>
+                  )}
+                </div>
+              </Section>
+
+              {/* Connected Services */}
+              <Section title="Losse Diensten" icon={Briefcase} iconCn="text-blue-400">
+                <div className="p-5">
+                  {account.connectedServices && account.connectedServices.length > 0 ? (
+                    <div className="space-y-3">
+                      {account.connectedServices.map((svc, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 rounded-md bg-black/20 border border-[#2A3552]">
+                          <p className="text-sm font-bold text-slate-200">{svc.serviceName}</p>
+                          <div className="flex items-center gap-4">
+                            <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">{svc.hours} uur</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500 italic">Geen losse diensten gekoppeld.</p>
+                  )}
+                </div>
+              </Section>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── TAB: DOCUMENTEN & LINKS ── */}
+        <TabsContent value="documenten" className="animate-in fade-in duration-500">
+          <AccountDocuments childAccountRef={childAccountRef} />
+        </TabsContent>
+
+        {/* ── TAB: INSTELLINGEN (Settings) ── */}
+        {isAdmin && (
+            <TabsContent value="instellingen" className="animate-in fade-in duration-500">
+                <AccountSettings account={childAccount as ChildAccount} accountDocRef={childAccountRef} isAdmin={isAdmin} />
+            </TabsContent>
+        )}
+
+        {/* ── TAB: RAPPORTAGES ── */}
+        <TabsContent value="rapportages" className="space-y-6 animate-in fade-in duration-500">
+           {accountId && <AccountReports accountId={accountId as string} />}
+        </TabsContent>
+
+      </Tabs>
 
       {/* Checklist runner modal */}
       {account && (

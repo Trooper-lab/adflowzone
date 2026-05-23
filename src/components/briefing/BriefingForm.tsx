@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { BriefingContext } from '@/lib/types';
+import { useState } from 'react';
+import { BriefingContext, ParentClient, ChildAccount } from '@/lib/types';
+import { useFirestore, useUser, useCollection } from '@/firebase';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { collection, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,7 +36,8 @@ const CAMPAIGN_TYPES = [
 ];
 
 interface BriefingFormProps {
-  initialData: BriefingContext;
+  context: BriefingContext;
+  onChange: (data: BriefingContext) => void;
   onSubmit: (data: BriefingContext) => void;
   onExtract: (notes: string) => Promise<void>;
   loading?: boolean;
@@ -42,31 +46,68 @@ interface BriefingFormProps {
 }
 
 export function BriefingForm({ 
-  initialData, 
+  context, 
+  onChange,
   onSubmit, 
   onExtract, 
   loading, 
   extracting,
   submitLabel = 'Ga naar Editor'
 }: BriefingFormProps) {
-  const [context, setContext] = useState<BriefingContext>(initialData);
-  
-  // Sync internal state if initialData changes (e.g. after AI extraction in parent)
-  useEffect(() => {
-    setContext(initialData);
-  }, [initialData]);
+
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const parentClientsQuery = useMemoFirebase(
+    () => (firestore && user ? query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid)) : null),
+    [firestore, user]
+  );
+  const { data: parentClients } = useCollection(parentClientsQuery);
+
+  const childAccountsQuery = useMemoFirebase(
+    () => (firestore && context.parentClientId ? collection(firestore, 'parentClients', context.parentClientId, 'childAccounts') : null),
+    [firestore, context.parentClientId]
+  );
+  const { data: childAccounts } = useCollection(childAccountsQuery);
+
+  const handleParentSelect = (id: string) => {
+    const client = (parentClients || []).find(c => c.id === id);
+    if (client) {
+      const data = client as any as ParentClient;
+      onChange({
+        ...context,
+        parentClientId: id,
+        childAccountId: '', // reset child account
+        clientName: data.clientName,
+        clientEmail: data.clientContactEmail || '',
+        website: data.clientWebsite || context.website
+      });
+    }
+  };
+
+  const handleAccountSelect = (id: string) => {
+    const account = (childAccounts || []).find(a => a.id === id);
+    if (account) {
+      const data = account as any as ChildAccount;
+      onChange({
+        ...context,
+        childAccountId: id,
+        clientName: data.nickname || context.clientName,
+      });
+    }
+  };
 
   const handleChange = (field: keyof BriefingContext, value: any) => {
-    setContext(prev => ({ ...prev, [field]: value }));
+    onChange({ ...context, [field]: value });
   };
 
   const toggleCampaignType = (id: string) => {
-    setContext(prev => ({
-      ...prev,
-      campaignTypes: prev.campaignTypes?.includes(id)
-        ? prev.campaignTypes.filter(t => t !== id)
-        : [...(prev.campaignTypes || []), id]
-    }));
+    onChange({
+      ...context,
+      campaignTypes: context.campaignTypes?.includes(id)
+        ? context.campaignTypes.filter(t => t !== id)
+        : [...(context.campaignTypes || []), id]
+    });
   };
 
   return (
@@ -85,6 +126,51 @@ export function BriefingForm({
               <h2 className="text-lg font-bold text-white">1. Project Identiteit</h2>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Koppel Klant (Optioneel)</Label>
+                <Select value={context.parentClientId || ''} onValueChange={handleParentSelect}>
+                  <SelectTrigger className="bg-slate-900 border-slate-700 h-12 focus:ring-blue-500 text-white">
+                    <SelectValue placeholder="Selecteer een klant..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700 max-h-64">
+                    {parentClients?.map(item => {
+                      const data = item as any as ParentClient;
+                      return (
+                        <SelectItem key={data.id} value={data.id} className="text-white hover:bg-slate-800 focus:bg-slate-800 cursor-pointer py-3">
+                          {data.clientName}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {context.parentClientId && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Koppel Ads Account (Optioneel)</Label>
+                  <Select value={context.childAccountId || ''} onValueChange={handleAccountSelect}>
+                    <SelectTrigger className="bg-slate-900 border-slate-700 h-12 focus:ring-blue-500 text-white">
+                      <SelectValue placeholder="Selecteer een account..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700 max-h-64">
+                      {childAccounts?.map(item => {
+                        const data = item as any as ChildAccount;
+                        return (
+                          <SelectItem key={data.id} value={data.id} className="text-white hover:bg-slate-800 focus:bg-slate-800 cursor-pointer py-3">
+                            <div className="flex flex-col gap-1">
+                              <span>{data.nickname}</span>
+                              <span className="text-[10px] text-slate-500">{data.googleAdsAccountName}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Klantnaam *</Label>
@@ -92,6 +178,16 @@ export function BriefingForm({
                   placeholder="Bijv. 365 ZON" 
                   value={context.clientName}
                   onChange={e => handleChange('clientName', e.target.value)}
+                  className="bg-slate-900 border-slate-700 h-12 focus:ring-blue-500 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Klant E-mailadres</Label>
+                <Input 
+                  placeholder="Bijv. info@365zon.nl" 
+                  type="email"
+                  value={context.clientEmail || ''}
+                  onChange={e => handleChange('clientEmail', e.target.value)}
                   className="bg-slate-900 border-slate-700 h-12 focus:ring-blue-500 text-white"
                 />
               </div>
@@ -149,6 +245,46 @@ export function BriefingForm({
             </div>
 
             <div className="space-y-6">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Marketing Hook / Angle</Label>
+                <Input 
+                  placeholder="Bijv. 'Wij verkopen de snelste schoenen' of 'Risicovrij proberen'" 
+                  value={context.marketingHook || ''}
+                  onChange={e => handleChange('marketingHook', e.target.value)}
+                  className="bg-slate-900 border-slate-700 h-12 text-white font-medium text-blue-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Primaire Conversie Actie</Label>
+                  <Select 
+                    value={context.primaryConversion || ''} 
+                    onValueChange={(v) => handleChange('primaryConversion', v)}
+                  >
+                    <SelectTrigger className="bg-slate-900 border-slate-700 h-12 text-white">
+                      <SelectValue placeholder="Kies conversie type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                      <SelectItem value="Lead Form Submit">Lead Form Submit</SelectItem>
+                      <SelectItem value="E-commerce Purchase">E-commerce Purchase</SelectItem>
+                      <SelectItem value="Phone Call">Phone Call</SelectItem>
+                      <SelectItem value="App Install">App Install</SelectItem>
+                      <SelectItem value="Store Visit">Store Visit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Primaire Call to Action (CTA)</Label>
+                  <Input 
+                    placeholder="Bijv. Vraag Offerte Aan" 
+                    value={context.primaryCta || ''}
+                    onChange={e => handleChange('primaryCta', e.target.value)}
+                    className="bg-slate-900 border-slate-700 h-12 text-white"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Focus Producten / Diensten</Label>
@@ -288,20 +424,38 @@ export function BriefingForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Biedstrategie Voorkeur</Label>
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Biedstrategie Search</Label>
                   <Select 
-                    value={context.bidStrategyPreference} 
-                    onValueChange={(v) => handleChange('bidStrategyPreference', v)}
+                    value={context.biddingStrategySearch || context.bidStrategyPreference || ''} 
+                    onValueChange={(v) => handleChange('biddingStrategySearch', v)}
                   >
                     <SelectTrigger className="bg-slate-900 border-slate-700 h-12 text-white">
-                      <SelectValue />
+                      <SelectValue placeholder="Biedstrategie Search" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-700 text-white">
-                      <SelectItem value="Maximize Conversions (Target CPA)">Maximize Conversions (tCPA)</SelectItem>
-                      <SelectItem value="Maximize Conversion Value (Target ROAS)">Maximize Conv. Value (tROAS)</SelectItem>
-                      <SelectItem value="Maximize Conversions">Maximize Conversions</SelectItem>
                       <SelectItem value="Maximize Clicks">Maximize Clicks</SelectItem>
+                      <SelectItem value="Maximize Conversions">Maximize Conversions</SelectItem>
+                      <SelectItem value="Target CPA">Target CPA (tCPA)</SelectItem>
+                      <SelectItem value="Target ROAS">Target ROAS (tROAS)</SelectItem>
                       <SelectItem value="Manual CPC">Manual CPC</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Biedstrategie PMax</Label>
+                  <Select 
+                    value={context.biddingStrategyPmax || ''} 
+                    onValueChange={(v) => handleChange('biddingStrategyPmax', v)}
+                  >
+                    <SelectTrigger className="bg-slate-900 border-slate-700 h-12 text-white">
+                      <SelectValue placeholder="Biedstrategie PMax" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                      <SelectItem value="Maximize Conversions">Maximize Conversions</SelectItem>
+                      <SelectItem value="Target CPA">Target CPA (tCPA)</SelectItem>
+                      <SelectItem value="Maximize Conversion Value">Maximize Conversion Value</SelectItem>
+                      <SelectItem value="Target ROAS">Target ROAS (tROAS)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -340,14 +494,26 @@ export function BriefingForm({
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Budgetverdeling Voorkeur</Label>
-                  <Textarea 
-                    placeholder="Bijv. 70% Search, 30% PMax" 
-                    value={context.budgetDistributionPreference}
-                    onChange={e => handleChange('budgetDistributionPreference', e.target.value)}
-                    className="bg-slate-900 border-slate-700 min-h-[80px] text-white"
-                  />
+                <div className="space-y-4">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Budgetverdeling Search vs PMax</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 space-y-1">
+                      <div className="flex justify-between text-xs font-bold text-slate-400">
+                        <span>Search: {context.budgetSplitSearch || 50}%</span>
+                        <span>PMax: {context.budgetSplitPmax || 50}%</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" max="100" step="5"
+                        value={context.budgetSplitSearch || 50}
+                        onChange={e => {
+                          const val = parseInt(e.target.value);
+                          onChange({ ...context, budgetSplitSearch: val, budgetSplitPmax: 100 - val });
+                        }}
+                        className="w-full accent-blue-500"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

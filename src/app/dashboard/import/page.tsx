@@ -3,11 +3,13 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, doc, writeBatch, arrayUnion, getDoc, Timestamp, addDoc, updateDoc, orderBy, limit as firestoreLimit, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, writeBatch, arrayUnion, getDoc, Timestamp, addDoc, updateDoc, orderBy, limit as firestoreLimit, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
     Database,
     Copy,
@@ -26,12 +28,14 @@ import {
     LayoutGrid,
     Target,
     Sparkles,
-    ExternalLink
+    ExternalLink,
+    CloudDownload
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { ParentClient, ChildAccount, KpiData, ChecklistRun, ChecklistTemplate } from '@/lib/types';
 import { generateChecklistDraft } from '@/ai/flows/generate-checklist-draft';
+import { fetchCampaignPerformance } from '@/app/actions/google-ads-campaigns';
 import Link from 'next/link';
 import { subMonths, format, parseISO, startOfMonth } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -154,6 +158,11 @@ export default function DataImportPage() {
     // AI Draft generation state (using inferred types to avoid TSX generic parsing ambiguity)
     const [generatingFor, setGeneratingFor] = useState(new Set<string>());
     const [createdRunIds, setCreatedRunIds] = useState(new Map<string, string>()); // accountId → runId
+
+    // Bulk API Sync state
+    const [selectedSyncAccounts, setSelectedSyncAccounts] = useState<Set<string>>(new Set());
+    const [syncStatuses, setSyncStatuses] = useState<Record<string, 'idle' | 'syncing' | 'success' | 'error'>>({});
+    const [isBulkSyncing, setIsBulkSyncing] = useState(false);
 
     useEffect(() => {
         if (!firestore || !user) return;
@@ -375,6 +384,60 @@ export default function DataImportPage() {
         }
     };
 
+    const handleToggleSyncAccount = (accountId: string) => {
+        const next = new Set(selectedSyncAccounts);
+        if (next.has(accountId)) {
+            next.delete(accountId);
+        } else {
+            next.add(accountId);
+        }
+        setSelectedSyncAccounts(next);
+    };
+
+    const handleSelectAllSyncAccounts = (allSelectableIds: string[]) => {
+        if (selectedSyncAccounts.size === allSelectableIds.length) {
+            setSelectedSyncAccounts(new Set());
+        } else {
+            setSelectedSyncAccounts(new Set(allSelectableIds));
+        }
+    };
+
+    const handleBulkSync = async () => {
+        if (!firestore || selectedSyncAccounts.size === 0) return;
+        setIsBulkSyncing(true);
+
+        const period = 'THIS_MONTH';
+
+        for (const accountId of selectedSyncAccounts) {
+            const account = accounts.find(a => a.id === accountId);
+            if (!account || !account.googleAdsClientId) {
+                setSyncStatuses(prev => ({ ...prev, [accountId]: 'error' }));
+                continue;
+            }
+
+            setSyncStatuses(prev => ({ ...prev, [accountId]: 'syncing' }));
+
+            try {
+                const result = await fetchCampaignPerformance(
+                    account.id,
+                    account.googleAdsClientId,
+                    period
+                );
+                
+                const docRef = doc(firestore, 'campaignPerformance', `${account.id}_${period}`);
+                await setDoc(docRef, result);
+
+                setSyncStatuses(prev => ({ ...prev, [accountId]: 'success' }));
+            } catch (error) {
+                console.error(`Error syncing account ${accountId}:`, error);
+                setSyncStatuses(prev => ({ ...prev, [accountId]: 'error' }));
+            }
+        }
+
+        setIsBulkSyncing(false);
+        toast({ title: 'Bulk synchronisatie voltooid' });
+    };
+
     return (
         <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -383,11 +446,94 @@ export default function DataImportPage() {
                         <Database className="text-blue-400 size-8" />
                         Data Import Bridge
                     </h1>
-                    <p className="text-muted-foreground mt-2 font-medium">Automatiseer je KPI import met slimme Google Ads scripts.</p>
+                    <p className="text-muted-foreground mt-2 font-medium">Beheer en synchroniseer Google Ads data voor je accounts.</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <Tabs defaultValue="api-sync" className="w-full">
+                <TabsList className="mb-6 bg-[#1C243A] border border-[#2A3552]">
+                    <TabsTrigger value="api-sync" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">API Bulk Sync</TabsTrigger>
+                    <TabsTrigger value="scripts" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">Script Bridge (JSON)</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="api-sync" className="mt-0">
+                    <Card className="bg-[#1C243A] border-[#2A3552] shadow-xl overflow-hidden">
+                        <CardHeader className="bg-white/5 border-b border-[#2A3552]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <CloudDownload className="size-5 text-blue-400" />
+                                        Campagne Data Ophalen
+                                    </CardTitle>
+                                    <CardDescription>Haal campagne-prestaties (deze maand) op voor geselecteerde accounts rechtstreeks via de Google Ads API.</CardDescription>
+                                </div>
+                                <Button 
+                                    onClick={handleBulkSync}
+                                    disabled={isBulkSyncing || selectedSyncAccounts.size === 0}
+                                    className="bg-blue-600 hover:bg-blue-500 font-bold uppercase tracking-widest text-xs h-10"
+                                >
+                                    {isBulkSyncing ? <Loader2 className="animate-spin size-4 mr-2" /> : <RefreshCw className="size-4 mr-2" />}
+                                    Synchroniseer ({selectedSyncAccounts.size})
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm text-slate-300">
+                                    <thead className="text-[10px] uppercase bg-white/5 text-slate-500 tracking-wider">
+                                        <tr>
+                                            <th className="px-4 py-3 font-semibold w-12 text-center">
+                                                <Checkbox 
+                                                    checked={selectedSyncAccounts.size > 0 && selectedSyncAccounts.size === accounts.filter(a => a.googleAdsClientId).length}
+                                                    onCheckedChange={() => handleSelectAllSyncAccounts(accounts.filter(a => a.googleAdsClientId).map(a => a.id))}
+                                                />
+                                            </th>
+                                            <th className="px-4 py-3 font-semibold">Account</th>
+                                            <th className="px-4 py-3 font-semibold">Google Ads Client ID</th>
+                                            <th className="px-4 py-3 font-semibold text-right">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#2A3552]">
+                                        {accounts.filter(a => a.googleAdsClientId).map(account => (
+                                            <tr key={account.id} className="hover:bg-white/[0.02] cursor-pointer" onClick={() => handleToggleSyncAccount(account.id)}>
+                                                <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                                    <Checkbox 
+                                                        checked={selectedSyncAccounts.has(account.id)}
+                                                        onCheckedChange={() => handleToggleSyncAccount(account.id)}
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="font-bold text-slate-200">{account.nickname}</div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <Badge className="font-mono text-[10px] bg-white/5 text-slate-400 border border-[#2A3552]">
+                                                        {account.googleAdsClientId}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    {syncStatuses[account.id] === 'syncing' && <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20"><Loader2 className="size-3 mr-1 animate-spin"/> Bezig</Badge>}
+                                                    {syncStatuses[account.id] === 'success' && <Badge className="bg-green-500/10 text-green-400 border-green-500/20"><Check className="size-3 mr-1"/> Voltooid</Badge>}
+                                                    {syncStatuses[account.id] === 'error' && <Badge className="bg-red-500/10 text-red-400 border-red-500/20"><AlertCircle className="size-3 mr-1"/> Fout</Badge>}
+                                                    {syncStatuses[account.id] === 'idle' || !syncStatuses[account.id] ? <span className="text-slate-600 text-xs">-</span> : null}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {accounts.filter(a => a.googleAdsClientId).length === 0 && (
+                                            <tr>
+                                                <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                                                    Geen accounts gevonden met een Google Ads Client ID.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="scripts" className="mt-0">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Script Selector Section */}
                 <div className="lg:col-span-5 space-y-6">
                     <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">1. Kies je Bridge</h2>
@@ -586,7 +732,9 @@ export default function DataImportPage() {
                         </Card>
                     )}
                 </div>
-            </div>
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

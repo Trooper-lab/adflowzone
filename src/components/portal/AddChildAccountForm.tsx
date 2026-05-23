@@ -23,7 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import type { ConnectedChecklist, ChecklistTemplate, ParentClient } from '@/lib/types';
+import type { ConnectedChecklist, ChecklistTemplate, ParentClient, Service, ServicePackage } from '@/lib/types';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 const kpiItems = [
@@ -55,6 +55,7 @@ const childAccountSchema = z.object({
         amount: z.coerce.number().min(0, 'Fee must be a positive number.').optional(),
         frequency: z.literal('monthly').default('monthly'),
     }).optional(),
+    fixedManagementHours: z.coerce.number().min(0, 'Hours must be a positive number.').optional(),
     monthlyClickBudget: z.coerce.number().min(0, 'Budget must be a positive number.').optional(),
     primaryGoal: z.enum(['lead_generation', 'ecommerce_sales', 'brand_awareness', 'app_installs', 'other']),
     kpisToTrack: z.array(z.string()).refine((value) => value.some((item) => item), {
@@ -65,6 +66,15 @@ const childAccountSchema = z.object({
         kpi: z.string().min(1, "Please select a KPI."),
         target: z.coerce.number().min(0, "Target must be a positive number."),
     })).max(3, "You can set a maximum of 3 key results.").optional(),
+    connectedServices: z.array(z.object({
+        serviceId: z.string(),
+        serviceName: z.string(),
+        hours: z.coerce.number().min(0.1, "Minimaal 0.1 uur"),
+    })).optional(),
+    connectedPackages: z.array(z.object({
+        packageId: z.string(),
+        packageName: z.string(),
+    })).optional(),
 });
 
 type ChildAccountFormData = z.infer<typeof childAccountSchema>;
@@ -85,6 +95,26 @@ export function AddChildAccountForm({ parentClient }: { parentClient: ParentClie
     }, [firestore, managerUid]);
     const { data: checklistTemplates, loading: checklistsLoading } = useCollection(checklistsQuery);
 
+    const servicesQuery = useMemoFirebase(() => {
+        if (!firestore || !managerUid) return null;
+        return query(collection(firestore, 'services'), where('ownerId', '==', managerUid));
+    }, [firestore, managerUid]);
+    const { data: servicesData } = useCollection(servicesQuery);
+    const availableServices = React.useMemo(() => {
+        if (!servicesData) return [];
+        return servicesData.map(d => ({ id: d.id, ...d.data() } as Service));
+    }, [servicesData]);
+
+    const packagesQuery = useMemoFirebase(() => {
+        if (!firestore || !managerUid) return null;
+        return query(collection(firestore, 'servicePackages'), where('ownerId', '==', managerUid));
+    }, [firestore, managerUid]);
+    const { data: packagesData } = useCollection(packagesQuery);
+    const availablePackages = React.useMemo(() => {
+        if (!packagesData) return [];
+        return packagesData.map(d => ({ id: d.id, ...d.data() } as ServicePackage));
+    }, [packagesData]);
+
 
     const form = useForm<ChildAccountFormData>({
         resolver: zodResolver(childAccountSchema),
@@ -93,11 +123,14 @@ export function AddChildAccountForm({ parentClient }: { parentClient: ParentClie
             googleAdsClientId: '',
             googleAdsAccountName: '',
             managementFee: { amount: 0, frequency: 'monthly' },
+            fixedManagementHours: 0,
             monthlyClickBudget: 0,
             primaryGoal: 'lead_generation',
             kpisToTrack: [],
             connectedChecklists: [],
             targetKpiValues: [],
+            connectedServices: [],
+            connectedPackages: [],
         },
     });
 
@@ -111,8 +144,39 @@ export function AddChildAccountForm({ parentClient }: { parentClient: ParentClie
         name: "targetKpiValues",
     });
 
+    const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
+        control: form.control,
+        name: "connectedServices",
+    });
+
+    const { fields: packageFields, append: appendPackage, remove: removePackage } = useFieldArray({
+        control: form.control,
+        name: "connectedPackages",
+    });
+
     const connectedChecklistsValues = form.watch('connectedChecklists');
     const trackedKpis = form.watch('kpisToTrack');
+    const watchConnectedServices = form.watch('connectedServices');
+    const watchConnectedPackages = form.watch('connectedPackages');
+
+    React.useEffect(() => {
+        let totalHours = 0;
+        if (watchConnectedServices && watchConnectedServices.length > 0) {
+            totalHours += watchConnectedServices.reduce((sum, s) => sum + (Number(s.hours) || 0), 0);
+        }
+        if (watchConnectedPackages && watchConnectedPackages.length > 0 && availablePackages.length > 0) {
+            watchConnectedPackages.forEach(p => {
+                const pkg = availablePackages.find(ap => ap.id === p.packageId);
+                if (pkg && pkg.services) {
+                    totalHours += pkg.services.reduce((sum, s) => sum + (Number(s.hours) || 0), 0);
+                }
+            });
+        }
+        
+        if ((watchConnectedServices && watchConnectedServices.length > 0) || (watchConnectedPackages && watchConnectedPackages.length > 0)) {
+            form.setValue('fixedManagementHours', Number(totalHours.toFixed(2)));
+        }
+    }, [watchConnectedServices, watchConnectedPackages, availablePackages, form]);
 
     function handleReset() {
         form.reset();
@@ -174,8 +238,11 @@ export function AddChildAccountForm({ parentClient }: { parentClient: ParentClie
                 amount: Number(data.managementFee?.amount) || 0,
                 frequency: 'monthly'
             },
+            fixedManagementHours: Number(data.fixedManagementHours) || 0,
             monthlyClickBudget: Number(data.monthlyClickBudget) || 0,
             connectedChecklists: processedChecklists,
+            connectedServices: data.connectedServices || [],
+            connectedPackages: data.connectedPackages || [],
         };
 
         const childAccountsCollection = collection(firestore, 'parentClients', parentClient.id, 'childAccounts');
@@ -288,12 +355,161 @@ export function AddChildAccountForm({ parentClient }: { parentClient: ParentClie
                                             <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} className="pl-7" />
                                         </div>
                                     </FormControl>
-                                    <FormDescription>Your fee for managing this account.</FormDescription>
-                                    <FormMessage />
-                                    </FormItem>
+                                        <FormDescription>Oude vaste fee bedrag (Ter referentie).</FormDescription>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="fixedManagementHours"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Vaste Uren per Maand</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.5" placeholder="5" {...field} value={field.value ?? ''} disabled={watchConnectedServices && watchConnectedServices.length > 0} />
+                                        </FormControl>
+                                        <FormDescription>
+                                            {watchConnectedServices && watchConnectedServices.length > 0 
+                                                ? "Wordt automatisch berekend o.b.v. gekoppelde diensten." 
+                                                : "Het aantal vaste beheeruren per maand."}
+                                        </FormDescription>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            
+                            {/* Connected Services Section */}
+                            <div className="space-y-4 pt-4 border-t">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400">Gekoppelde Diensten & Uren</h4>
+                                        <p className="text-xs text-muted-foreground mt-1">Koppel diensten om de vaste uren op de factuur uit te splitsen.</p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => appendService({ serviceId: '', serviceName: '', hours: 0 })}
+                                    >
+                                        <PlusCircle className="size-4 mr-2" /> Dienst Toevoegen
+                                    </Button>
+                                </div>
+                                
+                                {serviceFields.length > 0 && (
+                                    <div className="space-y-3">
+                                        {serviceFields.map((field, index) => (
+                                            <div key={field.id} className="grid grid-cols-[1fr_120px_auto] gap-3 items-start p-4 border border-[#2A3552] bg-black/10 rounded-lg">
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`connectedServices.${index}.serviceId`}
+                                                    render={({ field: selectField }) => (
+                                                        <FormItem>
+                                                            <Select 
+                                                                onValueChange={(val) => {
+                                                                    selectField.onChange(val);
+                                                                    const svc = availableServices.find(s => s.id === val);
+                                                                    if (svc) {
+                                                                        form.setValue(`connectedServices.${index}.serviceName`, svc.name);
+                                                                    }
+                                                                }} 
+                                                                defaultValue={selectField.value}
+                                                            >
+                                                                <FormControl>
+                                                                    <SelectTrigger className="bg-[#1C243A]"><SelectValue placeholder="Kies een dienst..." /></SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    {availableServices.map(svc => (
+                                                                        <SelectItem key={svc.id} value={svc.id}>{svc.name}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`connectedServices.${index}.hours`}
+                                                    render={({ field: inputField }) => (
+                                                        <FormItem>
+                                                            <FormControl>
+                                                                <div className="relative">
+                                                                    <Input type="number" step="0.1" placeholder="Uren" {...inputField} className="pr-10 bg-[#1C243A]" />
+                                                                    <span className="absolute inset-y-0 right-3 flex items-center text-xs text-slate-500 font-bold">uur</span>
+                                                                </div>
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeService(index)} className="hover:text-red-400 hover:bg-red-500/10">
+                                                    <Trash2 className="size-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
-                            />
-                        </div>
+                            </div>
+
+                            {/* Connected Packages Section */}
+                            <div className="space-y-4 pt-4 border-t">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400">Gekoppelde Pakketten</h4>
+                                        <p className="text-xs text-muted-foreground mt-1">Koppel een pakket om diensten te bundelen.</p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => appendPackage({ packageId: '', packageName: '' })}
+                                    >
+                                        <PlusCircle className="size-4 mr-2" /> Pakket Toevoegen
+                                    </Button>
+                                </div>
+                                
+                                {packageFields.length > 0 && (
+                                    <div className="space-y-3">
+                                        {packageFields.map((field, index) => (
+                                            <div key={field.id} className="grid grid-cols-[1fr_auto] gap-3 items-start p-4 border border-[#2A3552] bg-blue-500/5 rounded-lg">
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`connectedPackages.${index}.packageId`}
+                                                    render={({ field: selectField }) => (
+                                                        <FormItem>
+                                                            <Select 
+                                                                onValueChange={(val) => {
+                                                                    selectField.onChange(val);
+                                                                    const pkg = availablePackages.find(p => p.id === val);
+                                                                    if (pkg) {
+                                                                        form.setValue(`connectedPackages.${index}.packageName`, pkg.name);
+                                                                    }
+                                                                }} 
+                                                                defaultValue={selectField.value}
+                                                            >
+                                                                <FormControl>
+                                                                    <SelectTrigger className="bg-[#1C243A]"><SelectValue placeholder="Kies een pakket..." /></SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    {availablePackages.map(pkg => (
+                                                                        <SelectItem key={pkg.id} value={pkg.id}>{pkg.name}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removePackage(index)} className="hover:text-red-400 hover:bg-red-500/10">
+                                                    <Trash2 className="size-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                     </div>
 
                     {/* Section C */}

@@ -35,11 +35,25 @@ const generateSearchAdCopyFlow = ai.defineFlow(
         5. Every asset must be unique and relevant.
 
         **AD STRUCTURE STRATEGY:**
-        - Mix 15 headlines: Include 5 keyword-rich headlines, 5 benefit-driven headlines, 3 social proof/trust headlines, and 2 strong calls to action.
+        - Generate exactly 15 headlines, divided into exactly 3 groups of 5, returned in this exact order in the headlines array:
+          * Group 1 (Headlines 1-5, indices 0-4): Keyword-focused for quality score (e.g. matching keywords/search intent).
+          * Group 2 (Headlines 6-10, indices 5-9): USP-focused (Unique Selling Points, e.g. features, benefits, trust factors).
+          * Group 3 (Headlines 11-15, indices 10-14): Call to action (CTA) focused (e.g. "Koop nu online", "Vraag offerte aan").
         - Generate 4 descriptions: Focus on unique selling points (USP) and solve the user's problem. Use ${input.callToAction} naturally.
 
+        **CAPITALIZATION RULES:**
+        - For Dutch ("dutch") language copy (headlines, descriptions, etc.):
+          * Use strictly **Sentence Case** capitalization. This means only the first letter of the first word/sentence is capitalized (along with proper nouns if necessary).
+          * Do NOT capitalize every word (do NOT use Title Case like "Dit Is Een Kop").
+          * Do NOT use all-caps.
+          * Examples: Use "Schoenen online kopen" instead of "Schoenen Online Kopen", "Vraag een offerte aan" instead of "Vraag Een Offerte Aan".
+
         **KEYWORDS:**
-        - Generate 15-20 relevant broad match keywords based on search intent for this business.
+        - Generate 15-20 relevant keywords based on search intent for this business.
+        - The keywords MUST be formatted with proper Google Ads match type syntax, creating a strategic mix:
+          * Exact match: [keyword]
+          * Phrase match: "keyword"
+          * Broad match: keyword (no quotes or brackets)
 
         Provide output in the specified JSON format.
       `,

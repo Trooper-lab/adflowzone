@@ -44,6 +44,7 @@ const ReportSummaryInputSchema = z.object({
   completedTodos: z.array(TodoSchema).describe("An array of completed todos for the reporting period."),
   pendingTodos: z.array(TodoSchema).describe("An array of pending (not completed) todos for the account."),
   checklistRuns: z.array(ChecklistRunSchema).describe("An array of completed checklist runs for the reporting period."),
+  campaignDataSnapshot: z.any().optional().describe("A snapshot of campaign performance data for the reporting month, including impressions, clicks, cost, and conversions per campaign."),
 });
 
 export type ReportSummaryInput = z.infer<typeof ReportSummaryInputSchema>;
@@ -89,6 +90,8 @@ const generateReportSummaryFlow = ai.defineFlow(
           ${input.pendingTodos.map(todo => `  - ${todo.content}`).join('\n')}
         - **KPI-prestaties (Secundaire Context):** Gebruik deze gegevens om uw observaties uit de taaknotities te ondersteunen, maar maak er niet de primaire focus van.
           ${input.kpiData.map(kpi => `  - ${kpi.startDate}: ${JSON.stringify(kpi.kpiValues)}`).join('\n')}
+        - **Campagneprestaties (Voor context & specifieke inzichten):**
+          ${input.campaignDataSnapshot ? `Totaal Kosten: ${input.campaignDataSnapshot.totals.cost}, Totaal Conversies: ${input.campaignDataSnapshot.totals.conversions}\nTop Campagnes (op kosten):\n${input.campaignDataSnapshot.campaigns.slice(0,5).map((c: any) => `    - ${c.name}: Kosten €${c.cost.toFixed(2)}, Conversies ${c.conversions.toFixed(1)}, CPA €${c.costPerConversion.toFixed(2)}`).join('\n')}` : 'Geen campagnedata beschikbaar.'}
 
 
         **INSTRUCTIES:**

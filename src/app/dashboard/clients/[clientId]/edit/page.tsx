@@ -32,6 +32,7 @@ const parentClientSchema = z.object({
   clientUserEmail: z.string().email('You must provide a portal login email.'),
   clientWebsite: z.string().url().optional().or(z.literal('')),
   internalNotes: z.string().optional(),
+  hourlyRate: z.coerce.number().min(0, 'Hourly rate must be a positive number.').optional(),
 });
 
 type ParentClientFormData = z.infer<typeof parentClientSchema>;
@@ -58,6 +59,7 @@ export default function EditClientPage() {
       clientUserEmail: '',
       clientWebsite: '',
       internalNotes: '',
+      hourlyRate: 0,
     },
   });
 
@@ -220,6 +222,23 @@ export default function EditClientPage() {
                             <FormControl>
                                 <Textarea placeholder="Client is focused on lead gen for B2B..." {...field} />
                             </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="hourlyRate"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Standaard Uurtarief (€)</FormLabel>
+                            <FormControl>
+                                <div className="relative">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">€</span>
+                                    <Input type="number" placeholder="75.00" {...field} className="pl-7" />
+                                </div>
+                            </FormControl>
+                            <FormDescription>Het uurtarief dat standaard wordt berekend voor losse uren.</FormDescription>
                             <FormMessage />
                             </FormItem>
                         )}

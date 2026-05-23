@@ -36,6 +36,8 @@ import {
   MessageSquareText,
   Loader2,
   Briefcase,
+  Receipt,
+  Timer
 } from 'lucide-react';
 import {LogoIcon} from '@/components/icons';
 import {Button} from '@/components/ui/button';
@@ -103,9 +105,17 @@ export default function DashboardLayout({children}: {children: React.ReactNode})
         {href: '/dashboard/generator', label: 'AI Ad Generator', icon: WandSparkles},
       ]
     },
+    {
+      title: "Financieel",
+      items: [
+        {href: '/dashboard/time-tracking', label: 'Urenregistratie', icon: Timer},
+        {href: '/dashboard/invoices', label: 'Facturatie', icon: Receipt},
+      ]
+    },
     ...(isAdmin ? [{
       title: "Administratie",
       items: [
+        {href: '/dashboard/services', label: 'Diensten Beheer', icon: Briefcase},
         {href: '/dashboard/employees', label: 'Gebruikers & Toegang', icon: ShieldCheck},
         {href: '/dashboard/feedback', label: 'Platform Feedback', icon: MessageSquareText},
       ]

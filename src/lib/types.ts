@@ -61,6 +61,29 @@ export type ChecklistTemplate = {
 }
 
 
+export type Service = {
+  id: string;
+  ownerId: string;
+  name: string;
+  description?: string;
+  baseHours?: number;
+  deliverables?: string[];
+  onboardingFee?: number;
+};
+
+export type ServicePackage = {
+  id: string;
+  ownerId: string;
+  name: string;
+  description?: string;
+  services: {
+    serviceId: string;
+    serviceName: string;
+    hours: number;
+  }[];
+  packageDiscount?: number;
+};
+
 export type Client = {
   id: string;
   name: string;
@@ -94,6 +117,7 @@ export type ParentClient = {
     secondary?: string;
   };
   internalNotes?: string;
+  hourlyRate?: number;
 };
 
 export type ConnectedChecklist = {
@@ -102,6 +126,17 @@ export type ConnectedChecklist = {
   frequency: 'daily' | 'weekly' | 'monthly' | 'one-off';
   lastRunAt?: string; // ISO string for when the last run was completed
   skipCount?: number;
+};
+
+export type ConnectedService = {
+  serviceId: string;
+  serviceName: string;
+  hours: number;
+};
+
+export type ConnectedPackage = {
+  packageId: string;
+  packageName: string;
 };
 
 export type ChildAccount = {
@@ -117,12 +152,15 @@ export type ChildAccount = {
     amount: number;
     frequency: 'monthly';
   };
+  fixedManagementHours?: number;
   monthlyClickBudget?: number;
   primaryGoal: 'lead_generation' | 'ecommerce_sales' | 'brand_awareness' | 'app_installs' | 'other';
   kpisToTrack: string[];
   customKpis?: string[];
   targetKpiValues?: { kpi: string; target: number }[];
   connectedChecklists?: ConnectedChecklist[];
+  connectedServices?: ConnectedService[];
+  connectedPackages?: ConnectedPackage[];
   checklistStatus?: 'due' | 'in_progress' | 'complete';
   pendingTodoIds?: string[];
   kpiDataIds?: string[];
@@ -133,6 +171,23 @@ export type ChildAccount = {
   accountGoal?: { id: string; value: string };
   currency?: { id: string; symbol: string };
   timeZone?: { id: string; offset: string };
+  
+  // -- Multi-Platform Advertising Setup Fields --
+  totalMonthlyBudget?: number;
+  
+  // Google Ads Specifics
+  googleAdsBudget?: number;
+  googleAdsKpis?: string[];
+  googleAdsContext?: string;
+  
+  // Meta Ads Specifics
+  metaAdsAccountId?: string;
+  metaAdsAccountName?: string;
+  metaBusinessManagerId?: string;
+  metaPixelId?: string;
+  metaAdsBudget?: number;
+  metaAdsKpis?: string[];
+  metaAdsContext?: string;
 };
 
 export type ChecklistRunTask = {
@@ -207,6 +262,7 @@ export type MonthlyReport = {
     kpiDataSnapshotId: string;
     completedTodoRunIds: string[];
     completedChecklistRunIds: string[];
+    campaignDataSnapshot?: AccountCampaignData;
     aiSummary: string;
     keyInsights: KeyInsight[];
     privateNotes?: string;
@@ -235,10 +291,66 @@ export type Project = {
   budget?: number;
 };
 
+export type TimeEntry = {
+  id: string;
+  ownerId: string;
+  parentClientId: string;
+  childAccountId?: string; // Optional specific child account
+  date: string; // ISO string
+  durationMinutes: number;
+  description: string;
+  hourlyRateAtTime: number;
+};
+
+export type CampaignPerformance = {
+  id: string;
+  name: string;
+  status: string;
+  impressions: number;
+  clicks: number;
+  costMicros: number;
+  cost: number;
+  conversions: number;
+  costPerConversion: number;
+  conversionsValue: number;
+  ctr: number;
+  roas: number;
+  searchImpressionShare?: number;
+};
+
+export type AccountCampaignData = {
+  id?: string;
+  childAccountId: string;
+  period: string;
+  lastSyncedAt: string;
+  campaigns: CampaignPerformance[];
+  totals: Omit<CampaignPerformance, 'id' | 'name' | 'status'>;
+};
+
 // --- Campaign Briefing Generator Types ---
 
+export const KeywordIdeaSchema = z.object({
+  text: z.string(),
+  avgMonthlySearches: z.number().optional(),
+  competition: z.string().optional(),
+  competitionIndex: z.number().optional(),
+  lowCpc: z.number().optional(),
+  highCpc: z.number().optional(),
+});
+export type KeywordIdea = z.infer<typeof KeywordIdeaSchema>;
+
+export const CategorizedThemeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  keywords: z.array(z.string()),
+});
+export type CategorizedTheme = z.infer<typeof CategorizedThemeSchema>;
+
 export const BriefingContextSchema = z.object({
+  parentClientId: z.string().optional(),
+  childAccountId: z.string().optional(),
   clientName: z.string(),
+  clientEmail: z.string().email().optional(),
   website: z.string(),
   industry: z.string(),
   primaryGoals: z.string(),
@@ -260,8 +372,19 @@ export const BriefingContextSchema = z.object({
   targetLanguages: z.string().optional(),
   usps: z.string().optional(),
   offer: z.string().optional(),
+  marketingHook: z.string().optional(),
+  primaryConversion: z.string().optional(),
+  primaryCta: z.string().optional(),
   negativeKeywordsBase: z.string().optional(),
+  negativeKeywords: z.array(z.string()).optional(),
   conversionValue: z.string().optional(),
+  budgetSplitSearch: z.number().optional(),
+  budgetSplitPmax: z.number().optional(),
+  biddingStrategySearch: z.string().optional(),
+  biddingStrategyPmax: z.string().optional(),
+  selectedKeywords: z.array(KeywordIdeaSchema).optional(),
+  fetchedKeywordIdeas: z.array(KeywordIdeaSchema).optional(),
+  keywordThemes: z.array(CategorizedThemeSchema).optional(),
 });
 export type BriefingContext = z.infer<typeof BriefingContextSchema>;
 
@@ -273,6 +396,10 @@ export const CampaignStructureOutputSchema = z.object({
     objective: z.string(),
     suggestedBudget: z.string(),
     rationale: z.string(),
+    adGroupSuggestions: z.array(z.object({
+      title: z.string(),
+      description: z.string(),
+    })).optional(),
   })),
   budgetAllocation: z.object({
     searchBudget: z.string(),
@@ -359,6 +486,7 @@ export const GenerateSingleAdGroupInputSchema = z.object({
   }),
   adGroupTitle: z.string(),
   adGroupDescription: z.string(),
+  providedKeywords: z.array(z.string()).optional(),
 });
 export type GenerateSingleAdGroupInput = z.infer<typeof GenerateSingleAdGroupInputSchema>;
 
@@ -367,6 +495,10 @@ export type AdGroupBriefing = {
   id: string;
   name: string;
   keywords?: string[];
+  metrics?: {
+    searchVolume: number;
+    avgCpc: number;
+  };
   headlines: string[];
   longHeadlines?: string[];
   descriptions: string[];
@@ -425,6 +557,7 @@ export type CampaignBriefing = {
   rationale: string;
   adGroups: AdGroupBriefing[];
   negativeKeywords?: string[]; // Campaign-level negatives
+  adGroupSuggestions?: { title: string; description: string }[];
 };
 
 export type Briefing = {

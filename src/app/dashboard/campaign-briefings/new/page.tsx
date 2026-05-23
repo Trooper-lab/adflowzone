@@ -56,81 +56,22 @@ export default function NewBriefingPage() {
     conversionValue: '',
   });
 
-  // ── Client Selection Logic ────────────────────────────────────────────────
-  
-  const parentClientsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'parentClients') : null),
-    [firestore]
-  );
-  const { data: parentClients } = useCollection(parentClientsQuery);
-
-  const [selectedParentId, setSelectedParentId] = useState<string>('');
-  
-  const childAccountsQuery = useMemoFirebase(
-    () => (firestore && selectedParentId ? collection(firestore, 'parentClients', selectedParentId, 'childAccounts') : null),
-    [firestore, selectedParentId]
-  );
-  const { data: childAccounts } = useCollection(childAccountsQuery);
-
   // Handle URL parameters for pre-filling
   useEffect(() => {
     const clientId = searchParams.get('clientId');
     const accountId = searchParams.get('accountId');
     const parentId = searchParams.get('parent');
 
-    const loadPrefill = async () => {
-      if (!firestore) return;
-
-      if (clientId) {
-        setSelectedParentId(clientId);
-        const snap = await getDoc(doc(firestore, 'parentClients', clientId));
-        if (snap.exists()) {
-          const client = snap.data() as ParentClient;
-          setContext(prev => ({
-            ...prev,
-            clientName: client.clientName,
-            website: client.websiteUrl || '',
-          }));
-        }
-      } else if (accountId && parentId) {
-        setSelectedParentId(parentId);
-        const snap = await getDoc(doc(firestore, 'parentClients', parentId, 'childAccounts', accountId));
-        if (snap.exists()) {
-          const account = snap.data() as ChildAccount;
-          setContext(prev => ({
-            ...prev,
-            clientName: account.nickname,
-            website: account.websiteUrl || '',
-          }));
-        }
-      }
-    };
-
-    loadPrefill();
-  }, [searchParams, firestore]);
-
-  const handleParentSelect = async (id: string) => {
-    setSelectedParentId(id);
-    const client = (parentClients as ParentClient[]).find(c => (c as any).id === id);
-    if (client) {
-      setContext(prev => ({
-        ...prev,
-        clientName: client.clientName,
-        website: client.websiteUrl || prev.website
+    if (clientId) {
+      setContext(prev => ({ ...prev, parentClientId: clientId }));
+    } else if (parentId) {
+      setContext(prev => ({ 
+        ...prev, 
+        parentClientId: parentId,
+        childAccountId: accountId || '' 
       }));
     }
-  };
-
-  const handleAccountSelect = (id: string) => {
-    const account = (childAccounts as ChildAccount[]).find(a => (a as any).id === id);
-    if (account) {
-      setContext(prev => ({
-        ...prev,
-        clientName: account.nickname,
-        website: account.websiteUrl || prev.website
-      }));
-    }
-  };
+  }, [searchParams]);
 
   const handleExtract = async (notes: string) => {
     if (!notes) {
@@ -220,48 +161,11 @@ export default function NewBriefingPage() {
           </div>
         </div>
 
-        {/* Client Selector Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="bg-[#0F172A] border-slate-800 p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="size-4 text-blue-400" />
-              <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Bestaande Klant Selecteren</Label>
-            </div>
-            <Select value={selectedParentId} onValueChange={handleParentSelect}>
-              <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
-                <SelectValue placeholder="Kies een klant..." />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1E293B] border-slate-700 text-white">
-                {parentClients?.map((c: any) => (
-                  <SelectItem key={c.id} value={c.id}>{c.clientName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Card>
-
-          <Card className="bg-[#0F172A] border-slate-800 p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <Users className="size-4 text-blue-400" />
-              <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Specifiek Account (Optioneel)</Label>
-            </div>
-            <Select onValueChange={handleAccountSelect} disabled={!selectedParentId}>
-              <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
-                <SelectValue placeholder={selectedParentId ? "Kies een account..." : "Selecteer eerst een klant"} />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1E293B] border-slate-700 text-white">
-                {childAccounts?.map((a: any) => (
-                  <SelectItem key={a.id} value={a.id}>{a.nickname}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Card>
-        </div>
-
         {/* The Form */}
         <BriefingForm 
-          key={context.clientName + context.website + selectedParentId}
-          initialData={context}
-          onSubmit={handleSubmit}
+          context={context}
+          onChange={setContext}
+          onSubmit={(finalContext) => handleSubmit(finalContext)}
           onExtract={handleExtract}
           loading={loading}
           extracting={extracting}

@@ -11,6 +11,7 @@ import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/fire
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useUser, useFirestore, useDoc } from '@/firebase';
@@ -71,6 +72,42 @@ function LoadingSkeleton() {
       {[1, 2].map((i) => (
         <div key={i} className="h-16 rounded-xl bg-[#1C243A] border border-[#2A3552] animate-pulse" />
       ))}
+    </div>
+  );
+}
+
+function InlineNumberInput({ value, onSave, className, prefix = '', disabled = false }: { value: number, onSave: (val: number) => void, className?: string, prefix?: string, disabled?: boolean }) {
+  const [val, setVal] = useState(value?.toString() || '0');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setVal(value?.toString() || '0');
+  }, [value]);
+
+  const handleSave = async () => {
+    const num = Number(val);
+    if (num !== value && !isNaN(num)) {
+      setSaving(true);
+      await onSave(num);
+      setSaving(false);
+    } else {
+      setVal(value?.toString() || '0');
+    }
+  };
+
+  return (
+    <div className={cn("relative flex items-center", className)}>
+      {prefix && <span className="absolute left-2 text-[10px] text-slate-500 font-bold z-10">{prefix}</span>}
+      <Input 
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={(e) => {
+           if (e.key === 'Enter') handleSave();
+        }}
+        disabled={saving || disabled}
+        className={cn("h-7 text-right px-2 py-0 text-xs bg-black/20 border-[#2A3552] hover:border-[#3A4562] focus-visible:ring-1 focus-visible:ring-blue-500 font-mono", prefix && "pl-5", disabled && "opacity-50 cursor-not-allowed")}
+      />
     </div>
   );
 }
@@ -160,10 +197,12 @@ export default function PortfolioPage() {
             .sort((a, b) => a.nickname.localeCompare(b.nickname));
 
           const tBudget = accounts.reduce((s, a) => s + (a.monthlyClickBudget || 0), 0);
-          const tFee    = accounts.reduce((s, a) => s + (a.managementFee?.amount || 0), 0);
+          const tFeeNew = accounts.reduce((s, a) => s + ((a.fixedManagementHours || 0) * (client.hourlyRate || 0)), 0);
+          const tFeeOld = accounts.reduce((s, a) => s + (a.managementFee?.amount || 0), 0);
+          const tFee = tFeeNew + tFeeOld; // Tijdelijk gecombineerd tijdens migratie
           gBudget += tBudget; gFee += tFee; gCount += accounts.length;
 
-          return { parentClient: client, accounts, totalBudget: tBudget, totalFee: tFee };
+          return { parentClient: client, accounts, totalBudget: tBudget, totalFee: tFee, totalFeeNew: tFeeNew, totalFeeOld: tFeeOld };
         }).filter((g) => g.accounts.length > 0)
           .sort((a, b) => a.parentClient.clientName.localeCompare(b.parentClient.clientName));
 
@@ -296,8 +335,8 @@ export default function PortfolioPage() {
                   className="rounded-xl border border-[#2A3552] bg-[#1C243A] overflow-hidden shadow-sm border-none"
                 >
                   {/* ── Accordion header ── */}
-                  <div className="flex items-center px-5 hover:bg-white/[0.03] transition-colors">
-                    <AccordionTrigger className="flex-1 py-4 hover:no-underline [&[data-state=open]_.chevron]:rotate-180">
+                  <div className="px-5 hover:bg-white/[0.03] transition-colors">
+                    <AccordionTrigger className="py-4 hover:no-underline [&[data-state=open]_.chevron]:rotate-180">
                       <div className="flex items-center justify-between w-full pr-3">
                         {/* Left: icon + name + meta */}
                         <div className="flex items-center gap-3 min-w-0">
@@ -340,14 +379,33 @@ export default function PortfolioPage() {
                             </p>
                           </div>
                           {isAdmin && (
-                            <div className="text-right">
-                              <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wider mb-0.5">Fee</p>
-                              <p className="text-sm font-bold text-blue-400">
-                                €{group.totalFee.toLocaleString('nl-NL')}
-                              </p>
-                            </div>
+                            <>
+                              <div className="text-right" onClick={(e) => e.stopPropagation()}>
+                                <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wider mb-0.5">Uurtarief</p>
+                                <InlineNumberInput 
+                                  value={group.parentClient.hourlyRate || 0} 
+                                  prefix="€"
+                                  className="w-16"
+                                  onSave={async (val) => {
+                                      if (!firestore) return;
+                                      try {
+                                          await updateDoc(doc(firestore, 'parentClients', group.parentClient.id), { hourlyRate: val });
+                                          setGroups(prev => prev.map(g => g.parentClient.id === group.parentClient.id ? { ...g, parentClient: { ...g.parentClient, hourlyRate: val } } : g));
+                                      } catch (e) {
+                                          console.error(e);
+                                      }
+                                  }}
+                                />
+                              </div>
+                              <div className="text-right pl-4">
+                                <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wider mb-0.5">Fee Totaal</p>
+                                <p className="text-sm font-bold text-blue-400">
+                                  €{group.totalFee.toLocaleString('nl-NL')}
+                                </p>
+                              </div>
+                            </>
                           )}
-                          <ChevronDown className="chevron size-4 text-slate-600 transition-transform duration-200 shrink-0" />
+                          <ChevronDown className="chevron size-4 text-slate-600 transition-transform duration-200 shrink-0 ml-2" />
                         </div>
                       </div>
                     </AccordionTrigger>
@@ -360,39 +418,38 @@ export default function PortfolioPage() {
                       <div className={cn(
                         'grid px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1',
                         isAdmin
-                          ? 'grid-cols-[1fr_130px_80px_110px_110px]'
+                          ? 'grid-cols-[1fr_130px_80px_100px_200px]'
                           : 'grid-cols-[1fr_80px_110px]',
                       )}>
                         <span>Account</span>
                         {isAdmin && <span>Medewerker</span>}
                         <span className="text-center">Checklists</span>
                         <span className="text-right">Budget</span>
-                        {isAdmin && <span className="text-right">Fee</span>}
+                        {isAdmin && <span className="text-right pr-2">Uren / Fee</span>}
                       </div>
 
                       {/* Account rows */}
                       <div className="space-y-1">
                         {group.accounts.map((account) => (
-                          <Link
+                          <div
                             key={account.id}
-                            href={`/dashboard/accounts/${account.id}?parent=${account.parentClientId}`}
                             className={cn(
                               'grid items-center px-3 py-3 rounded-lg border border-white/5 bg-[#1C243A] group',
                               'hover:bg-blue-500/5 hover:border-blue-500/20 transition-all',
                               isAdmin
-                                ? 'grid-cols-[1fr_130px_80px_110px_110px]'
+                                ? 'grid-cols-[1fr_130px_80px_100px_200px]'
                                 : 'grid-cols-[1fr_80px_110px]',
                             )}
                           >
                             {/* Name + ID */}
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-sm font-semibold text-slate-200 group-hover:text-blue-400 transition-colors truncate">
+                            <Link href={`/dashboard/accounts/${account.id}?parent=${account.parentClientId}`} className="flex flex-col min-w-0">
+                              <span className="text-sm font-semibold text-slate-200 hover:text-blue-400 hover:underline transition-colors truncate">
                                 {account.nickname}
                               </span>
                               <span className="text-[10px] font-mono text-slate-600 uppercase tracking-tighter">
                                 {account.googleAdsClientId}
                               </span>
-                            </div>
+                            </Link>
 
                             {/* Employee picker */}
                             {isAdmin && (
@@ -444,13 +501,41 @@ export default function PortfolioPage() {
 
                             {/* Fee */}
                             {isAdmin && (
-                              <div className="text-right">
-                                <span className="text-sm font-semibold text-blue-400/80">
-                                  €{account.managementFee?.amount?.toLocaleString('nl-NL') || '0'}
-                                </span>
+                              <div className="text-right flex items-center justify-end gap-3" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[8px] text-slate-500 uppercase tracking-widest font-black mb-1 flex items-center gap-1">
+                                        Vaste uren
+                                        {account.connectedServices && account.connectedServices.length > 0 && <Briefcase className="size-2 text-blue-400" />}
+                                    </span>
+                                    <InlineNumberInput
+                                      value={account.fixedManagementHours || 0}
+                                      className="w-14"
+                                      disabled={account.connectedServices && account.connectedServices.length > 0}
+                                      onSave={async (val) => {
+                                        if (!firestore) return;
+                                        try {
+                                          await updateDoc(doc(firestore, 'parentClients', account.parentClientId, 'childAccounts', account.id), { fixedManagementHours: val });
+                                          setGroups(prev => prev.map(g => g.parentClient.id === account.parentClientId ? {
+                                              ...g,
+                                              accounts: g.accounts.map(a => a.id === account.id ? { ...a, fixedManagementHours: val } : a)
+                                          } : g));
+                                        } catch(e) {
+                                            console.error(e);
+                                        }
+                                      }}
+                                    />
+                                </div>
+                                <div className="flex flex-col items-end min-w-[50px] justify-center pt-2">
+                                    <span className="text-[10px] font-semibold text-slate-500/70 line-through">
+                                      €{account.managementFee?.amount?.toLocaleString('nl-NL') || '0'}
+                                    </span>
+                                    <span className="text-sm font-bold text-blue-400">
+                                      €{((account.fixedManagementHours || 0) * (group.parentClient.hourlyRate || 0)).toLocaleString('nl-NL')}
+                                    </span>
+                                </div>
                               </div>
                             )}
-                          </Link>
+                          </div>
                         ))}
                       </div>
 

@@ -56,12 +56,14 @@ const generateSingleAdGroupFlow = ai.defineFlow(
         **AD GROUP TO GENERATE:**
         - Title: ${input.adGroupTitle}
         - Description/Direction: ${input.adGroupDescription}
+        - Strict Keywords: ${input.providedKeywords ? JSON.stringify(input.providedKeywords) : 'None provided, invent logically'}
 
         **OVERALL CONTEXT:**
         - Client: ${input.context.clientName}
         - Website: ${input.context.website}
         - Target Audience: ${input.context.targetAudience}
-        - USP's: ${input.context.usps || 'Not specified'}
+        - USP's / Hook: ${input.context.usps || ''} ${input.context.marketingHook || ''}
+        - Call to Action: ${input.context.primaryCta || 'Not specified'}
 
         **CAMPAIGN CONTEXT:**
         - Name: ${input.campaign.name}
@@ -71,16 +73,38 @@ const generateSingleAdGroupFlow = ai.defineFlow(
         **TASK DETAILS:**
         1. **ASSETS**: Depending on type (${input.campaign.type}):
            - If 'search': 
-             - 10-15 keywords.
+             - KEYWORDS: If "Strict Keywords" are provided above, you MUST use EXACTLY that list of keywords. Do not drop any keyword, and do not invent new ones.
+             - MATCH TYPES: The keywords MUST be formatted using proper Google Ads match type syntax based on the campaign's strategic rationale/objective (${input.campaign.objective}):
+               * Exact match: [keyword]
+               * Phrase match: "keyword"
+               * Broad match: keyword (no quotes or brackets)
+               Apply the match types strategically to the strict keywords to match the objective.
              - 15 headlines (max 30 chars). NO EXCLAMATION MARKS (!).
              - 4 descriptions (max 90 chars).
            - If 'pmax':
-             - 5-10 keywords (search themes).
+             - KEYWORDS (Search Themes): If "Strict Keywords" are provided, use them as Performance Max Search Themes. They MUST NOT use any match type syntax (do NOT use [] or "").
              - 15 headlines (max 30 chars). NO EXCLAMATION MARKS (!).
              - 5 long headlines (max 90 chars).
              - 5 descriptions (max 90 chars).
              - 3-5 creative image prompts.
              - **AUDIENCE SIGNALS**: Custom intent, in-market, customer match ideas, and demographics.
+
+        **HEADLINE STRUCTURE STRATEGY (15 headlines total):**
+        The 15 headlines must be generated in exactly 3 groups, returned in this exact order in the headlines array:
+        - Group 1 (Headlines 1-9, indices 0-8): Keyword-focused for quality score (e.g. matching keywords/search intent). Forcing the target keywords into the H1 position.
+        - Group 2 (Headlines 10-12, indices 9-11): USP/Hook-focused (Highlighting the USPs and the chosen Marketing Hook).
+        - Group 3 (Headlines 13-15, indices 12-14): Call to action (CTA) focused (e.g. driving the "Primary Call to Action").
+
+        **EXTENSIONS:**
+        - Always generate exactly 4 Sitelinks (each with a short title and description) to deep-link to specific product categories or pages.
+        - Always generate exactly 4 Callouts (short trust signals/benefits).
+
+        **CAPITALIZATION RULES:**
+        - For Dutch ("dutch") language copy (headlines, long headlines, descriptions, etc.):
+          * Use strictly **Sentence Case** capitalization. This means only the first letter of the first word/sentence is capitalized (along with proper nouns if necessary).
+          * Do NOT capitalize every word (do NOT use Title Case like "Dit Is Een Kop").
+          * Do NOT use all-caps.
+          * Examples: Use "Schoenen online kopen" instead of "Schoenen Online Kopen", "Vraag een offerte aan" instead of "Vraag Een Offerte Aan".
 
         **STRICT GOOGLE ADS RULES:**
         - NO EXCLAMATION MARKS (!) in any Headlines.
@@ -140,11 +164,15 @@ const generateAdGroupsFlow = ai.defineFlow(
         1. **AD GROUPS**: Create 2 to 4 distinct Ad Groups for this campaign.
         2. **ASSETS**: Depending on type (${input.campaign.type}):
            - If 'search': 
-             - 10-15 keywords.
+             - 10-15 keywords. The keywords MUST be formatted using proper Google Ads match type syntax based on the campaign's strategic rationale/objective (${input.campaign.objective}):
+               * Exact match: [keyword]
+               * Phrase match: "keyword"
+               * Broad match: keyword (no quotes or brackets)
+               Generate a strategic mix of match types that matches the recommendations in the strategic rationale.
              - 15 headlines (max 30 chars). NO EXCLAMATION MARKS (!).
              - 4 descriptions (max 90 chars).
            - If 'pmax':
-             - 5-10 keywords (search themes).
+             - 5-10 keywords (search themes). These are Performance Max Search Themes and MUST NOT use any match type syntax (do NOT use [] or "").
              - 15 headlines (max 30 chars). NO EXCLAMATION MARKS (!).
              - 5 long headlines (max 90 chars).
              - 5 descriptions (max 90 chars).
@@ -157,6 +185,19 @@ const generateAdGroupsFlow = ai.defineFlow(
            - A Lead Form proposal (title + fields).
 
         4. **NEGATIVE KEYWORDS**: Provide a list of 10-15 negative keywords relevant to this campaign's context.
+
+        **HEADLINE STRUCTURE STRATEGY (15 headlines total per ad group):**
+        The 15 headlines must be generated in exactly 3 groups of 5, returned in this exact order in the headlines array:
+        - Group 1 (Headlines 1-5, indices 0-4): Keyword-focused for quality score (e.g. matching keywords/search intent).
+        - Group 2 (Headlines 6-10, indices 5-9): USP-focused (Unique Selling Points, e.g. features, benefits, trust factors).
+        - Group 3 (Headlines 11-15, indices 10-14): Call to action (CTA) focused (e.g. "Koop nu online", "Vraag offerte aan").
+
+        **CAPITALIZATION RULES:**
+        - For Dutch ("dutch") language copy (headlines, long headlines, descriptions, extensions, etc.):
+          * Use strictly **Sentence Case** capitalization. This means only the first letter of the first word/sentence is capitalized (along with proper nouns if necessary).
+          * Do NOT capitalize every word (do NOT use Title Case like "Dit Is Een Kop").
+          * Do NOT use all-caps.
+          * Examples: Use "Schoenen online kopen" instead of "Schoenen Online Kopen", "Vraag een offerte aan" instead of "Vraag Een Offerte Aan".
 
         **STRICT GOOGLE ADS RULES:**
         - NO EXCLAMATION MARKS (!) in any Headlines.

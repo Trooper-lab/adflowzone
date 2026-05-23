@@ -13,7 +13,7 @@ import { sendReportByEmail } from '@/app/actions/send-report-email';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Send, CheckCircle, Circle, Wand2, RefreshCw, ArrowLeft, Download, Share, FileText, BarChart, TrendingUp, TrendingDown, ChevronsRight, Copy, Mail } from 'lucide-react';
+import { Loader2, Save, Send, CheckCircle, Circle, Wand2, RefreshCw, ArrowLeft, Download, Share, FileText, BarChart, TrendingUp, TrendingDown, ChevronsRight, Copy, Mail, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -285,6 +285,7 @@ const ReportPage = () => {
             completedTodos: cleanCompletedTodos,
             pendingTodos: cleanPendingTodos,
             checklistRuns: cleanChecklistRuns,
+            campaignDataSnapshot: report.campaignDataSnapshot,
         };
         
         const result = await generateReportSummary(input);
@@ -512,6 +513,14 @@ const ReportPage = () => {
         content += `\n`;
     });
 
+    if (report.campaignDataSnapshot) {
+        content += `## CAMPAGNEPRESTATIES (${report.campaignDataSnapshot.period})\n`;
+        report.campaignDataSnapshot.campaigns.forEach(camp => {
+            content += `- ${camp.name}: Kosten €${camp.cost.toFixed(2)}, Conversies ${camp.conversions.toFixed(1)}, CPA €${camp.costPerConversion.toFixed(2)}\n`;
+        });
+        content += `\n`;
+    }
+
     content += `## MANAGEMENTACTIVITEIT\n`;
     content += `### Voltooide Checklists\n`;
     relatedData.checklistRuns.forEach(run => {
@@ -730,6 +739,42 @@ const ReportPage = () => {
                         </CardContent>
                     </Card>
                 </div>
+
+                {report.campaignDataSnapshot && (
+                    <div className="space-y-4">
+                        <h2 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider flex items-center gap-2"><Target /> Campagneprestaties ({report.campaignDataSnapshot.period})</h2>
+                        <Card>
+                            <CardContent className="p-0 overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
+                                        <TableRow>
+                                            <TableHead>Campagne</TableHead>
+                                            <TableHead className="text-right">Kosten</TableHead>
+                                            <TableHead className="text-right">Klikken</TableHead>
+                                            <TableHead className="text-right">Weergaven</TableHead>
+                                            <TableHead className="text-right">CTR</TableHead>
+                                            <TableHead className="text-right">Conversies</TableHead>
+                                            <TableHead className="text-right">CPA</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {report.campaignDataSnapshot.campaigns.map(camp => (
+                                            <TableRow key={camp.id}>
+                                                <TableCell className="font-medium">{camp.name}</TableCell>
+                                                <TableCell className="text-right">€{camp.cost.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                                                <TableCell className="text-right">{camp.clicks.toLocaleString('nl-NL')}</TableCell>
+                                                <TableCell className="text-right">{camp.impressions.toLocaleString('nl-NL')}</TableCell>
+                                                <TableCell className="text-right">{(camp.ctr * 100).toFixed(2)}%</TableCell>
+                                                <TableCell className="text-right">{camp.conversions.toLocaleString('nl-NL', { maximumFractionDigits: 1 })}</TableCell>
+                                                <TableCell className="text-right">€{camp.costPerConversion.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
               
                 <div className="space-y-4">
                     <h2 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider">Managementactiviteit</h2>

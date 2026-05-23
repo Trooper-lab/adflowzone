@@ -29,7 +29,7 @@ export default function EditBriefingPage() {
     
     const fetchBriefing = async () => {
       try {
-        const docRef = doc(firestore, 'campaign_briefings', id);
+        const docRef = doc(firestore, 'briefings', id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setBriefing({ id: docSnap.id, ...docSnap.data() } as Briefing);
@@ -101,7 +101,7 @@ export default function EditBriefingPage() {
     if (!firestore) return;
     setSaving(true);
     try {
-      const docRef = doc(firestore, 'campaign_briefings', id);
+      const docRef = doc(firestore, 'briefings', id);
       await updateDoc(docRef, {
         context: data,
         updatedAt: serverTimestamp()
@@ -161,9 +161,9 @@ export default function EditBriefingPage() {
 
       {/* The Form */}
       <BriefingForm 
-        key={JSON.stringify(briefing.context)}
-        initialData={briefing.context}
-        onSubmit={handleSubmit}
+        context={briefing.context}
+        onChange={(newContext) => setBriefing(prev => prev ? { ...prev, context: newContext } : null)}
+        onSubmit={(newContext) => handleSubmit(newContext)}
         onExtract={handleExtract}
         loading={saving}
         extracting={extracting}

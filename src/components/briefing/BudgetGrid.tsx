@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Search, Zap, Target } from 'lucide-react';
+import { BudgetAllocation } from '@/lib/types';
 
 interface BudgetGridProps {
   allocation: BudgetAllocation;
