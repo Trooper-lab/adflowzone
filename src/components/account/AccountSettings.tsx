@@ -4,9 +4,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { updateDoc, getDocs, collection } from 'firebase/firestore';
+import { updateDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
+import type { Service, ServicePackage } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -63,10 +64,16 @@ const accountSettingsSchema = z.object({
         kpi: z.string().min(1, "Select a KPI."),
         target: z.coerce.number().min(0, "Target must be positive."),
     })).max(3).optional(),
-    managementFee: z.object({
-        amount: z.coerce.number().min(0).optional(),
-        frequency: z.literal('monthly').default('monthly'),
-    }).optional(),
+    fixedHours: z.coerce.number().min(0).optional(),
+    connectedServices: z.array(z.object({
+        serviceId: z.string().min(1, 'Select a service.'),
+        serviceName: z.string(),
+        hours: z.coerce.number().min(0).optional()
+    })).optional(),
+    connectedPackages: z.array(z.object({
+        packageId: z.string().min(1, 'Select a package.'),
+        packageName: z.string()
+    })).optional(),
 
     // Google Ads
     googleAdsClientId: z.string().optional(),
@@ -96,8 +103,11 @@ interface AccountSettingsProps {
 export default function AccountSettings({ account, accountDocRef, isAdmin }: AccountSettingsProps) {
     const firestore = useFirestore();
     const { toast } = useToast();
+    const { user } = useUser();
     const [employees, setEmployees] = useState<AppUser[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [availableServices, setAvailableServices] = useState<Service[]>([]);
+    const [availablePackages, setAvailablePackages] = useState<ServicePackage[]>([]);
 
     const form = useForm<AccountSettingsFormData>({
         resolver: zodResolver(accountSettingsSchema),
@@ -109,10 +119,9 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
             totalMonthlyBudget: account.totalMonthlyBudget || account.monthlyClickBudget || 0,
             kpisToTrack: account.kpisToTrack || [],
             targetKpiValues: account.targetKpiValues || [],
-            managementFee: {
-                amount: account.managementFee?.amount || 0,
-                frequency: 'monthly'
-            },
+            fixedHours: account.fixedHours || 0,
+            connectedServices: account.connectedServices || [],
+            connectedPackages: account.connectedPackages || [],
             googleAdsClientId: account.googleAdsClientId || '',
             googleAdsAccountName: account.googleAdsAccountName || '',
             googleAdsBudget: account.googleAdsBudget || 0,
@@ -133,7 +142,39 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
         name: "targetKpiValues",
     });
 
+    const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
+        control: form.control,
+        name: "connectedServices",
+    });
+    
+    const { fields: packageFields, append: appendPackage, remove: removePackage } = useFieldArray({
+        control: form.control,
+        name: "connectedPackages",
+    });
+
     const trackedKpis = form.watch('kpisToTrack');
+    const watchConnectedServices = form.watch('connectedServices');
+    const watchConnectedPackages = form.watch('connectedPackages');
+
+    // Automatically calculate fixed hours if services or packages are used
+    useEffect(() => {
+        let totalHours = 0;
+        if (watchConnectedServices && watchConnectedServices.length > 0) {
+            totalHours += watchConnectedServices.reduce((sum, s) => sum + (Number(s.hours) || 0), 0);
+        }
+        if (watchConnectedPackages && watchConnectedPackages.length > 0 && availablePackages.length > 0) {
+            watchConnectedPackages.forEach(p => {
+                const pkg = availablePackages.find(ap => ap.id === p.packageId);
+                if (pkg && pkg.services) {
+                    totalHours += pkg.services.reduce((sum, s) => sum + (Number(s.hours) || 0), 0);
+                }
+            });
+        }
+
+        if ((watchConnectedServices && watchConnectedServices.length > 0) || (watchConnectedPackages && watchConnectedPackages.length > 0)) {
+            form.setValue('fixedHours', Number(totalHours.toFixed(2)));
+        }
+    }, [watchConnectedServices, watchConnectedPackages, availablePackages, form]);
 
     useEffect(() => {
         if (!firestore) return;
@@ -150,6 +191,22 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
         }
         fetchEmployees();
     }, [firestore]);
+
+    useEffect(() => {
+        if (!firestore || !user?.uid || !isAdmin) return;
+        const fetchPackagesAndServices = async () => {
+            try {
+                const pkgSnap = await getDocs(query(collection(firestore, 'servicePackages'), where('ownerId', '==', user.uid)));
+                setAvailablePackages(pkgSnap.docs.map(d => ({ id: d.id, ...d.data() } as ServicePackage)));
+
+                const svcSnap = await getDocs(query(collection(firestore, 'services'), where('ownerId', '==', user.uid)));
+                setAvailableServices(svcSnap.docs.map(d => ({ id: d.id, ...d.data() } as Service)));
+            } catch (e) {
+                console.error("Error fetching packages/services:", e);
+            }
+        };
+        fetchPackagesAndServices();
+    }, [firestore, user, isAdmin]);
 
     async function onSubmit(data: AccountSettingsFormData) {
         setIsSaving(true);
@@ -311,23 +368,144 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
                             />
                             <FormField
                                 control={form.control}
-                                name="managementFee.amount"
+                                name="fixedHours"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-slate-300">Management Fee (Vast)</FormLabel>
+                                        <FormLabel className="text-slate-300">Vaste Uren per Maand</FormLabel>
                                         <FormControl>
-                                            <div className="relative">
-                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">€</span>
-                                                <Input type="number" className="bg-[#0F1423] border-[#2A3552] text-white pl-7" placeholder="Losse fee naast pakketten" {...field} value={field.value ?? ''} />
-                                            </div>
+                                            <Input type="number" step="0.5" className="bg-[#0F1423] border-[#2A3552] text-white" placeholder="5" {...field} value={field.value ?? ''} disabled={form.watch('connectedServices') && form.watch('connectedServices')!.length > 0} />
                                         </FormControl>
+                                        <FormDescription className="text-xs">
+                                            {form.watch('connectedServices') && form.watch('connectedServices')!.length > 0 
+                                                ? "Wordt automatisch berekend o.b.v. gekoppelde diensten." 
+                                                : "Het aantal vaste beheeruren per maand."}
+                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-4 pt-4 border-t border-[#2A3552]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400">Gekoppelde Diensten & Uren</h4>
+                                    <p className="text-xs text-muted-foreground mt-1">Koppel diensten om de vaste uren op de factuur uit te splitsen.</p>
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={() => appendService({ serviceId: '', serviceName: '', hours: 0 })} className="bg-[#0F1423] border-[#2A3552] text-white">
+                                    <PlusCircle className="size-4 mr-2" /> Dienst Toevoegen
+                                </Button>
+                            </div>
+                            
+                            {serviceFields.length > 0 && (
+                                <div className="space-y-3">
+                                    {serviceFields.map((field, index) => (
+                                        <div key={field.id} className="grid grid-cols-[1fr_120px_auto] gap-3 items-start p-4 border border-[#2A3552] bg-[#0F1423] rounded-lg">
+                                            <FormField
+                                                control={form.control}
+                                                name={`connectedServices.${index}.serviceId`}
+                                                render={({ field: selectField }) => (
+                                                    <FormItem>
+                                                        <Select 
+                                                            onValueChange={(val) => {
+                                                                selectField.onChange(val);
+                                                                const svc = availableServices.find(s => s.id === val);
+                                                                if (svc) {
+                                                                    form.setValue(`connectedServices.${index}.serviceName`, svc.name);
+                                                                }
+                                                            }} 
+                                                            defaultValue={selectField.value}
+                                                        >
+                                                            <FormControl>
+                                                                <SelectTrigger className="bg-[#1C243A] border-[#2A3552] text-white"><SelectValue placeholder="Kies een dienst..." /></SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                {availableServices.map(svc => (
+                                                                    <SelectItem key={svc.id} value={svc.id}>{svc.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name={`connectedServices.${index}.hours`}
+                                                render={({ field: inputField }) => (
+                                                    <FormItem>
+                                                        <FormControl>
+                                                            <div className="relative">
+                                                                <Input type="number" step="0.1" placeholder="Uren" {...inputField} className="pr-10 bg-[#1C243A] border-[#2A3552] text-white" />
+                                                                <span className="absolute inset-y-0 right-3 flex items-center text-xs text-slate-500 font-bold">uur</span>
+                                                            </div>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeService(index)} className="hover:text-red-400 hover:bg-red-500/10">
+                                                <Trash2 className="size-4 text-red-400" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t border-[#2A3552]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400">Gekoppelde Pakketten</h4>
+                                    <p className="text-xs text-muted-foreground mt-1">Koppel een pakket om diensten te bundelen.</p>
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={() => appendPackage({ packageId: '', packageName: '' })} className="bg-[#0F1423] border-[#2A3552] text-white">
+                                    <PlusCircle className="size-4 mr-2" /> Pakket Toevoegen
+                                </Button>
+                            </div>
+                            
+                            {packageFields.length > 0 && (
+                                <div className="space-y-3">
+                                    {packageFields.map((field, index) => (
+                                        <div key={field.id} className="grid grid-cols-[1fr_auto] gap-3 items-start p-4 border border-[#2A3552] bg-[#0F1423] rounded-lg">
+                                            <FormField
+                                                control={form.control}
+                                                name={`connectedPackages.${index}.packageId`}
+                                                render={({ field: selectField }) => (
+                                                    <FormItem>
+                                                        <Select 
+                                                            onValueChange={(val) => {
+                                                                selectField.onChange(val);
+                                                                const pkg = availablePackages.find(p => p.id === val);
+                                                                if (pkg) {
+                                                                    form.setValue(`connectedPackages.${index}.packageName`, pkg.name);
+                                                                }
+                                                            }} 
+                                                            defaultValue={selectField.value}
+                                                        >
+                                                            <FormControl>
+                                                                <SelectTrigger className="bg-[#1C243A] border-[#2A3552] text-white"><SelectValue placeholder="Kies een pakket..." /></SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                {availablePackages.map(pkg => (
+                                                                    <SelectItem key={pkg.id} value={pkg.id}>{pkg.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removePackage(index)} className="hover:text-red-400 hover:bg-red-500/10">
+                                                <Trash2 className="size-4 text-red-400" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-4 border-t border-[#2A3552] pt-4">
                             <FormField
                                 control={form.control}
                                 name="kpisToTrack"
