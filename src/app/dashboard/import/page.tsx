@@ -451,14 +451,14 @@ export default function DataImportPage() {
             </div>
 
             <Tabs defaultValue="api-sync" className="w-full">
-                <TabsList className="mb-6 bg-[#1C243A] border border-[#2A3552]">
+                <TabsList className="mb-6 glass-card">
                     <TabsTrigger value="api-sync" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">API Bulk Sync</TabsTrigger>
                     <TabsTrigger value="scripts" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">Script Bridge (JSON)</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="api-sync" className="mt-0">
-                    <Card className="bg-[#1C243A] border-[#2A3552] shadow-xl overflow-hidden">
-                        <CardHeader className="bg-white/5 border-b border-[#2A3552]">
+                    <Card className="glass-card shadow-xl overflow-hidden">
+                        <CardHeader className="bg-white/5 border-b border-white/5">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <CardTitle className="text-lg flex items-center gap-2">
@@ -493,7 +493,7 @@ export default function DataImportPage() {
                                             <th className="px-4 py-3 font-semibold text-right">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[#2A3552]">
+                                    <tbody className="divide-y divide-white/5">
                                         {accounts.filter(a => a.googleAdsClientId).map(account => (
                                             <tr key={account.id} className="hover:bg-white/[0.02] cursor-pointer" onClick={() => handleToggleSyncAccount(account.id)}>
                                                 <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
@@ -506,7 +506,7 @@ export default function DataImportPage() {
                                                     <div className="font-bold text-slate-200">{account.nickname}</div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <Badge className="font-mono text-[10px] bg-white/5 text-slate-400 border border-[#2A3552]">
+                                                    <Badge className="font-mono text-[10px] bg-white/5 text-slate-400 border border-white/5">
                                                         {account.googleAdsClientId}
                                                     </Badge>
                                                 </td>
@@ -545,7 +545,7 @@ export default function DataImportPage() {
                                 <Card 
                                     key={key} 
                                     className={cn(
-                                        "bg-[#1C243A] border-[#2A3552] group hover:border-blue-500/30 transition-all overflow-hidden cursor-pointer",
+                                        "glass-card group hover:border-blue-500/30 transition-all overflow-hidden cursor-pointer",
                                         isActive && "border-blue-500/50 ring-1 ring-blue-500/20"
                                     )}
                                     onClick={() => setActiveBridge(script.id)}
@@ -626,8 +626,8 @@ export default function DataImportPage() {
                 <div className="lg:col-span-7 space-y-6">
                     <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">2. Verwerk Data</h2>
                     
-                    <Card className="bg-[#1C243A] border-[#2A3552] shadow-xl overflow-hidden">
-                        <CardHeader className="bg-white/5 border-b border-[#2A3552]">
+                    <Card className="glass-card shadow-xl overflow-hidden">
+                        <CardHeader className="bg-white/5 border-b border-white/5">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <RefreshCw className="size-5 text-green-400" />
                                 Plak Output
@@ -652,7 +652,7 @@ export default function DataImportPage() {
                     </Card>
 
                     {parsedData.length > 0 && (
-                        <Card className="bg-[#1C243A] border-[#2A3552] shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
+                        <Card className="glass-card shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
                             <CardHeader className="pb-2 flex flex-row items-center justify-between">
                                 <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Preview & Match</CardTitle>
                                 <Badge variant="outline" className="text-[10px] border-slate-700">{parsedData.length} items</Badge>

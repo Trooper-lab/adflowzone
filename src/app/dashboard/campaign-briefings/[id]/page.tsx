@@ -595,7 +595,7 @@ export default function CampaignBriefingEditor() {
             }}
           />
           {generatingStructure && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center flex-col gap-6">
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center flex-col gap-6 grain-animated">
               <Loader2 className="size-16 animate-spin text-blue-500" />
               <h2 className="text-2xl font-black text-white">AI bouwt de campagne structuur...</h2>
               <p className="text-slate-400 text-center max-w-md">Dit kan even duren. De AI is nu de beste structuur aan het bepalen op basis van je keywords en strategie.</p>
@@ -607,7 +607,7 @@ export default function CampaignBriefingEditor() {
         <TabsContent value="editor" className="mt-0 animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="space-y-8">
             {/* Global Strategy Editor Quick Access */}
-            <Card className="bg-[#1C243A] border-[#2A3552] overflow-hidden shadow-xl">
+            <Card className="glass-card overflow-hidden shadow-xl">
                 <div className="p-6 space-y-6">
                     <div className="flex items-center gap-3">
                         <div className="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
@@ -680,8 +680,8 @@ export default function CampaignBriefingEditor() {
 
             <div className="grid grid-cols-1 gap-8">
               {briefing.campaigns.map((campaign, cIdx) => (
-                <Card key={campaign.id} className="bg-[#1C243A] border-[#2A3552] overflow-hidden shadow-xl">
-                  <CardHeader className="bg-slate-900/80 border-b border-[#2A3552] p-6">
+                <Card key={campaign.id} className="glass-card overflow-hidden shadow-xl">
+                  <CardHeader className="bg-slate-900/80 border-b border-white/5 p-6">
                     <div className="flex justify-between items-start gap-6">
                       <div className="flex-1 space-y-4">
                         <div className="flex items-center gap-4">
@@ -853,7 +853,7 @@ export default function CampaignBriefingEditor() {
 
                     <div className="grid grid-cols-1 gap-6">
                       {campaign.adGroups.map((ag, agIdx) => (
-                        <div key={ag.id} className="bg-[#1C243A] rounded-2xl border border-slate-700/50 p-5 relative group shadow-sm">
+                        <div key={ag.id} className="bg-card rounded-2xl border border-slate-700/50 p-5 relative group shadow-sm">
                           <Button 
                               variant="ghost" 
                               size="icon" 
@@ -1172,7 +1172,7 @@ export default function CampaignBriefingEditor() {
                     </div>
                 </div>
                 
-                <Card className="bg-[#1C243A] border-[#2A3552] overflow-hidden">
+                <Card className="glass-card overflow-hidden">
                     <div className="divide-y divide-slate-800">
                         {(briefing.tracking || []).map((t, tIdx) => (
                             <div key={tIdx} className="p-4 flex flex-col md:flex-row gap-4 items-end">

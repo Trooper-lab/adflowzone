@@ -63,7 +63,7 @@ function StatCard({
   valueCn?: string;
 }) {
   return (
-    <div className="rounded-xl bg-[#1C243A] border border-[#2A3552] p-5">
+    <div className="rounded-xl glass-card p-5">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
         {label}
       </p>
@@ -82,8 +82,8 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl bg-[#1C243A] border border-[#2A3552] overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#2A3552] bg-white/[0.03]">
+    <div className="rounded-xl glass-card overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-3.5 border-b border-white/5 bg-white/[0.03]">
         <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">
           {title}
         </p>
@@ -219,7 +219,7 @@ export default function ClientDetailPage() {
               variant="outline"
               size="sm"
               asChild
-              className="border-[#2A3552] bg-white/5 hover:bg-white/10 text-slate-300"
+              className="border-white/5 bg-white/5 hover:bg-white/10 text-slate-300"
             >
               <Link href={`/dashboard/clients/${clientId}/edit`}>
                 <Pencil className="mr-2 size-3.5" /> Bewerken
@@ -274,7 +274,7 @@ export default function ClientDetailPage() {
             }
           >
             {childAccounts && childAccounts.length > 0 ? (
-              <div className="divide-y divide-[#2A3552]">
+              <div className="divide-y divide-white/5">
                 {(childAccounts as any[]).map((account) => {
                   const goal = GOAL_META[account.primaryGoal];
                   return (
@@ -409,7 +409,7 @@ export default function ClientDetailPage() {
               )}
 
               {client.internalNotes && (
-                <div className="pt-4 border-t border-[#2A3552]">
+                <div className="pt-4 border-t border-white/5">
                   <div className="flex items-center gap-1.5 mb-2">
                     <StickyNote className="size-3.5 text-slate-500" />
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -429,7 +429,7 @@ export default function ClientDetailPage() {
             variant="outline"
             size="sm"
             asChild
-            className="w-full border-[#2A3552] bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+            className="w-full border-white/5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
           >
             <Link href="/dashboard/accounts">
               <Wallet className="mr-2 size-3.5" />

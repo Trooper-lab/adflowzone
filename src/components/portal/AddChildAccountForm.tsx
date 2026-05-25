@@ -51,11 +51,7 @@ const childAccountSchema = z.object({
     nickname: z.string().min(2, 'Nickname is required.'),
     googleAdsClientId: z.string().regex(/^\d{3}-\d{3}-\d{4}$/, 'Invalid Client ID format (e.g., 123-456-7890).'),
     googleAdsAccountName: z.string().min(2, 'Official account name is required.'),
-    managementFee: z.object({
-        amount: z.coerce.number().min(0, 'Fee must be a positive number.').optional(),
-        frequency: z.literal('monthly').default('monthly'),
-    }).optional(),
-    fixedManagementHours: z.coerce.number().min(0, 'Hours must be a positive number.').optional(),
+    fixedHours: z.coerce.number().min(0, 'Hours must be a positive number.').optional(),
     monthlyClickBudget: z.coerce.number().min(0, 'Budget must be a positive number.').optional(),
     primaryGoal: z.enum(['lead_generation', 'ecommerce_sales', 'brand_awareness', 'app_installs', 'other']),
     kpisToTrack: z.array(z.string()).refine((value) => value.some((item) => item), {
@@ -122,8 +118,7 @@ export function AddChildAccountForm({ parentClient }: { parentClient: ParentClie
             nickname: '',
             googleAdsClientId: '',
             googleAdsAccountName: '',
-            managementFee: { amount: 0, frequency: 'monthly' },
-            fixedManagementHours: 0,
+            fixedHours: 0,
             monthlyClickBudget: 0,
             primaryGoal: 'lead_generation',
             kpisToTrack: [],
@@ -174,7 +169,7 @@ export function AddChildAccountForm({ parentClient }: { parentClient: ParentClie
         }
         
         if ((watchConnectedServices && watchConnectedServices.length > 0) || (watchConnectedPackages && watchConnectedPackages.length > 0)) {
-            form.setValue('fixedManagementHours', Number(totalHours.toFixed(2)));
+            form.setValue('fixedHours', Number(totalHours.toFixed(2)));
         }
     }, [watchConnectedServices, watchConnectedPackages, availablePackages, form]);
 
@@ -234,11 +229,7 @@ export function AddChildAccountForm({ parentClient }: { parentClient: ParentClie
             ...data,
             ownerId: managerUid, // The manager owns the account
             parentClientId: parentClient.id,
-            managementFee: {
-                amount: Number(data.managementFee?.amount) || 0,
-                frequency: 'monthly'
-            },
-            fixedManagementHours: Number(data.fixedManagementHours) || 0,
+            fixedHours: Number(data.fixedHours) || 0,
             monthlyClickBudget: Number(data.monthlyClickBudget) || 0,
             connectedChecklists: processedChecklists,
             connectedServices: data.connectedServices || [],
@@ -343,26 +334,9 @@ export function AddChildAccountForm({ parentClient }: { parentClient: ParentClie
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="managementFee.amount"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Monthly Management Fee</FormLabel>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">€</span>
-                                            <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} className="pl-7" />
-                                        </div>
-                                    </FormControl>
-                                        <FormDescription>Oude vaste fee bedrag (Ter referentie).</FormDescription>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                                 <FormField
                                     control={form.control}
-                                    name="fixedManagementHours"
+                                    name="fixedHours"
                                     render={({ field }) => (
                                         <FormItem>
                                         <FormLabel>Vaste Uren per Maand</FormLabel>

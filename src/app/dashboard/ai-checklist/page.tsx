@@ -440,7 +440,7 @@ export default function AiChecklistPage() {
                 <div className="lg:col-span-5 space-y-6">
                     <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">1. Selecteer Account</h2>
 
-                    <Card className="bg-[#1C243A] border-[#2A3552]">
+                    <Card className="glass-card">
                         <CardContent className="pt-6 space-y-4">
                             <Combobox
                                 options={accountOptions}
@@ -509,8 +509,8 @@ export default function AiChecklistPage() {
                 <div className="lg:col-span-7 space-y-6">
                     <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">2. Plak Output & Genereer</h2>
 
-                    <Card className="bg-[#1C243A] border-[#2A3552] shadow-xl overflow-hidden">
-                        <CardHeader className="bg-white/5 border-b border-[#2A3552]">
+                    <Card className="glass-card shadow-xl overflow-hidden">
+                        <CardHeader className="bg-white/5 border-b border-white/5">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Sparkles className="size-5 text-purple-400" />
                                 JSON Output Plakken
@@ -568,7 +568,7 @@ export default function AiChecklistPage() {
                                             'border transition-all',
                                             item.priority === 'critical'
                                                 ? 'bg-red-950/20 border-red-500/30 hover:border-red-500/50'
-                                                : 'bg-[#1C243A] border-[#2A3552] hover:border-purple-500/20'
+                                                : 'glass-card hover:border-purple-500/20'
                                         )}
                                     >
                                         <CardContent className="p-5">

@@ -133,7 +133,7 @@ export default function UserManagementPage() {
             </div>
 
             <Tabs defaultValue="team" className="w-full space-y-6">
-                <TabsList className="bg-[#1C243A] border border-[#2A3552] p-1 h-12">
+                <TabsList className="glass-card p-1 h-12">
                     <TabsTrigger value="team" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white h-full px-8 font-bold uppercase text-[10px] tracking-widest">
                         <Users className="size-3.5 mr-2" />
                         Interne Team ({teamUsers.length})
@@ -149,7 +149,7 @@ export default function UserManagementPage() {
                 </TabsList>
 
                 <TabsContent value="pending" className="space-y-6">
-                    <Card className="bg-[#1C243A] border-[#2A3552]">
+                    <Card className="glass-card">
                         <CardHeader>
                             <CardTitle className="text-orange-400 flex items-center gap-2">
                                 <AlertCircle className="size-5" />
@@ -191,7 +191,7 @@ export default function UserManagementPage() {
                 </TabsContent>
 
                 <TabsContent value="team" className="space-y-6">
-                    <Card className="bg-[#1C243A] border-[#2A3552]">
+                    <Card className="glass-card">
                         <CardHeader>
                             <CardTitle>Actieve Teamleden</CardTitle>
                             <CardDescription>Admins hebben volledige toegang, medewerkers zien alleen toegewezen accounts.</CardDescription>
@@ -244,7 +244,7 @@ export default function UserManagementPage() {
                 </TabsContent>
 
                 <TabsContent value="clients" className="space-y-6">
-                    <Card className="bg-[#1C243A] border-[#2A3552]">
+                    <Card className="glass-card">
                         <CardHeader>
                             <CardTitle>Klanten Toegang</CardTitle>
                             <CardDescription>Monitor welke klanten hun portaal hebben geactiveerd.</CardDescription>

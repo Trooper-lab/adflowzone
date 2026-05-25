@@ -77,7 +77,7 @@ export default function InvoicesPage() {
                     const accounts: { id: string, name: string, fee: number, hours?: number, rate?: number, oldFee?: number, serviceName?: string }[] = [];
                     snap.forEach(d => {
                         const acc = d.data() as ChildAccount;
-                        const oldFee = acc.managementFee?.amount || 0;
+                        const oldFee = 0; // Legacy fee removed
 
                         let allServicesToBill = [...(acc.connectedServices || [])];
                         
@@ -135,7 +135,7 @@ export default function InvoicesPage() {
                                 });
                             }
                         } else {
-                            const newFee = (acc.fixedManagementHours || 0) * hourlyRate;
+                            const newFee = (acc.fixedHours || 0) * hourlyRate;
                             const fee = newFee + oldFee;
 
                             if (fee > 0) {
@@ -144,7 +144,7 @@ export default function InvoicesPage() {
                                     id: d.id, 
                                     name: acc.nickname || acc.name || 'Account', 
                                     fee,
-                                    hours: acc.fixedManagementHours || 0,
+                                    hours: acc.fixedHours || 0,
                                     rate: hourlyRate,
                                     oldFee: oldFee
                                 });

@@ -100,11 +100,11 @@ export default function CampaignBriefingsPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (
-            <Card key={i} className="bg-[#1C243A] border-[#2A3552] h-64 animate-pulse" />
+            <Card key={i} className="glass-card h-64 animate-pulse" />
           ))}
         </div>
       ) : briefings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 bg-slate-900/20 rounded-3xl border-2 border-dashed border-[#2A3552] text-center">
+        <div className="flex flex-col items-center justify-center h-64 bg-slate-900/20 rounded-3xl border-2 border-dashed border-white/5 text-center">
             <Briefcase className="size-12 text-slate-600 mb-4" />
             <h3 className="text-xl font-bold text-slate-300">Geen briefings gevonden</h3>
             <p className="text-slate-500 mt-2">Maak je eerste AI-gestuurde briefing aan.</p>
@@ -119,7 +119,7 @@ export default function CampaignBriefingsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {briefings.map(briefing => (
             <Link href={`/dashboard/campaign-briefings/${briefing.id}`} key={briefing.id} className="block group">
-              <Card className="bg-[#1C243A] border-[#2A3552] shadow-xl group-hover:border-blue-500/50 transition-all h-full flex flex-col">
+              <Card className="glass-card shadow-xl group-hover:border-blue-500/50 transition-all h-full flex flex-col">
                 <CardHeader className="pb-3 border-b border-white/5">
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant={briefing.status === 'approved' ? 'default' : 'secondary'} className={briefing.status === 'approved' ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-orange-500/20 text-orange-400 hover:bg-orange-500/30"}>

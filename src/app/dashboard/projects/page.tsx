@@ -164,7 +164,7 @@ export default function ProjectsPage() {
                             <Plus className="mr-2 size-4" /> Nieuw Project
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#1C243A] border-[#2A3552] text-slate-100 max-w-2xl">
+                    <DialogContent className="glass-card text-slate-100 max-w-2xl">
                         <DialogHeader>
                             <DialogTitle className="text-2xl font-headline">Strategisch Traject Starten</DialogTitle>
                             <DialogDescription className="text-slate-400">Definieer de doelen en mijlpalen voor dit klantproject.</DialogDescription>
@@ -275,7 +275,7 @@ export default function ProjectsPage() {
                         const client = clients.find(c => c.id === project.parentClientId);
                         
                         return (
-                            <Card key={project.id} className="bg-[#1C243A] border-[#2A3552] group hover:border-blue-500/30 transition-all overflow-hidden flex flex-col">
+                            <Card key={project.id} className="glass-card group hover:border-blue-500/30 transition-all overflow-hidden flex flex-col">
                                 <CardHeader className="pb-4">
                                     <div className="flex justify-between items-start">
                                         <Badge variant="outline" className="text-[9px] uppercase font-black border-blue-500/20 bg-blue-500/5 text-blue-400">
@@ -320,7 +320,7 @@ export default function ProjectsPage() {
                                         </div>
                                     </div>
                                 </CardContent>
-                                <CardFooter className="bg-black/20 p-4 border-t border-[#2A3552] flex justify-between items-center">
+                                <CardFooter className="bg-black/20 p-4 border-t border-white/5 flex justify-between items-center">
                                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase">
                                         <Calendar className="size-3" />
                                         Gestart op {format(parseISO(project.startDate), 'dd MMM yyyy')}

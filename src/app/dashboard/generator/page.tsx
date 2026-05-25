@@ -201,7 +201,7 @@ export default function AdCopyGeneratorPage() {
         </div>
         <div className="grid grid-cols-1 gap-2">
             {items.map((text, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-[#1C243A] border border-[#2A3552] group hover:border-blue-500/30 transition-all">
+                <div key={i} className="flex items-center justify-between p-3 rounded-xl glass-card group hover:border-blue-500/30 transition-all">
                     <p className="text-sm text-slate-200 leading-snug">{text}</p>
                     <div className="flex items-center gap-3 pl-4 shrink-0">
                         <span className={cn("text-[10px] font-mono font-bold", text.length > maxLength ? "text-red-400" : "text-slate-600")}>
@@ -230,8 +230,8 @@ export default function AdCopyGeneratorPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Form */}
         <div className="lg:col-span-4">
-          <Card className="bg-[#1C243A] border-[#2A3552] shadow-xl sticky top-6">
-            <CardHeader className="border-b border-[#2A3552] bg-white/5">
+          <Card className="glass-card shadow-xl sticky top-6">
+            <CardHeader className="border-b border-white/5 bg-white/5">
               <CardTitle className="text-lg">Configuratie</CardTitle>
               <CardDescription>Vul de details in voor een optimale generatie.</CardDescription>
             </CardHeader>
@@ -377,7 +377,7 @@ export default function AdCopyGeneratorPage() {
         {/* Right Column: Results */}
         <div className="lg:col-span-8">
           {loading && (
-            <div className="flex flex-col items-center justify-center h-[600px] bg-[#1C243A]/50 rounded-3xl border-2 border-dashed border-[#2A3552] animate-in fade-in duration-500">
+            <div className="flex flex-col items-center justify-center h-[600px] bg-card/50 rounded-3xl border-2 border-dashed border-white/5 animate-in fade-in duration-500 grain-animated">
               <div className="relative">
                 <Loader2 className="size-16 animate-spin text-blue-500" />
                 <Sparkles className="absolute -top-2 -right-2 size-6 text-yellow-400 animate-bounce" />
@@ -388,7 +388,7 @@ export default function AdCopyGeneratorPage() {
           )}
 
           {!loading && !searchResult && !pmaxResult && (
-            <div className="flex flex-col items-center justify-center h-[600px] bg-slate-900/20 rounded-3xl border-2 border-dashed border-[#2A3552] text-center p-12">
+            <div className="flex flex-col items-center justify-center h-[600px] bg-slate-900/20 rounded-3xl border-2 border-dashed border-white/5 text-center p-12">
                 <div className="p-6 rounded-full bg-blue-500/5 border border-blue-500/10 mb-6">
                     <MousePointer2 className="size-12 text-blue-500/50" />
                 </div>
@@ -405,8 +405,8 @@ export default function AdCopyGeneratorPage() {
           {(searchResult || pmaxResult) && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
               {/* Keywords Section */}
-              <Card className="bg-[#1C243A] border-[#2A3552] shadow-xl overflow-hidden">
-                <CardHeader className="bg-white/5 border-b border-[#2A3552] flex flex-row items-center justify-between py-4">
+              <Card className="glass-card shadow-xl overflow-hidden">
+                <CardHeader className="bg-white/5 border-b border-white/5 flex flex-row items-center justify-between py-4">
                   <div className="flex items-center gap-3">
                     <Key className="size-5 text-blue-400" />
                     <div>
@@ -450,8 +450,8 @@ export default function AdCopyGeneratorPage() {
               </Card>
 
               {/* Ad Copy Section */}
-              <Card className="bg-[#1C243A] border-[#2A3552] shadow-xl overflow-hidden">
-                <CardHeader className="bg-white/5 border-b border-[#2A3552] py-4">
+              <Card className="glass-card shadow-xl overflow-hidden">
+                <CardHeader className="bg-white/5 border-b border-white/5 py-4">
                   <div className="flex items-center gap-3">
                     <Type className="size-5 text-blue-400" />
                     <div>
@@ -464,7 +464,7 @@ export default function AdCopyGeneratorPage() {
                   {searchResult && (
                     <>
                         <AssetCard title="Koppen (Max 30 tekens - Geen !)" items={searchResult.adCopy.headlines} maxLength={30} icon={Type} />
-                        <Separator className="bg-[#2A3552]" />
+                        <Separator className="bg-white/5" />
                         <AssetCard title="Beschrijvingen (Max 90 tekens)" items={searchResult.adCopy.descriptions} maxLength={90} icon={Type} type="description" />
                     </>
                   )}
@@ -472,9 +472,9 @@ export default function AdCopyGeneratorPage() {
                   {pmaxResult && (
                     <>
                         <AssetCard title="Koppen (Max 30 tekens - Geen !)" items={pmaxResult.adCopy.headlines} maxLength={30} icon={Type} />
-                        <Separator className="bg-[#2A3552]" />
+                        <Separator className="bg-white/5" />
                         <AssetCard title="Lange Koppen (Max 90 tekens)" items={pmaxResult.adCopy.longHeadlines} maxLength={90} icon={Type} />
-                        <Separator className="bg-[#2A3552]" />
+                        <Separator className="bg-white/5" />
                         <AssetCard title="Beschrijvingen (Max 90 tekens)" items={pmaxResult.adCopy.descriptions} maxLength={90} icon={Type} type="description" />
                     </>
                   )}
@@ -483,7 +483,7 @@ export default function AdCopyGeneratorPage() {
 
               {pmaxResult && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card className="bg-[#1C243A] border-[#2A3552] shadow-xl">
+                    <Card className="glass-card shadow-xl">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-bold flex items-center gap-2"><ImageIcon className="size-4 text-blue-400" /> Image Gen Prompts</CardTitle>
                         </CardHeader>
@@ -498,7 +498,7 @@ export default function AdCopyGeneratorPage() {
                             ))}
                         </CardContent>
                     </Card>
-                    <Card className="bg-[#1C243A] border-[#2A3552] shadow-xl">
+                    <Card className="glass-card shadow-xl">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-bold flex items-center gap-2"><Languages className="size-4 text-blue-400" /> Call to Action</CardTitle>
                         </CardHeader>

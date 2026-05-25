@@ -215,7 +215,7 @@ export default function CheckInPage() {
                 <p className="text-muted-foreground">Bereid je voor op je volgende call met een 30-dagen overzicht.</p>
             </div>
 
-            <Card className="bg-[#1C243A] border-[#2A3552]">
+            <Card className="glass-card">
                 <CardContent className="pt-6">
                     <div className="flex flex-col md:flex-row items-center gap-4">
                         <div className="flex-grow w-full">
@@ -260,7 +260,7 @@ export default function CheckInPage() {
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <Card className="bg-[#1C243A] border-[#2A3552]">
+                        <Card className="glass-card">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Checklists Voltooid</CardTitle>
                             </CardHeader>
@@ -271,7 +271,7 @@ export default function CheckInPage() {
                                 <div className="text-4xl font-bold">{stats.checklists}</div>
                             </CardContent>
                         </Card>
-                        <Card className="bg-[#1C243A] border-[#2A3552]">
+                        <Card className="glass-card">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Observaties & Comments</CardTitle>
                             </CardHeader>
@@ -282,7 +282,7 @@ export default function CheckInPage() {
                                 <div className="text-4xl font-bold">{stats.comments}</div>
                             </CardContent>
                         </Card>
-                        <Card className="bg-[#1C243A] border-[#2A3552]">
+                        <Card className="glass-card">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Taken Afgevinkt</CardTitle>
                             </CardHeader>
@@ -297,8 +297,8 @@ export default function CheckInPage() {
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Notes Feed */}
-                        <Card className="bg-[#1C243A] border-[#2A3552] flex flex-col h-[600px]">
-                            <CardHeader className="border-b border-[#2A3552]">
+                        <Card className="glass-card flex flex-col h-[600px]">
+                            <CardHeader className="border-b border-white/5">
                                 <CardTitle className="flex items-center gap-2">
                                     <MessageSquare className="text-green-400 size-5" />
                                     Recente Observaties
@@ -310,7 +310,7 @@ export default function CheckInPage() {
                                     {recentNotes.length === 0 ? (
                                         <div className="p-10 text-center text-muted-foreground">Geen opmerkingen gevonden deze maand.</div>
                                     ) : (
-                                        <div className="divide-y divide-[#2A3552]">
+                                        <div className="divide-y divide-white/5">
                                             {recentNotes.map((note, i) => (
                                                 <div key={i} className="p-4 space-y-2 hover:bg-white/5 transition-colors">
                                                     <div className="flex justify-between items-start">
@@ -328,8 +328,8 @@ export default function CheckInPage() {
                         </Card>
 
                         {/* Todos Feed */}
-                        <Card className="bg-[#1C243A] border-[#2A3552] flex flex-col h-[600px]">
-                            <CardHeader className="border-b border-[#2A3552]">
+                        <Card className="glass-card flex flex-col h-[600px]">
+                            <CardHeader className="border-b border-white/5">
                                 <CardTitle className="flex items-center gap-2">
                                     <CheckCircle2 className="text-purple-400 size-5" />
                                     Voltooide Taken
@@ -341,7 +341,7 @@ export default function CheckInPage() {
                                     {recentTodos.length === 0 ? (
                                         <div className="p-10 text-center text-muted-foreground">Geen taken voltooid deze maand.</div>
                                     ) : (
-                                        <div className="divide-y divide-[#2A3552]">
+                                        <div className="divide-y divide-white/5">
                                             {recentTodos.map((todo, i) => {
                                                 const completedAt = todo.completedAt as any;
                                                 const doneDate = completedAt && typeof completedAt === 'object' && 'toDate' in completedAt 

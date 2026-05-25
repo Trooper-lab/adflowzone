@@ -38,7 +38,7 @@ type ClientGroup = {
 
 function EmptyState({ isAdmin }: { isAdmin: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-5 rounded-xl border border-dashed border-[#2A3552] py-20 text-center">
+    <div className="flex flex-col items-center justify-center gap-5 rounded-xl border border-dashed border-white/5 py-20 text-center">
       <div className="p-4 rounded-full bg-white/5">
         <Library className="size-10 text-slate-600" />
       </div>
@@ -66,11 +66,11 @@ function LoadingSkeleton() {
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 rounded-xl bg-[#1C243A] border border-[#2A3552] animate-pulse" />
+          <div key={i} className="h-24 rounded-xl bg-card/50 border border-white/5 animate-pulse" />
         ))}
       </div>
       {[1, 2].map((i) => (
-        <div key={i} className="h-16 rounded-xl bg-[#1C243A] border border-[#2A3552] animate-pulse" />
+        <div key={i} className="h-16 rounded-xl bg-card/50 border border-white/5 animate-pulse" />
       ))}
     </div>
   );
@@ -106,7 +106,7 @@ function InlineNumberInput({ value, onSave, className, prefix = '', disabled = f
            if (e.key === 'Enter') handleSave();
         }}
         disabled={saving || disabled}
-        className={cn("h-7 text-right px-2 py-0 text-xs bg-black/20 border-[#2A3552] hover:border-[#3A4562] focus-visible:ring-1 focus-visible:ring-blue-500 font-mono", prefix && "pl-5", disabled && "opacity-50 cursor-not-allowed")}
+        className={cn("h-7 text-right px-2 py-0 text-xs bg-black/20 border-white/5 hover:border-white/10 focus-visible:ring-1 focus-visible:ring-blue-500 font-mono", prefix && "pl-5", disabled && "opacity-50 cursor-not-allowed")}
       />
     </div>
   );
@@ -197,12 +197,10 @@ export default function PortfolioPage() {
             .sort((a, b) => a.nickname.localeCompare(b.nickname));
 
           const tBudget = accounts.reduce((s, a) => s + (a.monthlyClickBudget || 0), 0);
-          const tFeeNew = accounts.reduce((s, a) => s + ((a.fixedManagementHours || 0) * (client.hourlyRate || 0)), 0);
-          const tFeeOld = accounts.reduce((s, a) => s + (a.managementFee?.amount || 0), 0);
-          const tFee = tFeeNew + tFeeOld; // Tijdelijk gecombineerd tijdens migratie
+          const tFee = accounts.reduce((s, a) => s + ((a.fixedHours || 0) * (client.hourlyRate || 0)), 0);
           gBudget += tBudget; gFee += tFee; gCount += accounts.length;
 
-          return { parentClient: client, accounts, totalBudget: tBudget, totalFee: tFee, totalFeeNew: tFeeNew, totalFeeOld: tFeeOld };
+          return { parentClient: client, accounts, totalBudget: tBudget, totalFee: tFee };
         }).filter((g) => g.accounts.length > 0)
           .sort((a, b) => a.parentClient.clientName.localeCompare(b.parentClient.clientName));
 
@@ -332,7 +330,7 @@ export default function PortfolioPage() {
                 <AccordionItem
                   key={group.parentClient.id}
                   value={group.parentClient.id}
-                  className="rounded-xl border border-[#2A3552] bg-[#1C243A] overflow-hidden shadow-sm border-none"
+                  className="rounded-xl border border-white/5 bg-card overflow-hidden shadow-sm border-none"
                 >
                   {/* ── Accordion header ── */}
                   <div className="px-5 hover:bg-white/[0.03] transition-colors">
@@ -412,7 +410,7 @@ export default function PortfolioPage() {
                   </div>
 
                   {/* ── Accordion body ── */}
-                  <AccordionContent className="border-t border-[#2A3552] bg-black/10">
+                  <AccordionContent className="border-t border-white/5 bg-black/10">
                     <div className="px-5 pt-3 pb-5">
                       {/* Column headers */}
                       <div className={cn(
@@ -434,7 +432,7 @@ export default function PortfolioPage() {
                           <div
                             key={account.id}
                             className={cn(
-                              'grid items-center px-3 py-3 rounded-lg border border-white/5 bg-[#1C243A] group',
+                              'grid items-center px-3 py-3 rounded-lg border border-white/5 bg-card/40 group',
                               'hover:bg-blue-500/5 hover:border-blue-500/20 transition-all',
                               isAdmin
                                 ? 'grid-cols-[1fr_130px_80px_100px_200px]'
@@ -467,7 +465,7 @@ export default function PortfolioPage() {
                                   <SelectTrigger className="h-7 w-[120px] text-[10px] bg-white/5 border-white/10 hover:bg-white/10">
                                     <SelectValue placeholder="Toewijzen" />
                                   </SelectTrigger>
-                                  <SelectContent className="bg-[#1C243A] border-[#2A3552] text-slate-200">
+                                  <SelectContent className="glass-card-elevated text-slate-200">
                                     <SelectItem value="unassigned" className="text-[10px]">Geen</SelectItem>
                                     {teamMembers.map((m) => (
                                       <SelectItem key={m.uid} value={m.uid} className="text-[10px]">
@@ -508,16 +506,16 @@ export default function PortfolioPage() {
                                         {account.connectedServices && account.connectedServices.length > 0 && <Briefcase className="size-2 text-blue-400" />}
                                     </span>
                                     <InlineNumberInput
-                                      value={account.fixedManagementHours || 0}
+                                      value={account.fixedHours || 0}
                                       className="w-14"
                                       disabled={account.connectedServices && account.connectedServices.length > 0}
                                       onSave={async (val) => {
                                         if (!firestore) return;
                                         try {
-                                          await updateDoc(doc(firestore, 'parentClients', account.parentClientId, 'childAccounts', account.id), { fixedManagementHours: val });
+                                          await updateDoc(doc(firestore, 'parentClients', account.parentClientId, 'childAccounts', account.id), { fixedHours: val });
                                           setGroups(prev => prev.map(g => g.parentClient.id === account.parentClientId ? {
                                               ...g,
-                                              accounts: g.accounts.map(a => a.id === account.id ? { ...a, fixedManagementHours: val } : a)
+                                              accounts: g.accounts.map(a => a.id === account.id ? { ...a, fixedHours: val } : a)
                                           } : g));
                                         } catch(e) {
                                             console.error(e);
@@ -526,11 +524,8 @@ export default function PortfolioPage() {
                                     />
                                 </div>
                                 <div className="flex flex-col items-end min-w-[50px] justify-center pt-2">
-                                    <span className="text-[10px] font-semibold text-slate-500/70 line-through">
-                                      €{account.managementFee?.amount?.toLocaleString('nl-NL') || '0'}
-                                    </span>
                                     <span className="text-sm font-bold text-blue-400">
-                                      €{((account.fixedManagementHours || 0) * (group.parentClient.hourlyRate || 0)).toLocaleString('nl-NL')}
+                                      €{((account.fixedHours || 0) * (group.parentClient.hourlyRate || 0)).toLocaleString('nl-NL')}
                                     </span>
                                 </div>
                               </div>
@@ -540,7 +535,7 @@ export default function PortfolioPage() {
                       </div>
 
                       {/* Footer actions */}
-                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#2A3552]/50">
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
                         <div className="flex gap-1">
                           {isAdmin && (
                             <Button
@@ -565,7 +560,7 @@ export default function PortfolioPage() {
                         </div>
                         <Button
                           variant="outline" size="sm" asChild
-                          className="text-[10px] font-bold uppercase tracking-widest h-7 border-[#2A3552] hover:bg-blue-600 hover:border-blue-600 hover:text-white transition-all"
+                          className="text-[10px] font-bold uppercase tracking-widest h-7 border-white/10 hover:bg-primary hover:border-primary hover:text-white transition-all"
                         >
                           <Link href={`/dashboard/clients/${group.parentClient.id}`}>
                             Volledig dossier
@@ -593,7 +588,7 @@ function SummaryCard({
   icon: React.ElementType; iconCn: string;
 }) {
   return (
-    <div className="rounded-xl bg-[#1C243A] border border-[#2A3552] p-5 flex items-center gap-4">
+    <div className="rounded-xl glass-card p-5 flex items-center gap-4">
       <div className={cn('p-2.5 rounded-lg shrink-0', iconCn)}>
         <Icon className="size-5" />
       </div>

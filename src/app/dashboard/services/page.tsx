@@ -227,7 +227,7 @@ export default function ServicesManagementPage() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="bg-[#1C243A] border border-[#2A3552] mb-6 w-full justify-start overflow-x-auto h-auto p-1">
+                <TabsList className="glass-card mb-6 w-full justify-start overflow-x-auto h-auto p-1">
                     <TabsTrigger value="services" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-2.5 px-6">
                         <Briefcase className="size-4 mr-2" /> Losse Diensten ({services.length})
                     </TabsTrigger>
@@ -247,7 +247,7 @@ export default function ServicesManagementPage() {
                     </div>
 
                     {isAddingService && (
-                        <Card className="bg-[#1C243A] border-blue-500/50 shadow-lg shadow-blue-900/10">
+                        <Card className="bg-card border-blue-500/50 shadow-lg shadow-blue-900/10">
                             <CardHeader>
                                 <CardTitle>{editingServiceId ? 'Dienst Bewerken' : 'Nieuwe Dienst Toevoegen'}</CardTitle>
                                 <CardDescription>Definieer de details en *deliverables* voor deze dienst.</CardDescription>
@@ -256,21 +256,21 @@ export default function ServicesManagementPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Naam</label>
-                                        <Input value={serviceForm.name} onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })} placeholder="bijv. Google Ads Beheer" className="bg-black/20 border-[#2A3552]" />
+                                        <Input value={serviceForm.name} onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })} placeholder="bijv. Google Ads Beheer" className="bg-black/20 border-white/5" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Standaard Uren (per maand)</label>
-                                        <Input type="number" value={serviceForm.baseHours} onChange={e => setServiceForm({ ...serviceForm, baseHours: e.target.value })} placeholder="bijv. 4" className="bg-black/20 border-[#2A3552]" />
+                                        <Input type="number" value={serviceForm.baseHours} onChange={e => setServiceForm({ ...serviceForm, baseHours: e.target.value })} placeholder="bijv. 4" className="bg-black/20 border-white/5" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Setup Kosten / Onboarding (€)</label>
-                                        <Input type="number" value={serviceForm.onboardingFee} onChange={e => setServiceForm({ ...serviceForm, onboardingFee: e.target.value })} placeholder="bijv. 250" className="bg-black/20 border-[#2A3552]" />
+                                        <Input type="number" value={serviceForm.onboardingFee} onChange={e => setServiceForm({ ...serviceForm, onboardingFee: e.target.value })} placeholder="bijv. 250" className="bg-black/20 border-white/5" />
                                     </div>
                                 </div>
                                 
                                 <div className="space-y-2 mt-4">
                                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Omschrijving (optioneel)</label>
-                                    <Textarea value={serviceForm.description} onChange={e => setServiceForm({ ...serviceForm, description: e.target.value })} placeholder="Korte interne beschrijving..." className="bg-black/20 border-[#2A3552] min-h-[60px]" />
+                                    <Textarea value={serviceForm.description} onChange={e => setServiceForm({ ...serviceForm, description: e.target.value })} placeholder="Korte interne beschrijving..." className="bg-black/20 border-white/5 min-h-[60px]" />
                                 </div>
 
                                 <div className="space-y-2 mt-4">
@@ -279,12 +279,12 @@ export default function ServicesManagementPage() {
                                         value={serviceForm.deliverables} 
                                         onChange={e => setServiceForm({ ...serviceForm, deliverables: e.target.value })} 
                                         placeholder={`Maandelijkse rapportage\nWekelijkse optimalisatie\nA/B testing ad copy`} 
-                                        className="bg-black/20 border-[#2A3552] min-h-[100px]" 
+                                        className="bg-black/20 border-white/5 min-h-[100px]" 
                                     />
                                     <p className="text-xs text-muted-foreground">Deze lijst helpt de klant te begrijpen wat de dienst precies inhoudt.</p>
                                 </div>
                             </CardContent>
-                            <CardFooter className="flex justify-end gap-3 border-t border-[#2A3552]/50 pt-6">
+                            <CardFooter className="flex justify-end gap-3 border-t border-white/5 pt-6">
                                 <Button variant="ghost" onClick={cancelServiceEdit}>Annuleren</Button>
                                 <Button onClick={handleSaveService} className="bg-blue-600 hover:bg-blue-700 text-white">
                                     <CheckCircle2 className="size-4 mr-2" /> Opslaan
@@ -295,7 +295,7 @@ export default function ServicesManagementPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {services.map(service => (
-                            <Card key={service.id} className="bg-[#1C243A] border-[#2A3552] group hover:border-blue-500/30 transition-all flex flex-col">
+                            <Card key={service.id} className="glass-card group hover:border-blue-500/30 transition-all flex flex-col">
                                 <CardHeader className="pb-3">
                                     <div className="flex items-start justify-between">
                                         <div>
@@ -314,7 +314,7 @@ export default function ServicesManagementPage() {
                                     {service.description && <p className="text-sm text-slate-400">{service.description}</p>}
                                     {service.onboardingFee ? <p className="text-xs font-medium text-slate-300">Setupkosten: €{service.onboardingFee}</p> : null}
                                     {service.deliverables && service.deliverables.length > 0 && (
-                                        <div className="bg-black/20 p-3 rounded-md border border-[#2A3552]/50">
+                                        <div className="bg-black/20 p-3 rounded-md border border-white/5">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Deliverables</p>
                                             <ul className="text-sm text-slate-300 space-y-1 pl-4 list-disc marker:text-blue-500">
                                                 {service.deliverables.slice(0, 3).map((d, i) => <li key={i}>{d}</li>)}
@@ -339,7 +339,7 @@ export default function ServicesManagementPage() {
                     </div>
 
                     {isAddingPackage && (
-                        <Card className="bg-[#1C243A] border-blue-500/50 shadow-lg shadow-blue-900/10">
+                        <Card className="bg-card border-blue-500/50 shadow-lg shadow-blue-900/10">
                             <CardHeader>
                                 <CardTitle>{editingPackageId ? 'Pakket Bewerken' : 'Nieuw Pakket Aanmaken'}</CardTitle>
                                 <CardDescription>Bundel meerdere diensten in een overkoepelend pakket.</CardDescription>
@@ -348,19 +348,19 @@ export default function ServicesManagementPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Pakketnaam</label>
-                                        <Input value={packageForm.name} onChange={e => setPackageForm({ ...packageForm, name: e.target.value })} placeholder="bijv. Growth Package" className="bg-black/20 border-[#2A3552]" />
+                                        <Input value={packageForm.name} onChange={e => setPackageForm({ ...packageForm, name: e.target.value })} placeholder="bijv. Growth Package" className="bg-black/20 border-white/5" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Pakketkorting per maand (€)</label>
-                                        <Input type="number" value={packageForm.packageDiscount} onChange={e => setPackageForm({ ...packageForm, packageDiscount: e.target.value })} placeholder="bijv. 50" className="bg-black/20 border-[#2A3552]" />
+                                        <Input type="number" value={packageForm.packageDiscount} onChange={e => setPackageForm({ ...packageForm, packageDiscount: e.target.value })} placeholder="bijv. 50" className="bg-black/20 border-white/5" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Omschrijving (optioneel)</label>
-                                    <Textarea value={packageForm.description} onChange={e => setPackageForm({ ...packageForm, description: e.target.value })} placeholder="Voor wie is dit pakket bedoeld?" className="bg-black/20 border-[#2A3552] min-h-[60px]" />
+                                    <Textarea value={packageForm.description} onChange={e => setPackageForm({ ...packageForm, description: e.target.value })} placeholder="Voor wie is dit pakket bedoeld?" className="bg-black/20 border-white/5 min-h-[60px]" />
                                 </div>
 
-                                <div className="border border-[#2A3552] rounded-lg p-4 bg-black/10">
+                                <div className="border border-white/5 rounded-lg p-4 bg-black/10">
                                     <h3 className="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2"><ListPlus className="size-4" /> Selecteer Diensten voor dit Pakket</h3>
                                     {services.length === 0 ? (
                                         <p className="text-sm text-slate-500 italic">Er zijn nog geen diensten gedefinieerd. Maak eerst diensten aan.</p>
@@ -370,7 +370,7 @@ export default function ServicesManagementPage() {
                                                 const isSelected = packageServices.some(s => s.serviceId === service.id);
                                                 const pkgSvc = packageServices.find(s => s.serviceId === service.id);
                                                 return (
-                                                    <div key={service.id} className={`flex items-center justify-between p-3 rounded-md border transition-all ${isSelected ? 'bg-blue-500/10 border-blue-500/50' : 'bg-[#1C243A] border-[#2A3552]'}`}>
+                                                    <div key={service.id} className={`flex items-center justify-between p-3 rounded-md border transition-all ${isSelected ? 'bg-blue-500/10 border-blue-500/50' : 'glass-card'}`}>
                                                         <div className="flex items-center gap-3">
                                                             <input 
                                                                 type="checkbox" 
@@ -388,7 +388,7 @@ export default function ServicesManagementPage() {
                                                                 <span className="text-xs text-slate-400">Pakket uren:</span>
                                                                 <Input 
                                                                     type="number" 
-                                                                    className="w-20 h-8 text-sm bg-black/50 border-[#2A3552]" 
+                                                                    className="w-20 h-8 text-sm bg-black/50 border-white/5" 
                                                                     value={pkgSvc?.hours || ''}
                                                                     onChange={(e) => updatePackageServiceHours(service.id, Number(e.target.value))}
                                                                 />
@@ -401,7 +401,7 @@ export default function ServicesManagementPage() {
                                     )}
                                 </div>
                             </CardContent>
-                            <CardFooter className="flex justify-end gap-3 border-t border-[#2A3552]/50 pt-6">
+                            <CardFooter className="flex justify-end gap-3 border-t border-white/5 pt-6">
                                 <Button variant="ghost" onClick={cancelPackageEdit}>Annuleren</Button>
                                 <Button onClick={handleSavePackage} className="bg-blue-600 hover:bg-blue-700 text-white">
                                     <CheckCircle2 className="size-4 mr-2" /> Opslaan
@@ -414,7 +414,7 @@ export default function ServicesManagementPage() {
                         {packages.map(pkg => {
                             const totalHours = pkg.services?.reduce((acc, s) => acc + (s.hours || 0), 0) || 0;
                             return (
-                                <Card key={pkg.id} className="bg-[#1C243A] border-blue-500/20 group hover:border-blue-500/50 transition-all flex flex-col shadow-lg shadow-blue-900/5">
+                                <Card key={pkg.id} className="bg-card border-blue-500/20 group hover:border-blue-500/50 transition-all flex flex-col shadow-lg shadow-blue-900/5">
                                     <CardHeader className="pb-3 bg-blue-500/5 border-b border-blue-500/10">
                                         <div className="flex items-start justify-between">
                                             <div>
@@ -436,7 +436,7 @@ export default function ServicesManagementPage() {
                                             <p className="text-xs font-bold text-emerald-400">Pakketkorting: -€{pkg.packageDiscount} / mnd</p>
                                         ) : null}
                                         
-                                        <div className="bg-black/20 p-3 rounded-md border border-[#2A3552]/50">
+                                        <div className="bg-black/20 p-3 rounded-md border border-white/5">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Inbegrepen in pakket</p>
                                             <ul className="text-sm text-slate-300 space-y-1">
                                                 {pkg.services?.map((s, i) => (

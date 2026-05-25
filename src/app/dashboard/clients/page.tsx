@@ -47,7 +47,7 @@ function CreateClientButton() {
 
 function EmptyState() {
   return (
-    <Card className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-[#2A3552]">
+    <Card className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-white/5">
       <div className="flex flex-col items-center gap-4">
         <div className="p-4 rounded-full bg-white/5">
             <Users className="size-12 text-muted-foreground" />
@@ -66,7 +66,7 @@ function EmptyState() {
 
 function LoadingState() {
     return (
-        <Card className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-[#2A3552]">
+        <Card className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-white/5">
             <div className="flex flex-col items-center gap-2">
                 <Loader2 className="size-12 text-blue-500 animate-spin" />
                 <h3 className="text-xl font-semibold font-headline">Klanten laden...</h3>
@@ -188,7 +188,7 @@ export default function ClientsPage() {
       {loading ? (
           <LoadingState />
       ) : clients.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-[#2A3552] border rounded-xl">
+          <div className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-white/5 border rounded-xl">
             <div className="flex flex-col items-center gap-4">
                 <div className="p-4 rounded-full bg-white/5">
                     <Users className="size-12 text-muted-foreground" />
@@ -206,7 +206,7 @@ export default function ClientsPage() {
         <>
             {/* Global Portfolio Stats */}
             <div className={cn("grid grid-cols-1 gap-6", isAdmin ? "md:grid-cols-3" : "md:grid-cols-2")}>
-                <Card className="bg-[#1C243A] border-[#2A3552]">
+                <Card className="glass-card">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Totaal Portfolio Budget</CardTitle>
                     </CardHeader>
@@ -216,7 +216,7 @@ export default function ClientsPage() {
                     </CardContent>
                 </Card>
                 {isAdmin && (
-                    <Card className="bg-[#1C243A] border-[#2A3552]">
+                    <Card className="glass-card">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Totaal Management Fees</CardTitle>
                         </CardHeader>
@@ -226,7 +226,7 @@ export default function ClientsPage() {
                         </CardContent>
                     </Card>
                 )}
-                <Card className="bg-[#1C243A] border-[#2A3552]">
+                <Card className="glass-card">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Actieve Accounts</CardTitle>
                     </CardHeader>
@@ -237,10 +237,10 @@ export default function ClientsPage() {
                 </Card>
             </div>
 
-            <Card className="bg-[#1C243A] border-[#2A3552] overflow-hidden shadow-xl">
+            <Card className="glass-card overflow-hidden shadow-xl">
                 <Table>
                     <TableHeader className="bg-white/5">
-                        <TableRow className="border-[#2A3552] hover:bg-transparent">
+                        <TableRow className="border-white/5 hover:bg-transparent">
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 px-6">Klant & Type</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4">Contactpersoon</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 text-center">Accounts</TableHead>
@@ -251,7 +251,7 @@ export default function ClientsPage() {
                     </TableHeader>
                     <TableBody>
                         {clients.map((client) => (
-                            <TableRow key={client.id} className="border-[#2A3552] hover:bg-white/5 transition-colors group">
+                            <TableRow key={client.id} className="border-white/5 hover:bg-white/5 transition-colors group">
                                 <TableCell className="py-4 px-6">
                                     <div className="flex flex-col">
                                         <Link href={`/dashboard/clients/${client.id}`} className="font-bold text-slate-100 group-hover:text-blue-400 transition-colors">
@@ -282,7 +282,7 @@ export default function ClientsPage() {
                                     </div>
                                 </TableCell>
                                 <TableCell className="py-4 text-center">
-                                    <Badge variant="outline" className="bg-white/5 border-[#2A3552] text-slate-400 font-mono">
+                                    <Badge variant="outline" className="bg-white/5 border-white/5 text-slate-400 font-mono">
                                         {client.accountCount}
                                     </Badge>
                                 </TableCell>
@@ -301,7 +301,7 @@ export default function ClientsPage() {
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="bg-[#1C243A] border-[#2A3552] text-slate-200">
+                                        <DropdownMenuContent align="end" className="glass-card text-slate-200">
                                             <DropdownMenuLabel>Beheer</DropdownMenuLabel>
                                             <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                                 <Link href={`/dashboard/clients/${client.id}/`}>
@@ -313,7 +313,7 @@ export default function ClientsPage() {
                                                     <Briefcase className="mr-2 size-4" /> Klant bewerken
                                                 </Link>
                                             </DropdownMenuItem>
-                                            <DropdownMenuSeparator className="bg-[#2A3552]" />
+                                            <DropdownMenuSeparator className="bg-white/5" />
                                             <DropdownMenuItem className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
                                                 Verwijderen
                                             </DropdownMenuItem>

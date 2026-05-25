@@ -444,7 +444,7 @@ function ChecklistCard({ checklist, onRemove, allAccounts }: { checklist: Checkl
   
   return (
     <>
-      <Card className="overflow-hidden flex flex-col bg-[#1C243A] border-[#2A3552]">
+      <Card className="overflow-hidden flex flex-col glass-card">
         <CardHeader>
           <div className="flex items-start justify-between">
               <div>
@@ -680,7 +680,7 @@ function LoadingState() {
     return (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {[...Array(3)].map((_, i) => (
-                 <Card key={i} className="bg-[#1C243A] border-[#2A3552]">
+                 <Card key={i} className="glass-card">
                     <CardHeader>
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </CardHeader>
@@ -710,7 +710,7 @@ const ChecklistRunGroup = ({ template, runs, allAccounts, onViewRun, isAdmin }: 
     const connectedAccounts = useMemo(() => allAccounts.filter(a => a.connectedChecklists?.some(c => c.checklistId === template.id)), [allAccounts, template.id]);
 
     return (
-        <AccordionItem value={template.id} className="border-[#2A3552]">
+        <AccordionItem value={template.id} className="border-white/5">
             <AccordionTrigger className="hover:no-underline">
                 <div className="flex items-center justify-between w-full pr-4">
                     <div className='flex items-center gap-4'>
@@ -942,7 +942,7 @@ export default function ChecklistsPage() {
       )}
       
        {!loading && Object.keys(groupedRuns).length > 0 && (
-          <Card className="bg-[#1C243A] border-[#2A3552]">
+          <Card className="glass-card">
               <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-headline text-2xl"><History className="text-blue-400" /> Checklist Historie</CardTitle>
                   <CardDescription>Een overzicht van alle uitgevoerde checklists over alle accounts.</CardDescription>

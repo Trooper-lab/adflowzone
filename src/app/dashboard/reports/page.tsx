@@ -637,7 +637,7 @@ export default function ReportDashboard() {
             </div>
 
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-3 bg-[#1C243A] border-[#2A3552]">
+                <Card className="lg:col-span-3 glass-card">
                     <CardHeader>
                         <CardTitle className="text-slate-200">Maandelijkse Cyclusstatus</CardTitle>
                     </CardHeader>
@@ -666,7 +666,7 @@ export default function ReportDashboard() {
                 </Card>
             </div>
             
-             <div className="flex justify-between items-center bg-[#1C243A] p-1.5 rounded-xl border border-[#2A3552]">
+             <div className="flex justify-between items-center bg-card p-1.5 rounded-xl border border-white/5">
                 <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
                     <Button variant={activeTab === 'all' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('all')} className="h-8 text-[10px] uppercase font-bold tracking-wider">Alles</Button>
                     <Button variant={activeTab === 'pending' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('pending')} className="h-8 text-[10px] uppercase font-bold tracking-wider">Wachtrij</Button>
@@ -682,7 +682,7 @@ export default function ReportDashboard() {
             {loading ? <LoadingState /> : (
                 <Accordion type="multiple" defaultValue={Object.keys(accountsByClient)} className="w-full space-y-4">
                     {Object.entries(accountsByClient).map(([clientId, clientData]) => (
-                        <AccordionItem value={clientId} key={clientId} className="border-none bg-[#1C243A] border border-[#2A3552] rounded-xl overflow-hidden shadow-sm">
+                        <AccordionItem value={clientId} key={clientId} className="border-none glass-card rounded-xl overflow-hidden shadow-sm">
                              <div className="flex items-center px-6 py-4 hover:bg-white/5 transition-colors">
                                 <AccordionTrigger className="flex-grow p-0 hover:no-underline">
                                     <div className="flex items-center gap-4">
@@ -693,8 +693,8 @@ export default function ReportDashboard() {
                                     </div>
                                 </AccordionTrigger>
                             </div>
-                            <AccordionContent className="p-0 border-t border-[#2A3552] bg-black/10">
-                                <div className="divide-y divide-[#2A3552]">
+                            <AccordionContent className="p-0 border-t border-white/5 bg-black/10">
+                                <div className="divide-y divide-white/5">
                                 {clientData.accounts.flatMap(account => {
                                     const accountReports = (activeTab === 'history') 
                                         ? (reportsByAccount[account.id] || []).sort((a, b) => b.period.localeCompare(a.period))

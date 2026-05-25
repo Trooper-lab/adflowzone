@@ -91,8 +91,8 @@ const ClientListView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], o
     return (
         <div className="space-y-6 animate-in fade-in duration-700">
             {grouped.map(([clientName, clientTasks]) => (
-                <Card key={clientName} className="bg-[#1C243A] border-[#2A3552] overflow-hidden shadow-xl">
-                    <CardHeader className="bg-white/5 border-b border-[#2A3552] py-3 px-6">
+                <Card key={clientName} className="glass-card overflow-hidden shadow-xl">
+                    <CardHeader className="bg-white/5 border-b border-white/5 py-3 px-6">
                         <CardTitle className="text-sm font-black uppercase tracking-widest text-blue-400 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Users className="size-4" />
@@ -104,7 +104,7 @@ const ClientListView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], o
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="divide-y divide-[#2A3552]">
+                        <div className="divide-y divide-white/5">
                             {clientTasks.map(task => (
                                 <div key={task.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors group">
                                     <div className="flex items-center gap-4 min-w-0">
@@ -172,18 +172,18 @@ const CalendarView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], onS
                     {format(currentMonth, 'MMMM yyyy', { locale: nl })}
                 </h2>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-8 w-8 bg-[#1C243A] border-[#2A3552]">
+                    <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-8 w-8 bg-card border-white/5">
                         <ChevronLeft className="size-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-8 w-8 bg-[#1C243A] border-[#2A3552]">
+                    <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-8 w-8 bg-card border-white/5">
                         <ChevronRight className="size-4" />
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-7 gap-px bg-[#2A3552] border border-[#2A3552] rounded-xl overflow-hidden shadow-2xl">
+            <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
                 {['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'].map(day => (
-                    <div key={day} className="bg-[#1C243A] p-3 text-center text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <div key={day} className="bg-card p-3 text-center font-label-caps text-muted-foreground">
                         {day}
                     </div>
                 ))}
@@ -198,7 +198,7 @@ const CalendarView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], onS
                         <div 
                             key={i} 
                             className={cn(
-                                "min-h-[140px] bg-[#1C243A] p-2 flex flex-col gap-1.5 transition-colors",
+                                "min-h-[140px] bg-card/60 p-2 flex flex-col gap-1.5 transition-colors hover:bg-card/80",
                                 !isCurrentMonth && "opacity-30 bg-[#161d2e]",
                                 isTodayDay && "ring-1 ring-inset ring-blue-500/50 bg-blue-500/[0.02]"
                             )}
@@ -247,8 +247,8 @@ const CalendarView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], onS
                                                 + {dayTasks.length - 3} meer
                                             </button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-64 p-0 bg-[#1C243A] border-[#2A3552] shadow-2xl" align="start" side="right">
-                                            <div className="p-3 border-b border-[#2A3552] bg-white/5">
+                                        <PopoverContent className="w-64 p-0 glass-card-elevated shadow-2xl" align="start" side="right">
+                                            <div className="p-3 border-b border-white/5 bg-white/5">
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                                                     Taken op {format(day, 'd MMMM', { locale: nl })}
                                                 </p>
@@ -305,7 +305,7 @@ const PriorityFlowView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[],
                 <h2 className="text-sm font-bold text-slate-500 uppercase tracking-[0.3em]">Volgende Prioriteit</h2>
             </div>
 
-            <Card className="bg-[#1C243A] border-[#2A3552] border-2 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden relative group animate-in fade-in zoom-in-95 duration-700 hover:border-blue-500/30 transition-all">
+            <Card className="glass-card border-2 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden relative group animate-in fade-in zoom-in-95 duration-700 hover:border-primary/30 transition-all">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500 group-hover:w-2 transition-all duration-300" />
                 <CardContent className="p-10">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
@@ -354,7 +354,7 @@ const PriorityFlowView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[],
                         </Button>
                     </div>
                 </CardContent>
-                <div className="bg-black/20 px-10 py-5 flex justify-between items-center border-t border-[#2A3552]">
+                <div className="bg-black/20 px-10 py-5 flex justify-between items-center border-t border-white/5">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                         <List className="size-3" /> Nog <span className="text-blue-400 font-black">{remainingToday}</span> taken op de planning voor vandaag
                     </p>
@@ -569,12 +569,12 @@ export default function DashboardPage() {
             <h1 className="text-4xl md:text-5xl font-bold font-headline tracking-tight text-slate-100">Mijn FlowZone</h1>
             <p className="text-muted-foreground mt-2 font-medium">Focus op de optimalisaties van vandaag.</p>
         </div>
-        <div className="flex items-center gap-1 bg-[#1C243A] p-1.5 rounded-xl self-start border border-[#2A3552] shadow-xl animate-in fade-in slide-in-from-right-4 duration-700 overflow-x-auto no-scrollbar max-w-full">
+        <div className="flex items-center gap-1 bg-card/60 p-1.5 rounded-xl self-start border border-white/5 shadow-xl animate-in fade-in slide-in-from-right-4 duration-700 overflow-x-auto no-scrollbar max-w-full backdrop-blur-md">
             <Button 
                 variant={viewMode === 'priorityFlow' ? 'secondary' : 'ghost'} 
                 size="sm"
                 onClick={() => setViewMode('priorityFlow')} 
-                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'priorityFlow' && "bg-[#2A3552] text-white shadow-inner")}
+                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'priorityFlow' && "bg-white/10 text-white shadow-inner")}
             >
                 <Rocket className="mr-2 size-4" /> Focus
             </Button>
@@ -582,7 +582,7 @@ export default function DashboardPage() {
                 variant={viewMode === 'clientList' ? 'secondary' : 'ghost'} 
                 size="sm"
                 onClick={() => setViewMode('clientList')} 
-                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'clientList' && "bg-[#2A3552] text-white shadow-inner")}
+                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'clientList' && "bg-white/10 text-white shadow-inner")}
             >
                 <LayoutGrid className="mr-2 size-4" /> Klanten
             </Button>
@@ -590,7 +590,7 @@ export default function DashboardPage() {
                 variant={viewMode === 'calendar' ? 'secondary' : 'ghost'} 
                 size="sm"
                 onClick={() => setViewMode('calendar')} 
-                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'calendar' && "bg-[#2A3552] text-white shadow-inner")}
+                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'calendar' && "bg-white/10 text-white shadow-inner")}
             >
                 <CalendarDays className="mr-2 size-4" /> Kalender
             </Button>
@@ -627,7 +627,7 @@ export default function DashboardPage() {
                             const progress = project.milestones.length > 0 ? (completed / project.milestones.length) * 100 : 0;
                             return (
                                 <Link key={project.id} href="/dashboard/projects">
-                                    <Card className="bg-[#1C243A] border-[#2A3552] hover:border-blue-500/30 transition-all p-4 space-y-3">
+                                    <Card className="glass-card hover:border-primary/30 transition-all p-4 space-y-3">
                                         <div className="flex justify-between items-start">
                                             <h3 className="text-xs font-bold text-slate-200 truncate pr-2">{project.title}</h3>
                                             <span className="text-[9px] font-black text-blue-400">{Math.round(progress)}%</span>

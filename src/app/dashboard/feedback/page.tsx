@@ -95,7 +95,7 @@ export default function PlatformFeedbackPage() {
           {feedbacks.map((fb) => {
             const date = fb.createdAt ? new Date(fb.createdAt.seconds * 1000) : null;
             return (
-              <Card key={fb.id} className="flex flex-col border-white/10 bg-[#1C243A]">
+              <Card key={fb.id} className="flex flex-col border-white/10 bg-card">
                 <CardContent className="flex flex-1 flex-col gap-3 pt-5">
                   {/* Comment */}
                   <p className="text-sm leading-relaxed text-slate-200">{fb.comment}</p>

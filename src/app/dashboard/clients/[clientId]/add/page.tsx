@@ -394,7 +394,7 @@ export default function AddChildAccountPage() {
                             'flex flex-col items-center justify-center gap-2 rounded-lg border px-3 py-3 text-xs font-semibold transition-all duration-150',
                             active
                               ? GOAL_ACTIVE_CLASSES[color]
-                              : 'border-[#2A3552] bg-white/5 text-slate-400 hover:border-slate-500 hover:text-slate-200',
+                              : 'border-white/5 bg-white/5 text-slate-400 hover:border-slate-500 hover:text-slate-200',
                           )}
                         >
                           <Icon
@@ -443,7 +443,7 @@ export default function AddChildAccountPage() {
                             'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-150',
                             active
                               ? 'border-blue-500/50 bg-blue-500/15 text-blue-300'
-                              : 'border-[#2A3552] bg-white/5 text-slate-400 hover:border-slate-500 hover:text-slate-200',
+                              : 'border-white/5 bg-white/5 text-slate-400 hover:border-slate-500 hover:text-slate-200',
                           )}
                         >
                           {active && <Check className="size-3" />}
@@ -474,7 +474,7 @@ export default function AddChildAccountPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="border-[#2A3552] bg-white/5 hover:bg-white/10 text-slate-200"
+                className="border-white/5 bg-white/5 hover:bg-white/10 text-slate-200"
                 disabled={saving}
                 onClick={form.handleSubmit((data) => save(data, true))}
               >
@@ -505,7 +505,7 @@ export default function AddChildAccountPage() {
 // ─── Small reusable helpers ───────────────────────────────────────────────────
 
 const inputCn =
-  'bg-white/5 border-[#2A3552] text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-500/50';
+  'bg-white/5 border-white/5 text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-500/50';
 
 const Required = () => <span className="text-red-400 ml-0.5">*</span>;
 
@@ -517,8 +517,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl bg-[#1C243A] border border-[#2A3552] overflow-hidden">
-      <div className="px-6 py-3 border-b border-[#2A3552] bg-white/[0.03]">
+    <div className="rounded-xl glass-card overflow-hidden">
+      <div className="px-6 py-3 border-b border-white/5 bg-white/[0.03]">
         <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">
           {title}
         </p>

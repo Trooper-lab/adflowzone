@@ -148,11 +148,7 @@ export type ChildAccount = {
   nickname: string;
   googleAdsClientId: string;
   googleAdsAccountName: string;
-  managementFee?: {
-    amount: number;
-    frequency: 'monthly';
-  };
-  fixedManagementHours?: number;
+  fixedHours?: number;
   monthlyClickBudget?: number;
   primaryGoal: 'lead_generation' | 'ecommerce_sales' | 'brand_awareness' | 'app_installs' | 'other';
   kpisToTrack: string[];

@@ -17,9 +17,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Alegreya', 'serif'],
-        code: ['monospace'],
+        body: ['Hanken Grotesk', 'sans-serif'],
+        headline: ['Hanken Grotesk', 'sans-serif'],
+        'label-caps': ['JetBrains Mono', 'monospace'],
+        code: ['JetBrains Mono', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -72,11 +73,30 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+        /* Obsidian Flux surface tokens — for use across all pages */
+        'surface-dim': 'hsl(222, 55%, 10%)',
+        'surface-container': {
+          DEFAULT: 'hsl(222, 38%, 14%)',
+          low: 'hsl(222, 43%, 12%)',
+          high: 'hsl(222, 29%, 19%)',
+          highest: 'hsl(222, 25%, 23%)',
+        },
+        'surface-bright': 'hsl(222, 23%, 25%)',
+        'on-surface': {
+          DEFAULT: 'hsl(226, 92%, 93%)',
+          variant: 'hsl(226, 18%, 80%)',
+        },
+        'outline-subtle': 'hsl(228, 7%, 60%)',
+        'outline-variant': 'hsl(228, 14%, 30%)',
+        'primary-container-color': 'hsl(216, 100%, 65%)',
+        'secondary-container-color': 'hsl(161, 100%, 32%)',
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        xl: 'calc(var(--radius) + 4px)',
+        '2xl': 'calc(var(--radius) + 8px)',
       },
       keyframes: {
         'accordion-down': {

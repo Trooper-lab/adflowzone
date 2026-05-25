@@ -90,7 +90,7 @@ function StatCard({
 }) {
   return (
     <div className={cn(
-      'relative rounded-xl bg-[#1C243A] border border-[#2A3552] p-5 overflow-hidden',
+      'relative rounded-xl glass-card p-5 overflow-hidden',
     )}>
       {accent && (
         <div className={cn('absolute top-0 left-0 w-1 h-full rounded-l-xl', accent)} />
@@ -111,8 +111,8 @@ function Section({
   right?: React.ReactNode; children: React.ReactNode; className?: string;
 }) {
   return (
-    <div className={cn("rounded-xl bg-[#1C243A] border border-[#2A3552] overflow-hidden", className)}>
-      <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#2A3552] bg-white/[0.03]">
+    <div className={cn("rounded-xl glass-card overflow-hidden", className)}>
+      <div className="flex items-center justify-between px-6 py-3.5 border-b border-white/5 bg-white/[0.03]">
         <div className="flex items-center gap-2">
           {Icon && <Icon className={cn('size-4', iconCn ?? 'text-slate-500')} />}
           <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">
@@ -576,7 +576,7 @@ export default function AccountDetailPage() {
     <div className="flex flex-col gap-6 pb-20 max-w-7xl mx-auto">
 
       {/* ── Header ── */}
-      <div className="rounded-xl bg-[#1C243A] border border-[#2A3552] px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="rounded-xl glass-card px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost" size="icon"
@@ -590,7 +590,7 @@ export default function AccountDetailPage() {
               <h1 className="font-headline text-2xl font-bold text-slate-100 leading-tight">
                 {account.nickname}
               </h1>
-              <Badge className="font-mono text-[10px] border-[#2A3552] bg-white/5 text-slate-400 border">
+              <Badge className="font-mono text-[10px] border-white/5 bg-white/5 text-slate-400 border">
                 {account.googleAdsClientId}
               </Badge>
               {account.primaryGoal && (
@@ -636,7 +636,7 @@ export default function AccountDetailPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <TabsList className="bg-[#1C243A] border border-[#2A3552] w-full justify-start overflow-x-auto h-auto p-1 sticky top-0 z-10">
+        <TabsList className="bg-card/60 border border-white/5 w-full justify-start overflow-x-auto h-auto p-1 sticky top-0 z-10 backdrop-blur-md">
           {[
             { value: 'overzicht', icon: Activity, label: 'Overzicht' },
             { value: 'checklists', icon: ListChecks, label: 'Checklists & Taken' },
@@ -645,13 +645,13 @@ export default function AccountDetailPage() {
             { value: 'documenten', icon: FolderOpen, label: 'Documenten & Links' },
             { value: 'rapportages', icon: BarChart2, label: 'Rapportages' },
           ].map(t => (
-            <TabsTrigger key={t.value} value={t.value} className="group flex items-center justify-center transition-all data-[state=active]:bg-blue-600 data-[state=active]:text-white py-2.5 px-4 rounded-md text-slate-400 hover:text-white hover:bg-white/5 data-[state=active]:hover:bg-blue-600">
+            <TabsTrigger key={t.value} value={t.value} className="group flex items-center justify-center transition-all data-[state=active]:bg-primary/20 data-[state=active]:text-primary py-2.5 px-4 rounded-md text-slate-400 hover:text-white hover:bg-white/5 data-[state=active]:hover:bg-primary/30">
               <t.icon className="size-4 shrink-0" />
               <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out group-hover:max-w-[200px] group-hover:opacity-100 group-hover:ml-2 group-data-[state=active]:max-w-[200px] group-data-[state=active]:opacity-100 group-data-[state=active]:ml-2 text-sm font-medium">{t.label}</span>
             </TabsTrigger>
           ))}
           {isAdmin && (
-              <TabsTrigger value="instellingen" className="group flex items-center justify-center transition-all data-[state=active]:bg-blue-600 data-[state=active]:text-white py-2.5 px-4 rounded-md text-slate-400 hover:text-white hover:bg-white/5 data-[state=active]:hover:bg-blue-600 ml-auto">
+              <TabsTrigger value="instellingen" className="group flex items-center justify-center transition-all data-[state=active]:bg-primary/20 data-[state=active]:text-primary py-2.5 px-4 rounded-md text-slate-400 hover:text-white hover:bg-white/5 data-[state=active]:hover:bg-primary/30 ml-auto">
                   <Settings className="size-4 shrink-0" />
                   <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out group-hover:max-w-[200px] group-hover:opacity-100 group-hover:ml-2 group-data-[state=active]:max-w-[200px] group-data-[state=active]:opacity-100 group-data-[state=active]:ml-2 text-sm font-medium">Instellingen</span>
               </TabsTrigger>
@@ -686,7 +686,7 @@ export default function AccountDetailPage() {
             )}
 
             {heroKpiName ? (
-                <div className="relative rounded-xl bg-[#1C243A] border border-[#2A3552] p-5 overflow-hidden flex flex-col justify-between">
+                <div className="relative rounded-xl glass-card p-5 overflow-hidden flex flex-col justify-between">
                   <div className="absolute top-0 left-0 w-1 h-full rounded-l-xl bg-purple-500/40" />
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 pl-1 flex items-center gap-1.5"><Target className="size-3" /> Hero KPI: {heroKpiName}</p>
                   <p className="text-3xl font-bold mt-2 pl-1 text-purple-400">{latestHeroKpi?.value !== undefined ? latestHeroKpi.value : '-'}</p>
@@ -702,7 +702,7 @@ export default function AccountDetailPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="lg:col-span-2 space-y-6">
-              <div className="rounded-xl bg-[#1C243A] border border-[#2A3552] px-6 py-4">
+              <div className="rounded-xl glass-card px-6 py-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Account Standing — laatste 30 dagen</p>
                 <div className="grid grid-cols-3 gap-8">
                   {[
@@ -754,7 +754,7 @@ export default function AccountDetailPage() {
                     {recentTimeEntries.length > 0 ? (
                         <div className="space-y-3">
                             {recentTimeEntries.slice(0, 5).map((entry, i) => (
-                                <div key={i} className="flex justify-between items-start gap-3 py-2 border-b border-[#2A3552]/50 last:border-0 last:pb-0">
+                                <div key={i} className="flex justify-between items-start gap-3 py-2 border-b border-white/5 last:border-0 last:pb-0">
                                     <div className="min-w-0">
                                         <p className="text-sm text-slate-300 font-medium truncate">{entry.title}</p>
                                         <p className="text-[10px] text-slate-500">
@@ -801,7 +801,7 @@ export default function AccountDetailPage() {
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Losse Diensten</p>
                                     <div className="flex flex-wrap gap-2">
                                         {account.connectedServices.map((svc, i) => (
-                                            <Badge key={i} variant="outline" className="bg-black/20 border-[#2A3552] text-slate-300">
+                                            <Badge key={i} variant="outline" className="bg-black/20 border-white/5 text-slate-300">
                                                 {svc.serviceName}
                                             </Badge>
                                         ))}
@@ -827,7 +827,7 @@ export default function AccountDetailPage() {
                   {!checklistsLoading && enrichedConnectedChecklists.length > 0 ? (
                     <div className="grid md:grid-cols-2 gap-4">
                       {enrichedConnectedChecklists.map((checklist: any, index: number) => (
-                        <div key={index} className="rounded-lg border border-[#2A3552] bg-white/[0.02] hover:border-blue-500/30 hover:bg-blue-500/5 transition-all p-4">
+                        <div key={index} className="rounded-lg border border-white/5 bg-white/[0.02] hover:border-primary/30 hover:bg-primary/5 transition-all p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div className="space-y-0.5">
                               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{getScheduleText(checklist)}</p>
@@ -837,13 +837,13 @@ export default function AccountDetailPage() {
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-red-400 hover:bg-red-400/10 shrink-0"><Trash2 className="size-3.5" /></Button>
                               </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-[#1C243A] border-[#2A3552]">
+                              <AlertDialogContent className="glass-card-elevated">
                                 <AlertDialogHeader>
                                   <AlertDialogTitle className="text-white">Planning verwijderen?</AlertDialogTitle>
                                   <AlertDialogDescription>Stopt de automatisering voor {checklist.name}. Geschiedenis blijft bewaard.</AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel className="bg-white/5 border-[#2A3552]">Annuleren</AlertDialogCancel>
+                                  <AlertDialogCancel className="bg-white/5 border-white/10">Annuleren</AlertDialogCancel>
                                   <AlertDialogAction onClick={() => handleDisconnectChecklist(checklist)} className="bg-red-600 hover:bg-red-700">Ontkoppelen</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -860,7 +860,7 @@ export default function AccountDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-10 border border-dashed border-[#2A3552] rounded-lg">
+                    <div className="text-center py-10 border border-dashed border-white/5 rounded-lg">
                       <ListChecks className="size-8 mx-auto text-slate-700 mb-2" />
                       <p className="text-sm text-slate-500">Geen actieve checklists gekoppeld.</p>
                       <p className="text-xs text-slate-600 mt-1">Koppel een template om prestaties bij te houden.</p>
@@ -924,12 +924,12 @@ export default function AccountDetailPage() {
                   {account.connectedPackages && account.connectedPackages.length > 0 ? (
                     <div className="space-y-3">
                       {account.connectedPackages.map((pkg, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-md bg-blue-500/5 border border-[#2A3552]">
+                        <div key={i} className="flex items-center justify-between p-3 rounded-md bg-blue-500/5 border border-white/5">
                           <div className="flex items-center gap-3">
                             <Package className="size-5 text-blue-400" />
                             <p className="text-sm font-bold text-slate-200">{pkg.packageName}</p>
                           </div>
-                          <Badge variant="outline" className="bg-[#1C243A] text-slate-300 border-[#2A3552]">Pakket</Badge>
+                          <Badge variant="outline" className="bg-card text-slate-300 border-white/5">Pakket</Badge>
                         </div>
                       ))}
                     </div>
@@ -945,7 +945,7 @@ export default function AccountDetailPage() {
                   {account.connectedServices && account.connectedServices.length > 0 ? (
                     <div className="space-y-3">
                       {account.connectedServices.map((svc, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-md bg-black/20 border border-[#2A3552]">
+                        <div key={i} className="flex items-center justify-between p-3 rounded-md bg-black/20 border border-white/5">
                           <p className="text-sm font-bold text-slate-200">{svc.serviceName}</p>
                           <div className="flex items-center gap-4">
                             <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">{svc.hours} uur</Badge>
