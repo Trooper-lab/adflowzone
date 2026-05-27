@@ -50,6 +50,7 @@ import InProgressChecklists from '@/components/account/InProgressChecklists';
 import AccountCampaigns from '@/components/account/AccountCampaigns';
 import AccountDocuments from '@/components/account/AccountDocuments';
 import AccountSettings from '@/components/account/AccountSettings';
+import AccountServicesManager from '@/components/account/AccountServicesManager';
 
 // ─── Static maps ──────────────────────────────────────────────────────────────
 
@@ -338,7 +339,7 @@ export default function AccountDetailPage() {
       const rate = client.hourlyRate || 0;
 
       if ((!acc.connectedServices || acc.connectedServices.length === 0) && (!acc.connectedPackages || acc.connectedPackages.length === 0)) {
-          return (acc.managementFee?.amount || 0) + ((acc.fixedManagementHours || 0) * rate);
+          return (acc.managementFee?.amount || 0);
       }
 
       let totalHours = 0;
@@ -356,6 +357,21 @@ export default function AccountDetailPage() {
       });
       return mrr + (acc.managementFee?.amount || 0);
   }, [childAccount, parentClient, allPackages]);
+
+  // Derived Hours Calculation
+  const derivedHours = useMemo(() => {
+      if (!childAccount) return 0;
+      const acc = childAccount as ChildAccount;
+      let totalHours = 0;
+      acc.connectedServices?.forEach(s => totalHours += (Number(s.hours) || 0));
+      acc.connectedPackages?.forEach(pkgRef => {
+          const pkg = allPackages.find(p => p.id === pkgRef.packageId);
+          if (pkg) {
+              pkg.services?.forEach((s: any) => totalHours += (Number(s.hours) || 0));
+          }
+      });
+      return totalHours;
+  }, [childAccount, allPackages]);
 
   // ── Stats calculation ─────────────────────────────────────────────────────
 
@@ -679,7 +695,7 @@ export default function AccountDetailPage() {
                 <StatCard label="Click Budget" value={`€${account.monthlyClickBudget?.toLocaleString('nl-NL') || '0'}`} sub="per maand" valueCn="text-green-400" accent="bg-green-500/40" />
             )}
             
-            <StatCard label="Urenbudget" value={`${account.fixedManagementHours || 0} uur`} sub="Vaste uren p/m" valueCn="text-slate-100" accent="bg-slate-500/40" />
+            <StatCard label="Urenbudget" value={`${derivedHours} uur`} sub="Diensten & Pakketten" valueCn="text-slate-100" accent="bg-slate-500/40" />
             
             {isAdmin && (
                 <StatCard label="Click Budget" value={`€${account.monthlyClickBudget?.toLocaleString('nl-NL') || '0'}`} sub="per maand" valueCn="text-green-400" accent="bg-green-500/40" />
@@ -912,54 +928,11 @@ export default function AccountDetailPage() {
 
         {/* ── TAB: DIENSTEN & PAKKETTEN ── */}
         <TabsContent value="diensten" className="space-y-6 animate-in fade-in duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-1 space-y-6">
-              <StatCard label="Totaal Uren" value={`${account.fixedManagementHours || 0} uur`} sub="Vaste uren per maand" valueCn="text-blue-400" accent="bg-blue-500/40" />
-            </div>
-
-            <div className="md:col-span-2 space-y-6">
-              {/* Connected Packages */}
-              <Section title="Gekoppelde Pakketten" icon={Package} iconCn="text-emerald-400">
-                <div className="p-5">
-                  {account.connectedPackages && account.connectedPackages.length > 0 ? (
-                    <div className="space-y-3">
-                      {account.connectedPackages.map((pkg, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-md bg-blue-500/5 border border-white/5">
-                          <div className="flex items-center gap-3">
-                            <Package className="size-5 text-blue-400" />
-                            <p className="text-sm font-bold text-slate-200">{pkg.packageName}</p>
-                          </div>
-                          <Badge variant="outline" className="bg-card text-slate-300 border-white/5">Pakket</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-500 italic">Geen pakketten gekoppeld.</p>
-                  )}
-                </div>
-              </Section>
-
-              {/* Connected Services */}
-              <Section title="Losse Diensten" icon={Briefcase} iconCn="text-blue-400">
-                <div className="p-5">
-                  {account.connectedServices && account.connectedServices.length > 0 ? (
-                    <div className="space-y-3">
-                      {account.connectedServices.map((svc, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-md bg-black/20 border border-white/5">
-                          <p className="text-sm font-bold text-slate-200">{svc.serviceName}</p>
-                          <div className="flex items-center gap-4">
-                            <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">{svc.hours} uur</Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-500 italic">Geen losse diensten gekoppeld.</p>
-                  )}
-                </div>
-              </Section>
-            </div>
-          </div>
+          {childAccountRef && managerUid ? (
+              <AccountServicesManager account={account} accountDocRef={childAccountRef} isAdmin={isAdmin} />
+          ) : (
+              <div className="p-8 text-center text-slate-400">Services configuration unavailable.</div>
+          )}
         </TabsContent>
 
         {/* ── TAB: DOCUMENTEN & LINKS ── */}
@@ -970,7 +943,7 @@ export default function AccountDetailPage() {
         {/* ── TAB: INSTELLINGEN (Settings) ── */}
         {isAdmin && (
             <TabsContent value="instellingen" className="animate-in fade-in duration-500">
-                <AccountSettings account={childAccount as ChildAccount} accountDocRef={childAccountRef} isAdmin={isAdmin} />
+                <AccountSettings account={{ ...childAccount, parentClientId: effectiveParentId } as ChildAccount} accountDocRef={childAccountRef as any} isAdmin={isAdmin} />
             </TabsContent>
         )}
 

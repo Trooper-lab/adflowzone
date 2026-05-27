@@ -11,6 +11,16 @@ import { Loader2, Plus, Link as LinkIcon, Trash2, ExternalLink } from 'lucide-re
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
+import { 
+    AlertDialog, 
+    AlertDialogAction, 
+    AlertDialogCancel, 
+    AlertDialogContent, 
+    AlertDialogDescription, 
+    AlertDialogFooter, 
+    AlertDialogHeader, 
+    AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 
 interface AccountDocumentsProps {
   childAccountRef: DocumentReference;
@@ -21,6 +31,7 @@ export default function AccountDocuments({ childAccountRef }: AccountDocumentsPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
+  const [deleteLinkId, setDeleteLinkId] = useState<string | null>(null);
 
   // Fetch documents
   const docsQuery = useMemo(
@@ -56,14 +67,20 @@ export default function AccountDocuments({ childAccountRef }: AccountDocumentsPr
     }
   };
 
-  const handleDelete = async (docId: string) => {
-    if (!confirm('Weet je zeker dat je deze link wilt verwijderen?')) return;
+  const handleDelete = (docId: string) => {
+    setDeleteLinkId(docId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteLinkId) return;
     try {
-      await deleteDoc(doc(childAccountRef, 'documents', docId));
+      await deleteDoc(doc(childAccountRef, 'documents', deleteLinkId));
       toast({ title: 'Link verwijderd' });
     } catch (error) {
       console.error('Error deleting document:', error);
       toast({ variant: 'destructive', title: 'Fout bij verwijderen' });
+    } finally {
+      setDeleteLinkId(null);
     }
   };
 
@@ -150,6 +167,21 @@ export default function AccountDocuments({ childAccountRef }: AccountDocumentsPr
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!deleteLinkId} onOpenChange={(open) => !open && setDeleteLinkId(null)}>
+        <AlertDialogContent className="glass-card-elevated border-white/5 bg-[#1C243A] text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Link verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-300 font-medium">
+              Weet je zeker dat je deze link wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-500 text-white">Verwijderen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

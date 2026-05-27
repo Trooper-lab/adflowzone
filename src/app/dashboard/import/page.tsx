@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
     Database,
@@ -40,6 +41,7 @@ import Link from 'next/link';
 import { subMonths, format, parseISO, startOfMonth } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { Combobox } from '@/components/ui/combobox';
+import * as XLSX from 'xlsx';
 
 // --- SCRIPT TEMPLATES ---
 
@@ -151,6 +153,7 @@ export default function DataImportPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [accounts, setAccounts] = useState<ChildAccount[]>([]);
+    const [parents, setParents] = useState<ParentClient[]>([]);
     const [loadingAccounts, setLoadingAccounts] = useState(true);
     const [selectedAccountId, setSelectedAccountId] = useState<string>('');
     const [activeBridge, setActiveBridge] = useState<string>(SCRIPTS.MCC_MONTHLY.id);
@@ -164,6 +167,16 @@ export default function DataImportPage() {
     const [syncStatuses, setSyncStatuses] = useState<Record<string, 'idle' | 'syncing' | 'success' | 'error'>>({});
     const [isBulkSyncing, setIsBulkSyncing] = useState(false);
 
+    const [mondayData, setMondayData] = useState<any[]>([]);
+    const [isImportingMonday, setIsImportingMonday] = useState(false);
+    const [manualMappings, setManualMappings] = useState<Record<string, { parentId: string, childId?: string, name: string }>>({});
+    
+    // Create inline client state
+    const [isCreateClientDialogOpen, setIsCreateClientDialogOpen] = useState(false);
+    const [clientToCreate, setClientToCreate] = useState<string>('');
+    const [selectedParentForNewClient, setSelectedParentForNewClient] = useState<string>('');
+    const [isCreatingClient, setIsCreatingClient] = useState(false);
+
     useEffect(() => {
         if (!firestore || !user) return;
 
@@ -172,10 +185,11 @@ export default function DataImportPage() {
             try {
                 const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
                 const clientsSnap = await getDocs(clientsQuery);
-                const clientIds = clientsSnap.docs.map(d => d.id);
+                const allParents = clientsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient));
+                setParents(allParents);
 
                 const allAccounts: ChildAccount[] = [];
-                for (const clientId of clientIds) {
+                for (const clientId of clientsSnap.docs.map(d => d.id)) {
                     const accSnap = await getDocs(collection(firestore, 'parentClients', clientId, 'childAccounts'));
                     accSnap.forEach(d => allAccounts.push({ id: d.id, ...d.data() } as ChildAccount));
                 }
@@ -214,6 +228,129 @@ export default function DataImportPage() {
         } catch (e) {
             console.error("Error parsing JSON:", e);
             toast({ variant: "destructive", title: "Ongeldige JSON", description: "Zorg dat je de volledige JSON array uit de Google Ads logs kopieert." });
+        }
+    };
+
+    const resolvedMappings = useMemo(() => {
+        if (!mondayData || mondayData.length === 0) return [];
+        
+        const map = new Map<string, { 
+            count: number, 
+            matchedName: string, 
+            type: 'child' | 'parent' | 'unknown' | 'manual', 
+            childId?: string, 
+            parentId?: string,
+            hourlyRate?: number 
+        }>();
+        
+        mondayData.forEach(row => {
+            const rawName = row['Klant'] || 'Leeg';
+            
+            if (!map.has(rawName)) {
+                if (manualMappings[rawName]) {
+                    const override = manualMappings[rawName];
+                    const parentData = parents.find(p => p.id === override.parentId);
+                    map.set(rawName, { 
+                        count: 1, 
+                        matchedName: override.name, 
+                        type: 'manual', 
+                        childId: override.childId, 
+                        parentId: override.parentId,
+                        hourlyRate: parentData?.hourlyRate || 0 
+                    });
+                } else {
+                    const searchName = rawName.toLowerCase().trim();
+                    let matchedAccount = accounts.find(a => a.nickname.toLowerCase().trim() === searchName);
+                    if (matchedAccount) {
+                        const parentData = parents.find(p => p.id === matchedAccount.parentClientId);
+                        map.set(rawName, { 
+                            count: 1, 
+                            matchedName: matchedAccount.nickname, 
+                            type: 'child',
+                            childId: matchedAccount.id,
+                            parentId: matchedAccount.parentClientId,
+                            hourlyRate: parentData?.hourlyRate || 0 
+                        });
+                    } else {
+                        let matchedParent = parents.find(p => p.clientName.toLowerCase().trim() === searchName);
+                        if (matchedParent) {
+                            map.set(rawName, { 
+                                count: 1, 
+                                matchedName: matchedParent.clientName, 
+                                type: 'parent',
+                                parentId: matchedParent.id,
+                                hourlyRate: matchedParent.hourlyRate || 0 
+                            });
+                        } else {
+                            map.set(rawName, { 
+                                count: 1, 
+                                matchedName: 'Onbekende Klant (Nieuw)', 
+                                type: 'unknown' 
+                            });
+                        }
+                    }
+                }
+            } else {
+                const entry = map.get(rawName)!;
+                entry.count++;
+                map.set(rawName, entry);
+            }
+        });
+
+        return Array.from(map.entries()).map(([raw, data]) => ({ rawName: raw, ...data })).sort((a, b) => b.count - a.count);
+    }, [mondayData, accounts, parents, manualMappings]);
+
+    const handleManualMappingChange = (rawName: string, accountId: string) => {
+        const acc = accounts.find(a => a.id === accountId);
+        if (acc) {
+            setManualMappings(prev => ({
+                ...prev,
+                [rawName]: { parentId: acc.parentClientId, childId: acc.id, name: acc.nickname }
+            }));
+        }
+    };
+
+    const handleCreateClient = async () => {
+        if (!firestore || !user || !selectedParentForNewClient || !clientToCreate) return;
+        setIsCreatingClient(true);
+        try {
+            const newDocRef = await addDoc(collection(firestore, 'parentClients', selectedParentForNewClient, 'childAccounts'), {
+                ownerId: user.uid,
+                parentClientId: selectedParentForNewClient,
+                nickname: clientToCreate,
+                googleAdsClientId: '',
+                googleAdsAccountName: '',
+                primaryGoal: 'lead_generation',
+                kpisToTrack: []
+            });
+            
+            const newAccount: ChildAccount = {
+                id: newDocRef.id,
+                ownerId: user.uid,
+                parentClientId: selectedParentForNewClient,
+                nickname: clientToCreate,
+                googleAdsClientId: '',
+                googleAdsAccountName: '',
+                primaryGoal: 'lead_generation',
+                kpisToTrack: []
+            };
+            
+            setAccounts(prev => [...prev, newAccount]);
+            
+            // Apply the mapping
+            setManualMappings(prev => ({
+                ...prev,
+                [clientToCreate]: { parentId: selectedParentForNewClient, childId: newDocRef.id, name: clientToCreate }
+            }));
+            
+            setIsCreateClientDialogOpen(false);
+            setSelectedParentForNewClient('');
+            toast({ title: 'Klant aangemaakt', description: `${clientToCreate} is toegevoegd en direct gekoppeld!` });
+        } catch (e) {
+            console.error(e);
+            toast({ variant: 'destructive', title: 'Fout', description: 'Kon de klant niet aanmaken.' });
+        } finally {
+            setIsCreatingClient(false);
         }
     };
 
@@ -438,6 +575,151 @@ export default function DataImportPage() {
         toast({ title: 'Bulk synchronisatie voltooid' });
     };
 
+    const handleMondayFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const bstr = evt.target?.result;
+                const workbook = XLSX.read(bstr, { type: 'binary' });
+                const wsname = workbook.SheetNames[0];
+                const ws = workbook.Sheets[wsname];
+                const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                
+                // Assuming data starts after row 2 (which is index 1, actually data starts at index 2 if title is row 0)
+                // We'll search for the row that has 'Name' or 'Naam' and 'Klant'
+                let headerRowIndex = -1;
+                for(let i=0; i<Math.min(10, data.length); i++) {
+                    const row: any = data[i] || [];
+                    if (row.includes('Name') || row.includes('Naam') || row.includes('Klant')) {
+                        headerRowIndex = i;
+                        break;
+                    }
+                }
+
+                if (headerRowIndex === -1) {
+                    toast({ variant: 'destructive', title: 'Fout bij inlezen', description: 'Kon de header rij niet vinden. Zorg dat er een kolom "Name" en "Klant" bestaat.' });
+                    return;
+                }
+
+                const headers: string[] = data[headerRowIndex] as string[];
+                const parsed = [];
+                
+                for(let i = headerRowIndex + 1; i < data.length; i++) {
+                    const row: any = data[i];
+                    if (!row || row.length === 0) continue;
+                    const obj: any = {};
+                    headers.forEach((h, idx) => {
+                        obj[h] = row[idx];
+                    });
+                    
+                    if (obj['Name'] && obj['Status'] === 'Gereed' && obj['Gewerkte uren'] > 0) {
+                        parsed.push(obj);
+                    }
+                }
+                
+                setMondayData(parsed);
+                setManualMappings({}); // Reset manual mappings on new file upload
+                toast({ title: 'Bestand ingelezen', description: `${parsed.length} "Gereed" uren gevonden.` });
+            } catch (error) {
+                console.error(error);
+                toast({ variant: 'destructive', title: 'Upload mislukt', description: 'Kon het Excel bestand niet inlezen.' });
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+
+    const handleImportMonday = async () => {
+        if (!firestore || !user || mondayData.length === 0) return;
+        setIsImportingMonday(true);
+        
+        try {
+            const batch = writeBatch(firestore);
+            let importedCount = 0;
+            
+            // Vind of maak een 'Onbekende Klant' parentClient
+            let unknownClient = parents.find(p => p.clientName.toLowerCase() === 'onbekende klant');
+            let unknownClientId = unknownClient?.id;
+            
+            if (!unknownClientId) {
+                const newClientRef = doc(collection(firestore, 'parentClients'));
+                batch.set(newClientRef, {
+                    ownerId: user.uid,
+                    clientName: 'Onbekende Klant (Monday)',
+                    contactEmail: '',
+                    contactName: '',
+                    createdAt: serverTimestamp()
+                });
+                unknownClientId = newClientRef.id;
+            }
+
+            for (const row of mondayData) {
+                const rawName = row['Klant'] || 'Leeg';
+                const mapping = resolvedMappings.find(m => m.rawName === rawName);
+                
+                let parentId = mapping?.parentId;
+                let childId = mapping?.childId;
+                let hourlyRate = mapping?.hourlyRate || 0;
+
+                // Fallback Parent Client if no matched account
+                if (!parentId) {
+                    parentId = unknownClientId;
+                }
+
+                // Convert Excel Date
+                let isoDate = new Date().toISOString();
+                if (row['Datum']) {
+                    const parsedDate = new Date(Math.round((row['Datum'] - 25569) * 86400 * 1000));
+                    if (!isNaN(parsedDate.getTime())) {
+                        isoDate = parsedDate.toISOString();
+                    }
+                }
+
+                const uren = Number(row['Gewerkte uren']) || 0;
+                const durationMinutes = Math.round(uren * 60);
+
+                if (durationMinutes <= 0) continue;
+
+                const timeEntryRef = doc(collection(firestore, 'timeEntries'));
+                const entryData: any = {
+                    ownerId: user.uid,
+                    parentClientId: parentId,
+                    date: isoDate,
+                    durationMinutes: durationMinutes,
+                    description: row['Name'] || 'Onbekende taak',
+                    hourlyRateAtTime: hourlyRate
+                };
+
+                if (childId) {
+                    entryData.childAccountId = childId;
+                }
+
+                batch.set(timeEntryRef, entryData);
+
+                importedCount++;
+            }
+
+            await batch.commit();
+            setMondayData([]);
+            setManualMappings({});
+            toast({ title: 'Import succesvol', description: `${importedCount} tijdregistraties zijn geïmporteerd!` });
+            
+            // Reload parents to include 'Onbekende Klant' if it was created
+            if (!unknownClient) {
+                const clientsSnap = await getDocs(query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid)));
+                setParents(clientsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient)));
+            }
+
+        } catch (e) {
+            console.error(e);
+            toast({ variant: 'destructive', title: 'Import Mislukt', description: 'Er ging iets mis bij het opslaan naar de database.' });
+        } finally {
+            setIsImportingMonday(false);
+        }
+    };
+
     return (
         <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -450,11 +732,129 @@ export default function DataImportPage() {
                 </div>
             </div>
 
-            <Tabs defaultValue="api-sync" className="w-full">
+            <Tabs defaultValue="monday" className="w-full">
                 <TabsList className="mb-6 glass-card">
+                    <TabsTrigger value="monday" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">Monday Uren</TabsTrigger>
                     <TabsTrigger value="api-sync" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">API Bulk Sync</TabsTrigger>
                     <TabsTrigger value="scripts" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">Script Bridge (JSON)</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="monday" className="mt-0">
+                    <Card className="glass-card shadow-xl overflow-hidden">
+                        <CardHeader className="bg-white/5 border-b border-white/5">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Database className="size-5 text-blue-400" />
+                                Monday.com Uren Importeren
+                            </CardTitle>
+                            <CardDescription>Upload een export van Monday (.xlsx) om voltooide uren ('Gereed') toe te voegen aan de urenregistratie.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6 space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Selecteer Excel Bestand</label>
+                                <input 
+                                    type="file" 
+                                    accept=".xlsx, .xls, .csv" 
+                                    onChange={handleMondayFileUpload}
+                                    className="block w-full text-sm text-slate-500
+                                      file:mr-4 file:py-2 file:px-4
+                                      file:rounded-md file:border-0
+                                      file:text-sm file:font-semibold
+                                      file:bg-blue-600 file:text-white
+                                      hover:file:bg-blue-700
+                                      cursor-pointer"
+                                />
+                            </div>
+                            
+                            {mondayData.length > 0 && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                    <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                        <p className="text-sm text-blue-300">
+                                            Er zijn <strong>{mondayData.length}</strong> rijen gevonden met status 'Gereed' en meer dan 0 gewerkte uren.
+                                            <br/>Klanten die niet exact overeenkomen krijgen tijdelijk de tag <em>Onbekende Klant</em> zodat je ze later handmatig kunt koppelen.
+                                        </p>
+                                    </div>
+                                    
+                                    {resolvedMappings.length > 0 && (
+                                        <div className="border border-white/10 rounded-lg overflow-hidden bg-[#0A0D17] shadow-2xl mt-4">
+                                            <div className="bg-gradient-to-r from-blue-500/10 to-transparent px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                                                <span className="text-sm font-black uppercase tracking-widest text-slate-200 flex items-center gap-2">
+                                                    <LayoutGrid className="size-4 text-blue-400" />
+                                                    Gevonden Klanten ({resolvedMappings.length})
+                                                </span>
+                                            </div>
+                                            <div className="max-h-[350px] overflow-auto custom-scrollbar p-2">
+                                                <table className="w-full text-sm text-left border-separate border-spacing-y-2">
+                                                    <thead className="bg-[#0A0D17] text-slate-500 uppercase sticky top-0 z-10 text-[10px] tracking-widest font-bold">
+                                                        <tr>
+                                                            <th className="px-4 py-3 border-b border-white/5 bg-[#0A0D17]">Monday.com Naam</th>
+                                                            <th className="px-4 py-3 border-b border-white/5 bg-[#0A0D17]">Rijen</th>
+                                                            <th className="px-4 py-3 border-b border-white/5 bg-[#0A0D17]">Match in AdFlowZone</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="text-slate-300">
+                                                        {resolvedMappings.map((mapping, idx) => (
+                                                            <tr key={idx} className="group">
+                                                                <td className="px-4 py-3 font-medium bg-white/[0.02] rounded-l-lg border-y border-l border-white/5 group-hover:bg-white/[0.04] transition-colors">{mapping.rawName}</td>
+                                                                <td className="px-4 py-3 text-slate-500 font-mono bg-white/[0.02] border-y border-white/5 group-hover:bg-white/[0.04] transition-colors text-xs">{mapping.count}</td>
+                                                                <td className="px-4 py-2 bg-white/[0.02] rounded-r-lg border-y border-r border-white/5 group-hover:bg-white/[0.04] transition-colors">
+                                                                    <div className="flex items-center justify-between gap-4">
+                                                                        <div className="flex-1">
+                                                                            <select 
+                                                                                className={cn(
+                                                                                    "w-full bg-black/40 border border-white/10 rounded-md px-3 py-1.5 text-xs text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/50 focus:border-transparent outline-none transition-all appearance-none cursor-pointer",
+                                                                                    mapping.type === 'unknown' ? "border-red-500/50 text-red-300" : 
+                                                                                    mapping.type === 'manual' ? "border-blue-500/50 text-blue-300" :
+                                                                                    "border-green-500/20 text-green-300"
+                                                                                )}
+                                                                                value={mapping.childId || (mapping.type === 'parent' ? 'parent_only' : '')}
+                                                                                onChange={(e) => {
+                                                                                    if (e.target.value === 'CREATE_NEW') {
+                                                                                        setClientToCreate(mapping.rawName);
+                                                                                        setIsCreateClientDialogOpen(true);
+                                                                                    } else if (e.target.value && e.target.value !== 'parent_only') {
+                                                                                        handleManualMappingChange(mapping.rawName, e.target.value);
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                <option value="CREATE_NEW" className="text-blue-400 font-bold bg-[#1C243A]">✨ + Nieuwe Klant Aanmaken</option>
+                                                                                {mapping.type === 'unknown' && <option value="" disabled className="text-red-400">Onbekende Klant ⚠️</option>}
+                                                                                {mapping.type === 'parent' && <option value="parent_only" disabled className="text-green-400">{mapping.matchedName} (Parent) ✅</option>}
+                                                                                
+                                                                                {accounts.map(acc => (
+                                                                                    <option key={acc.id} value={acc.id} className="text-slate-200 bg-[#0F1423]">
+                                                                                        {acc.nickname}
+                                                                                    </option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+                                                                        <div className="w-20 text-right">
+                                                                            {mapping.type === 'unknown' && <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px] shadow-sm"><AlertCircle className="size-3 mr-1"/> Check</Badge>}
+                                                                            {mapping.type === 'manual' && <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[9px] shadow-sm"><CheckCircle2 className="size-3 mr-1"/> Manual</Badge>}
+                                                                            {(mapping.type === 'child' || mapping.type === 'parent') && <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20 text-[9px] shadow-sm"><CheckCircle2 className="size-3 mr-1"/> Auto</Badge>}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <Button 
+                                        onClick={handleImportMonday}
+                                        disabled={isImportingMonday}
+                                        className="bg-green-600 hover:bg-green-500 font-bold uppercase tracking-widest text-xs h-12 w-full"
+                                    >
+                                        {isImportingMonday ? <Loader2 className="animate-spin size-4 mr-2" /> : <Play className="size-4 mr-2 fill-current" />}
+                                        Start Import ({mondayData.length} uren)
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 <TabsContent value="api-sync" className="mt-0">
                     <Card className="glass-card shadow-xl overflow-hidden">
@@ -735,6 +1135,43 @@ export default function DataImportPage() {
                     </div>
                 </TabsContent>
             </Tabs>
+
+            <Dialog open={isCreateClientDialogOpen} onOpenChange={setIsCreateClientDialogOpen}>
+                <DialogContent className="bg-[#0A0D17] border-white/10 text-white">
+                    <DialogHeader>
+                        <DialogTitle>Nieuwe Klant Aanmaken</DialogTitle>
+                        <DialogDescription className="text-slate-400">
+                            Maak direct een nieuwe child account aan voor <strong>{clientToCreate}</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-300">Aan welk Parent Account toewijzen?</label>
+                            <select 
+                                className="w-full bg-black/40 border border-white/10 rounded-md px-3 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500/50 outline-none"
+                                value={selectedParentForNewClient}
+                                onChange={(e) => setSelectedParentForNewClient(e.target.value)}
+                            >
+                                <option value="" disabled>Selecteer parent...</option>
+                                {parents.map(p => (
+                                    <option key={p.id} value={p.id}>{p.clientName}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsCreateClientDialogOpen(false)} className="text-slate-400 hover:text-white">Annuleren</Button>
+                        <Button 
+                            onClick={handleCreateClient} 
+                            disabled={!selectedParentForNewClient || isCreatingClient}
+                            className="bg-blue-600 hover:bg-blue-500 text-white"
+                        >
+                            {isCreatingClient ? <Loader2 className="animate-spin size-4 mr-2" /> : null}
+                            Aanmaken & Koppelen
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

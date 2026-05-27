@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, collectionGroup } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Receipt, ChevronLeft, ChevronRight, ChevronDown, Copy, CheckCircle2 } from 'lucide-react';
-import type { ParentClient, ChildAccount, TimeEntry } from '@/lib/types';
+import type { ParentClient, ChildAccount, TimeEntry, ServicePackage } from '@/lib/types';
 import { format, startOfMonth, endOfMonth, subMonths, addMonths, parseISO, isWithinInterval } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,8 +22,10 @@ type InvoiceData = {
     variableFee: number;
     totalFee: number;
     timeEntriesCount: number;
-    fixedAccounts: { id: string, name: string, fee: number, hours?: number, rate?: number, oldFee?: number, serviceName?: string }[];
+    fixedAccounts: { id: string, name: string, fee: number, hours?: number, rate?: number, oldFee?: number, serviceName?: string, childAccountId?: string }[];
     entries: TimeEntry[];
+    childAccountNames: Record<string, string>;
+    childAccountIdsMap: Record<string, string>;
 };
 
 const formatDuration = (minutes: number) => {
@@ -62,7 +64,7 @@ export default function InvoicesPage() {
 
                 // 1.5 Fetch packages
                 const packagesSnap = await getDocs(query(collection(firestore, 'servicePackages'), where('ownerId', '==', user.uid)));
-                const allPackages = packagesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const allPackages = packagesSnap.docs.map(d => ({ id: d.id, ...d.data() } as any as ServicePackage));
 
                 // 2. Fetch all child accounts for fixed fees
                 const childAccountsPromises = clients.map(client => 
@@ -70,13 +72,33 @@ export default function InvoicesPage() {
                 );
                 const childAccountsSnaps = await Promise.all(childAccountsPromises);
                 
-                const clientFixedFees: Record<string, { total: number, accounts: { id: string, name: string, fee: number, hours?: number, rate?: number, oldFee?: number, serviceName?: string }[] }> = {};
+                const childAccountIdNormalizeMap: Record<string, string> = {};
+                const childAccountNamesMap: Record<string, Record<string, string>> = {};
+                const clientFixedFees: Record<string, { total: number, accounts: { id: string, name: string, fee: number, hours?: number, rate?: number, oldFee?: number, serviceName?: string, childAccountId?: string }[] }> = {};
                 childAccountsSnaps.forEach((snap, i) => {
+                    const clientId = clients[i].id;
+                    childAccountNamesMap[clientId] = {};
                     let totalFixed = 0;
                     const hourlyRate = clients[i].hourlyRate || 0;
-                    const accounts: { id: string, name: string, fee: number, hours?: number, rate?: number, oldFee?: number, serviceName?: string }[] = [];
+                    const accounts: { id: string, name: string, fee: number, hours?: number, rate?: number, oldFee?: number, serviceName?: string, childAccountId?: string }[] = [];
                     snap.forEach(d => {
                         const acc = d.data() as ChildAccount;
+                        const name = acc.nickname || acc.googleAdsAccountName || 'Account';
+                        
+                        // Map names
+                        childAccountNamesMap[clientId][d.id] = name;
+                        
+                        // Map normalization
+                        childAccountIdNormalizeMap[d.id] = d.id;
+                        if (acc.googleAdsClientId) {
+                            childAccountIdNormalizeMap[acc.googleAdsClientId] = d.id;
+                            childAccountNamesMap[clientId][acc.googleAdsClientId] = name;
+                        }
+                        if (acc.metaAdsAccountId) {
+                            childAccountIdNormalizeMap[acc.metaAdsAccountId] = d.id;
+                            childAccountNamesMap[clientId][acc.metaAdsAccountId] = name;
+                        }
+                        
                         const oldFee = 0; // Legacy fee removed
 
                         let allServicesToBill = [...(acc.connectedServices || [])];
@@ -96,9 +118,10 @@ export default function InvoicesPage() {
                                     if (pkg.packageDiscount && pkg.packageDiscount > 0) {
                                         accounts.push({
                                             id: `${d.id}_pkg_${pkg.id}_discount`,
-                                            name: acc.nickname || acc.name || 'Account',
+                                            name: acc.nickname || acc.googleAdsAccountName || 'Account',
                                             fee: -pkg.packageDiscount,
-                                            serviceName: `Pakketkorting: ${pkg.name}`
+                                            serviceName: `Pakketkorting: ${pkg.name}`,
+                                            childAccountId: d.id
                                         });
                                         totalFixed -= pkg.packageDiscount;
                                     }
@@ -115,40 +138,28 @@ export default function InvoicesPage() {
                                     totalFixed += svcFee;
                                     accounts.push({
                                         id: `${d.id}_${Math.random().toString(36).substr(2, 9)}`,
-                                        name: acc.nickname || acc.name || 'Account',
+                                        name: acc.nickname || acc.googleAdsAccountName || 'Account',
                                         fee: svcFee,
                                         hours: svcHours,
                                         rate: hourlyRate,
-                                        serviceName: svc.serviceName
+                                        serviceName: svc.serviceName,
+                                        childAccountId: d.id
                                     });
                                 }
                             });
-                            // Still add old fee if it exists
-                            if (oldFee > 0) {
-                                totalFixed += oldFee;
-                                accounts.push({
-                                    id: `${d.id}_old`,
-                                    name: acc.nickname || acc.name || 'Account',
-                                    fee: oldFee,
-                                    oldFee: oldFee,
-                                    serviceName: "Oude Management Fee"
-                                });
-                            }
-                        } else {
-                            const newFee = (acc.fixedHours || 0) * hourlyRate;
-                            const fee = newFee + oldFee;
-
-                            if (fee > 0) {
-                                totalFixed += fee;
-                                accounts.push({ 
-                                    id: d.id, 
-                                    name: acc.nickname || acc.name || 'Account', 
-                                    fee,
-                                    hours: acc.fixedHours || 0,
-                                    rate: hourlyRate,
-                                    oldFee: oldFee
-                                });
-                            }
+                        }
+                        
+                        // Still add old fee if it exists (for legacy support if needed)
+                        if (oldFee > 0) {
+                            totalFixed += oldFee;
+                            accounts.push({
+                                id: `${d.id}_old`,
+                                name: acc.nickname || acc.googleAdsAccountName || 'Account',
+                                fee: oldFee,
+                                oldFee: oldFee,
+                                serviceName: "Oude Management Fee",
+                                childAccountId: d.id
+                            });
                         }
                     });
                     clientFixedFees[clients[i].id] = { total: totalFixed, accounts };
@@ -174,7 +185,17 @@ export default function InvoicesPage() {
                     clientTimeAgg[entry.parentClientId].totalHours += hours;
                     clientTimeAgg[entry.parentClientId].variableFee += hours * (entry.hourlyRateAtTime || 0);
                     clientTimeAgg[entry.parentClientId].count += 1;
-                    clientTimeAgg[entry.parentClientId].entries.push(entry);
+                    
+                    // Normalize entry.childAccountId
+                    let normChildId = entry.childAccountId;
+                    if (normChildId && childAccountIdNormalizeMap[normChildId]) {
+                        normChildId = childAccountIdNormalizeMap[normChildId];
+                    }
+                    
+                    clientTimeAgg[entry.parentClientId].entries.push({
+                        ...entry,
+                        childAccountId: normChildId
+                    });
                 });
 
                 // Combine data
@@ -194,7 +215,9 @@ export default function InvoicesPage() {
                         variableFee: timeAgg.variableFee,
                         totalFee: fixedData.total + timeAgg.variableFee,
                         timeEntriesCount: timeAgg.count,
-                        entries: timeAgg.entries
+                        entries: timeAgg.entries,
+                        childAccountNames: childAccountNamesMap[client.id] || {},
+                        childAccountIdsMap: childAccountIdNormalizeMap
                     };
                 }).filter(data => data.totalFee > 0 || data.timeEntriesCount > 0); // Only show clients with billable stuff
 
@@ -312,27 +335,86 @@ function InvoiceRow({ data, currentMonth, copiedId, onCopyData, toast }: any) {
     const [expanded, setExpanded] = useState(false);
     const [copiedEntryId, setCopiedEntryId] = useState<string | null>(null);
 
-    const copyEntry = (e: React.MouseEvent, entry: TimeEntry) => {
-        e.stopPropagation();
-        const text = `${format(parseISO(entry.date), 'dd MMM yyyy', { locale: nl })} - ${formatDuration(entry.durationMinutes)} - ${entry.description}`;
-        navigator.clipboard.writeText(text);
-        setCopiedEntryId(entry.id);
-        toast({ title: 'Urenregel gekopieerd!' });
-        setTimeout(() => setCopiedEntryId(null), 2000);
-    };
-
-    const copyFixedEntry = (e: React.MouseEvent, acc: { id: string, name: string, fee: number, hours?: number, rate?: number, serviceName?: string }) => {
-        e.stopPropagation();
-        const details = acc.hours && acc.hours > 0 ? ` (${acc.hours} uur @ ${formatCurrency(acc.rate || 0)}/u)` : '';
-        const servicePart = acc.serviceName ? ` - ${acc.serviceName}` : '';
-        const text = `Vaste Fee - ${acc.name}${servicePart}${details} - ${formatCurrency(acc.fee)}`;
-        navigator.clipboard.writeText(text);
-        setCopiedEntryId(acc.id);
-        toast({ title: 'Vaste kosten gekopieerd!' });
-        setTimeout(() => setCopiedEntryId(null), 2000);
-    };
-
     const hasDetails = data.timeEntriesCount > 0 || data.fixedAccounts.length > 0;
+
+    const groupedAccounts = useMemo(() => {
+        const groups: Record<string, { id: string, name: string, fixedItems: any[], variableItems: any[] }> = {};
+        
+        // Add fixed accounts
+        if (data.fixedAccounts) {
+            data.fixedAccounts.forEach((acc: any) => {
+                let childId = acc.childAccountId || 'none';
+                if (childId !== 'none' && data.childAccountIdsMap?.[childId]) {
+                    childId = data.childAccountIdsMap[childId];
+                }
+                if (!groups[childId]) {
+                    groups[childId] = {
+                        id: childId,
+                        name: childId === 'none' ? 'Algemeen' : (data.childAccountNames?.[childId] || acc.name || 'Account'),
+                        fixedItems: [],
+                        variableItems: []
+                    };
+                }
+                groups[childId].fixedItems.push({
+                    id: acc.id,
+                    type: 'fixed',
+                    description: acc.serviceName || 'Vaste service fee',
+                    hours: acc.hours || 0,
+                    rate: acc.rate || 0,
+                    fee: acc.fee,
+                    isDiscount: acc.fee < 0
+                });
+            });
+        }
+        
+        // Add variable items (aggregated)
+        if (data.entries && data.entries.length > 0) {
+            const tempVarGroups: Record<string, { totalHours: number, totalFee: number }> = {};
+            data.entries.forEach((entry: TimeEntry) => {
+                let childId = entry.childAccountId || 'none';
+                if (childId !== 'none' && data.childAccountIdsMap?.[childId]) {
+                    childId = data.childAccountIdsMap[childId];
+                }
+                if (!tempVarGroups[childId]) {
+                    tempVarGroups[childId] = { totalHours: 0, totalFee: 0 };
+                }
+                const hours = entry.durationMinutes / 60;
+                tempVarGroups[childId].totalHours += hours;
+                tempVarGroups[childId].totalFee += hours * (entry.hourlyRateAtTime || 0);
+            });
+            
+            Object.entries(tempVarGroups).forEach(([childId, agg]) => {
+                if (agg.totalHours === 0) return;
+                
+                if (!groups[childId]) {
+                    groups[childId] = {
+                        id: childId,
+                        name: childId === 'none' ? 'Algemeen' : (data.childAccountNames?.[childId] || 'Account'),
+                        fixedItems: [],
+                        variableItems: []
+                    };
+                }
+                
+                const avgRate = agg.totalHours > 0 ? (agg.totalFee / agg.totalHours) : 0;
+                groups[childId].variableItems.push({
+                    id: `${data.clientId}_var_${childId}`,
+                    type: 'variable',
+                    description: 'Support uren',
+                    hours: agg.totalHours,
+                    rate: avgRate,
+                    fee: agg.totalFee,
+                    isDiscount: false
+                });
+            });
+        }
+        
+        // Sort groups: 'none' (Algemeen) last, others alphabetically
+        return Object.values(groups).sort((a, b) => {
+            if (a.id === 'none') return 1;
+            if (b.id === 'none') return -1;
+            return a.name.localeCompare(b.name);
+        });
+    }, [data]);
 
     return (
         <>
@@ -376,90 +458,135 @@ function InvoiceRow({ data, currentMonth, copiedId, onCopyData, toast }: any) {
                 </TableCell>
             </TableRow>
             {expanded && hasDetails && (
-                <TableRow className="bg-muted/10 hover:bg-muted/10">
-                    <TableCell colSpan={6} className="p-0">
-                        <div className="px-6 py-4 border-b border-border/50 space-y-6">
-                            
-                            {data.fixedAccounts.length > 0 && (
-                                <div>
-                                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Vaste Kosten (Management Fee)</h4>
-                                    <div className="space-y-2">
-                                        {data.fixedAccounts.map((acc: { id: string, name: string, fee: number, hours?: number, rate?: number, oldFee?: number, serviceName?: string }) => (
-                                            <div key={acc.id} className="flex flex-col sm:flex-row sm:items-center justify-between text-sm bg-background p-3 rounded-md border shadow-sm gap-2">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="font-bold text-primary">
-                                                        Vaste Fee - {acc.name}
-                                                        {acc.serviceName && <span className="ml-2 text-muted-foreground font-normal">({acc.serviceName})</span>}
-                                                    </span>
-                                                    {acc.hours && acc.hours > 0 ? (
-                                                        <span className="text-muted-foreground">{acc.hours} uur @ {formatCurrency(acc.rate || 0)}/u</span>
-                                                    ) : (
-                                                        <span className="text-muted-foreground">Oude management fee</span>
-                                                    )}
-                                                    {acc.oldFee && acc.oldFee > 0 && acc.hours && acc.hours > 0 ? (
-                                                        <span className="text-[10px] text-muted-foreground">Inclusief oude fee: {formatCurrency(acc.oldFee)}</span>
-                                                    ) : null}
-                                                </div>
-                                                <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-auto w-full border-t sm:border-0 pt-2 sm:pt-0 mt-2 sm:mt-0">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="tabular-nums font-bold text-foreground">-</span>
-                                                        <span className="text-[10px] text-muted-foreground uppercase">{formatCurrency(acc.fee)}</span>
+                <TableRow className="bg-muted/5 hover:bg-muted/5">
+                    <TableCell colSpan={6} className="p-4">
+                        <div className="border border-border/50 rounded-lg overflow-hidden shadow-sm bg-background/50">
+                            <Table>
+                                <TableHeader className="bg-muted/20">
+                                    <TableRow>
+                                        <TableHead className="w-[100px] text-xs">Type</TableHead>
+                                        <TableHead className="text-xs">Omschrijving / Dienst</TableHead>
+                                        <TableHead className="text-right w-[110px] text-xs">Uren</TableHead>
+                                        <TableHead className="text-right w-[110px] text-xs">Tarief</TableHead>
+                                        <TableHead className="text-right w-[110px] text-xs font-bold">Bedrag</TableHead>
+                                        <TableHead className="w-[60px]"></TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {groupedAccounts.map((group: any) => (
+                                        <Fragment key={group.id}>
+                                            {/* Group Account Name Header Row */}
+                                            <TableRow className="bg-muted/20 hover:bg-muted/20 border-b border-border/40">
+                                                <TableCell colSpan={6} className="py-2.5 px-4">
+                                                    <div className="flex items-center justify-between w-full">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[11px] font-bold tracking-wider text-slate-300 uppercase">
+                                                                {group.name}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-[11px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full tabular-nums">
+                                                            Subtotaal: {formatCurrency(
+                                                                group.fixedItems.reduce((sum: number, item: any) => sum + item.fee, 0) + 
+                                                                group.variableItems.reduce((sum: number, item: any) => sum + item.fee, 0)
+                                                            )}
+                                                        </span>
                                                     </div>
-                                                    <Button 
-                                                        variant="secondary" 
-                                                        size="sm" 
-                                                        className="h-7 text-xs"
-                                                        onClick={(e) => copyFixedEntry(e, acc)}
-                                                    >
-                                                        {copiedEntryId === acc.id ? (
-                                                            <CheckCircle2 className="size-3 mr-1.5 text-green-500" />
-                                                        ) : (
-                                                            <Copy className="size-3 mr-1.5" />
-                                                        )}
-                                                        Kopieer
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                                </TableCell>
+                                            </TableRow>
 
-                            {data.entries.length > 0 && (
-                                <div>
-                                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Losse Uren</h4>
-                                    <div className="space-y-2">
-                                        {data.entries.map((entry: TimeEntry) => (
-                                            <div key={entry.id} className="flex flex-col sm:flex-row sm:items-center justify-between text-sm bg-background p-3 rounded-md border shadow-sm gap-2">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="font-bold text-primary">{format(parseISO(entry.date), 'd MMM yyyy', { locale: nl })}</span>
-                                                    <span className="text-muted-foreground">{entry.description}</span>
-                                                </div>
-                                                <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-auto w-full border-t sm:border-0 pt-2 sm:pt-0 mt-2 sm:mt-0">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="tabular-nums font-bold text-foreground">{formatDuration(entry.durationMinutes)}</span>
-                                                        <span className="text-[10px] text-muted-foreground uppercase">{formatCurrency((entry.durationMinutes / 60) * entry.hourlyRateAtTime)}</span>
-                                                    </div>
-                                                    <Button 
-                                                        variant="secondary" 
-                                                        size="sm" 
-                                                        className="h-7 text-xs"
-                                                        onClick={(e) => copyEntry(e, entry)}
-                                                    >
-                                                        {copiedEntryId === entry.id ? (
-                                                            <CheckCircle2 className="size-3 mr-1.5 text-green-500" />
-                                                        ) : (
-                                                            <Copy className="size-3 mr-1.5" />
-                                                        )}
-                                                        Kopieer
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                            {/* Fixed Rows */}
+                                            {group.fixedItems.map((item: any) => (
+                                                <TableRow key={item.id} className="hover:bg-muted/30">
+                                                    <TableCell className="py-2.5 pl-6">
+                                                        <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-wider py-0.5 px-1.5 bg-blue-500/10 text-blue-400 border-blue-500/20">
+                                                            Vast
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="py-2.5 text-xs font-medium text-slate-200">
+                                                        {item.description}
+                                                    </TableCell>
+                                                    <TableCell className="py-2.5 text-xs text-right tabular-nums text-muted-foreground">
+                                                        {item.hours > 0 ? `${item.hours.toFixed(2)} u` : '-'}
+                                                    </TableCell>
+                                                    <TableCell className="py-2.5 text-xs text-right tabular-nums text-muted-foreground">
+                                                        {item.rate > 0 ? formatCurrency(item.rate) : '-'}
+                                                    </TableCell>
+                                                    <TableCell className={cn("py-2.5 text-xs text-right tabular-nums font-bold", item.isDiscount ? "text-red-400" : "text-slate-100")}>
+                                                        {formatCurrency(item.fee)}
+                                                    </TableCell>
+                                                    <TableCell className="py-1 text-right">
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-7 w-7 text-muted-foreground hover:text-primary transition-colors"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const details = item.hours > 0 ? ` (${item.hours.toFixed(2)} uur @ ${formatCurrency(item.rate)}/u)` : '';
+                                                                const text = `Vaste Fee - ${group.name} (${item.description})${details} - ${formatCurrency(item.fee)}`;
+                                                                navigator.clipboard.writeText(text);
+                                                                setCopiedEntryId(item.id);
+                                                                toast({ title: 'Gekopieerd!' });
+                                                                setTimeout(() => setCopiedEntryId(null), 2000);
+                                                            }}
+                                                        >
+                                                            {copiedEntryId === item.id ? (
+                                                                <CheckCircle2 className="size-3.5 text-green-500" />
+                                                            ) : (
+                                                                <Copy className="size-3.5" />
+                                                            )}
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
 
+                                            {/* Variable Rows */}
+                                            {group.variableItems.map((item: any) => (
+                                                <TableRow key={item.id} className="hover:bg-muted/30">
+                                                    <TableCell className="py-2.5 pl-6">
+                                                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-wider py-0.5 px-1.5 border-orange-500/30 text-orange-400 bg-orange-500/5">
+                                                            Los
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="py-2.5 text-xs font-medium text-slate-200">
+                                                        {item.description}
+                                                    </TableCell>
+                                                    <TableCell className="py-2.5 text-xs text-right tabular-nums text-muted-foreground">
+                                                        {item.hours > 0 ? `${item.hours.toFixed(2)} u` : '-'}
+                                                    </TableCell>
+                                                    <TableCell className="py-2.5 text-xs text-right tabular-nums text-muted-foreground">
+                                                        {item.rate > 0 ? formatCurrency(item.rate) : '-'}
+                                                    </TableCell>
+                                                    <TableCell className="py-2.5 text-xs text-right tabular-nums font-bold text-slate-100">
+                                                        {formatCurrency(item.fee)}
+                                                    </TableCell>
+                                                    <TableCell className="py-1 text-right">
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-7 w-7 text-muted-foreground hover:text-primary transition-colors"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const details = item.hours > 0 ? ` (${item.hours.toFixed(2)} uur @ ${formatCurrency(item.rate)}/u)` : '';
+                                                                const text = `Support - ${group.name} (${item.description})${details} - ${formatCurrency(item.fee)}`;
+                                                                navigator.clipboard.writeText(text);
+                                                                setCopiedEntryId(item.id);
+                                                                toast({ title: 'Gekopieerd!' });
+                                                                setTimeout(() => setCopiedEntryId(null), 2000);
+                                                            }}
+                                                        >
+                                                            {copiedEntryId === item.id ? (
+                                                                <CheckCircle2 className="size-3.5 text-green-500" />
+                                                            ) : (
+                                                                <Copy className="size-3.5" />
+                                                            )}
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </Fragment>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         </div>
                     </TableCell>
                 </TableRow>

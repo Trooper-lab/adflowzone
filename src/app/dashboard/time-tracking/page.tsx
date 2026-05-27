@@ -2,14 +2,24 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-    Loader2, 
+    AlertDialog, 
+    AlertDialogAction, 
+    AlertDialogCancel, 
+    AlertDialogContent, 
+    AlertDialogDescription, 
+    AlertDialogFooter, 
+    AlertDialogHeader, 
+    AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { 
+    Loader2,  
     Plus, 
     Clock, 
     Trash2, 
@@ -24,7 +34,10 @@ import {
     Target,
     ListChecks,
     ExternalLink,
-    Zap
+    Zap,
+    Pencil,
+    Check,
+    X
 } from 'lucide-react';
 import type { ParentClient, TimeEntry, ChildAccount, ChecklistRun, ChecklistTemplate } from '@/lib/types';
 import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths, isWithinInterval } from 'date-fns';
@@ -91,6 +104,10 @@ export default function TimeTrackingPage() {
         durationMinutes: 60,
         description: '',
     });
+
+    const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState<Partial<TimeEntry>>({});
+    const [deleteEntryId, setDeleteEntryId] = useState<string | null>(null);
 
     const fetchData = async () => {
         if (!firestore || !user) return;
@@ -239,47 +256,90 @@ export default function TimeTrackingPage() {
     }, [firestore, user, currentMonth, activeTab]);
 
     const handleSaveEntry = async () => {
-        if (!firestore || !user || !newEntry.parentClientId || !newEntry.description || newEntry.durationMinutes <= 0) {
-            toast({ variant: 'destructive', title: 'Vul alle velden in.' });
-            return;
-        }
-
-        const client = clients.find(c => c.id === newEntry.parentClientId);
-        if (!client) return;
-
+        if (!firestore || !user || !newEntry.parentClientId) return;
         setSaving(true);
         try {
+            // Find parent client's hourly rate at this moment
+            const parent = clients.find(c => c.id === newEntry.parentClientId);
+            const rate = parent?.hourlyRate || 0;
+
             const entryData: Omit<TimeEntry, 'id'> = {
                 ownerId: user.uid,
                 parentClientId: newEntry.parentClientId,
-                ...(newEntry.childAccountId !== 'none' && { childAccountId: newEntry.childAccountId }),
                 date: newEntry.date.toISOString(),
                 durationMinutes: newEntry.durationMinutes,
-                description: newEntry.description,
-                hourlyRateAtTime: client.hourlyRate || 0,
+                description: newEntry.description || 'Geen omschrijving',
+                hourlyRateAtTime: rate
             };
 
-            await addDoc(collection(firestore, 'timeEntries'), entryData);
-            toast({ title: 'Uren succesvol geregistreerd!' });
-            setNewEntry({ parentClientId: '', childAccountId: 'none', date: new Date(), durationMinutes: 60, description: '' });
-            fetchData();
+            if (newEntry.childAccountId !== 'none') {
+                entryData.childAccountId = newEntry.childAccountId;
+            }
+
+            const docRef = await addDoc(collection(firestore, 'timeEntries'), entryData);
+            setEntries(prev => [{ id: docRef.id, ...entryData }, ...prev]);
+            
+            setNewEntry(prev => ({...prev, description: '', durationMinutes: 60}));
+            toast({ title: 'Opgeslagen', description: 'De uren zijn succesvol geregistreerd.' });
         } catch (e) {
-            console.error("Error saving entry:", e);
-            toast({ variant: 'destructive', title: 'Fout bij opslaan uren' });
+            console.error(e);
+            toast({ variant: 'destructive', title: 'Fout', description: 'Kon uren niet opslaan.' });
         } finally {
             setSaving(false);
         }
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = (id: string) => {
+        setDeleteEntryId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!firestore || !deleteEntryId) return;
+        try {
+            await deleteDoc(doc(firestore, 'timeEntries', deleteEntryId));
+            setEntries(prev => prev.filter(e => e.id !== deleteEntryId));
+            toast({ title: 'Verwijderd', description: 'De uren zijn verwijderd.' });
+        } catch (e) {
+            console.error(e);
+            toast({ variant: 'destructive', title: 'Fout', description: 'Kon niet verwijderen.' });
+        } finally {
+            setDeleteEntryId(null);
+        }
+    };
+
+    const startEditing = (entry: TimeEntry) => {
+        setEditingEntryId(entry.id);
+        setEditForm({
+            ...entry,
+            childAccountId: entry.childAccountId || ''
+        });
+    };
+
+    const handleSaveEdit = async (id: string) => {
         if (!firestore) return;
         try {
-            await deleteDoc(doc(firestore, 'timeEntries', id));
-            setEntries(prev => prev.filter(e => e.id !== id));
-            toast({ title: 'Registratie verwijderd' });
+            const updateData = {
+                ...editForm,
+                childAccountId: editForm.childAccountId === 'none' || editForm.childAccountId === '' ? null : editForm.childAccountId
+            };
+            
+            // Verwijder null velden en transformeer naar undefined voor firebase (of delete key)
+            const cleanedData: any = {};
+            Object.keys(updateData).forEach(k => {
+                const key = k as keyof typeof updateData;
+                if (updateData[key] !== null) {
+                    cleanedData[key] = updateData[key];
+                }
+            });
+
+            await updateDoc(doc(firestore, 'timeEntries', id), cleanedData);
+            
+            setEntries(prev => prev.map(e => e.id === id ? { ...e, ...cleanedData } : e));
+            setEditingEntryId(null);
+            toast({ title: 'Gewijzigd', description: 'De uren zijn succesvol aangepast.' });
         } catch (e) {
-            console.error("Error deleting entry:", e);
-            toast({ variant: 'destructive', title: 'Fout bij verwijderen' });
+            console.error(e);
+            toast({ variant: 'destructive', title: 'Fout', description: 'Kon de wijziging niet opslaan.' });
         }
     };
 
@@ -343,7 +403,7 @@ export default function TimeTrackingPage() {
                                             <TableHead className="p-2 h-8 w-[160px] text-xs">Account</TableHead>
                                             <TableHead className="p-2 h-8 text-xs">Omschrijving</TableHead>
                                             <TableHead className="p-2 h-8 text-right w-[100px] text-xs">Tijd</TableHead>
-                                            <TableHead className="p-2 h-8 w-[40px]"></TableHead>
+                                            <TableHead className="p-2 h-8 w-[70px]"></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -395,7 +455,7 @@ export default function TimeTrackingPage() {
                                                     <SelectContent>
                                                         <SelectItem value="none" className="text-xs italic text-muted-foreground">Algemeen</SelectItem>
                                                         {childAccounts.filter(a => a.parentClientId === newEntry.parentClientId).map(a => (
-                                                            <SelectItem key={a.id} value={a.id} className="text-xs">{a.nickname || a.name}</SelectItem>
+                                                            <SelectItem key={a.id} value={a.id} className="text-xs">{a.nickname || a.googleAdsAccountName}</SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
@@ -443,14 +503,115 @@ export default function TimeTrackingPage() {
                                             entries.map((entry) => {
                                                 const client = clients.find(c => c.id === entry.parentClientId);
                                                 const account = childAccounts.find(a => a.id === entry.childAccountId);
+                                                
+                                                if (editingEntryId === entry.id) {
+                                                    return (
+                                                        <TableRow key={entry.id} className="bg-white/[0.05]">
+                                                            <TableCell className="p-1 align-top">
+                                                                <Popover>
+                                                                    <PopoverTrigger asChild>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            className="w-full h-8 px-2 justify-start text-left font-normal text-xs rounded-sm"
+                                                                        >
+                                                                            <CalendarIcon className="mr-2 h-3 w-3" />
+                                                                            {editForm.date ? format(parseISO(editForm.date as string), "dd MMM", { locale: nl }) : <span>Datum</span>}
+                                                                        </Button>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent className="w-auto p-0 bg-slate-900 border-white/5">
+                                                                        <Calendar
+                                                                            mode="single"
+                                                                            selected={editForm.date ? parseISO(editForm.date as string) : new Date()}
+                                                                            onSelect={(d) => d && setEditForm({...editForm, date: d.toISOString()})}
+                                                                            initialFocus
+                                                                        />
+                                                                    </PopoverContent>
+                                                                </Popover>
+                                                            </TableCell>
+                                                            <TableCell className="p-1 align-top">
+                                                                <Select 
+                                                                    value={editForm.parentClientId} 
+                                                                    onValueChange={val => setEditForm({...editForm, parentClientId: val, childAccountId: ''})}
+                                                                >
+                                                                    <SelectTrigger className="w-full h-8 px-2 text-xs rounded-sm">
+                                                                        <SelectValue placeholder="Kies klant..." />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {clients.map(c => <SelectItem key={c.id} value={c.id} className="text-xs">{c.clientName}</SelectItem>)}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </TableCell>
+                                                            <TableCell className="p-1 align-top">
+                                                                <Select 
+                                                                    value={editForm.childAccountId || 'none'} 
+                                                                    onValueChange={val => setEditForm({...editForm, childAccountId: val === 'none' ? '' : val})}
+                                                                    disabled={!editForm.parentClientId}
+                                                                >
+                                                                    <SelectTrigger className="w-full h-8 px-2 text-xs rounded-sm">
+                                                                        <SelectValue placeholder="Account..." />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="none" className="text-xs italic text-muted-foreground">Algemeen</SelectItem>
+                                                                        {childAccounts.filter(a => a.parentClientId === editForm.parentClientId).map(a => (
+                                                                            <SelectItem key={a.id} value={a.id} className="text-xs">{a.nickname || a.googleAdsAccountName}</SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </TableCell>
+                                                            <TableCell className="p-1 align-top">
+                                                                <Input 
+                                                                    value={editForm.description || ''}
+                                                                    onChange={e => setEditForm({...editForm, description: e.target.value})}
+                                                                    className="h-8 text-xs rounded-sm w-full"
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell className="p-1 align-top text-right">
+                                                                <div className="flex items-center gap-1 justify-end h-8">
+                                                                    <Input 
+                                                                        type="number"
+                                                                        className="w-14 h-8 text-xs text-right px-1 rounded-sm"
+                                                                        min="5"
+                                                                        step="5"
+                                                                        value={editForm.durationMinutes || 0}
+                                                                        onChange={e => setEditForm({...editForm, durationMinutes: parseInt(e.target.value) || 0})}
+                                                                    />
+                                                                    <span className="text-[10px] text-muted-foreground w-3 text-left">m</span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="p-1 align-top text-right">
+                                                                <div className="flex gap-1 h-8 justify-end items-center">
+                                                                    <Button 
+                                                                        onClick={() => handleSaveEdit(entry.id)}
+                                                                        size="icon"
+                                                                        className="h-6 w-6 rounded-sm shrink-0 bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                                                                    >
+                                                                        <Check className="size-3" />
+                                                                    </Button>
+                                                                    <Button 
+                                                                        onClick={() => setEditingEntryId(null)}
+                                                                        size="icon"
+                                                                        variant="ghost"
+                                                                        className="h-6 w-6 rounded-sm shrink-0 text-muted-foreground"
+                                                                    >
+                                                                        <X className="size-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                }
+
                                                 return (
                                                     <TableRow key={entry.id} className="group">
                                                         <TableCell className="p-2 text-xs">{format(parseISO(entry.date), 'd MMM yyyy', { locale: nl })}</TableCell>
                                                         <TableCell className="p-2 text-xs font-medium">{client?.clientName || 'Onbekend'}</TableCell>
-                                                        <TableCell className="p-2 text-xs text-muted-foreground">{account?.nickname || account?.name || '-'}</TableCell>
+                                                        <TableCell className="p-2 text-xs text-muted-foreground">{account?.nickname || account?.googleAdsAccountName || '-'}</TableCell>
                                                         <TableCell className="p-2 text-xs max-w-md truncate" title={entry.description}>{entry.description}</TableCell>
                                                         <TableCell className="p-2 text-xs text-right tabular-nums">{formatDuration(entry.durationMinutes)}</TableCell>
-                                                        <TableCell className="p-1 text-right">
+                                                        <TableCell className="p-1 text-right flex gap-1 justify-end">
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-blue-400 transition-opacity" onClick={() => startEditing(entry)}>
+                                                                <Pencil className="size-3" />
+                                                            </Button>
                                                             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity" onClick={() => handleDelete(entry.id)}>
                                                                 <Trash2 className="size-3" />
                                                             </Button>
@@ -712,6 +873,21 @@ export default function TimeTrackingPage() {
                     )}
                 </TabsContent>
             </Tabs>
+
+            <AlertDialog open={!!deleteEntryId} onOpenChange={(open) => !open && setDeleteEntryId(null)}>
+                <AlertDialogContent className="glass-card-elevated border-white/5 bg-[#1C243A] text-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-white">Uren verwijderen?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-300 font-medium">
+                            Weet je zeker dat je deze urenregistratie wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">Annuleren</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-500 text-white">Verwijderen</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

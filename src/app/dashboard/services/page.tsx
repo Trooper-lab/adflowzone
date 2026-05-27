@@ -12,6 +12,16 @@ import { Loader2, Briefcase, PlusCircle, Trash2, Edit2, CheckCircle2, Package, L
 import { useToast } from '@/hooks/use-toast';
 import type { Service, ServicePackage } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import { 
+    AlertDialog, 
+    AlertDialogAction, 
+    AlertDialogCancel, 
+    AlertDialogContent, 
+    AlertDialogDescription, 
+    AlertDialogFooter, 
+    AlertDialogHeader, 
+    AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 
 export default function ServicesManagementPage() {
     const { user } = useUser();
@@ -23,6 +33,7 @@ export default function ServicesManagementPage() {
     const [packages, setPackages] = useState<ServicePackage[]>([]);
     
     const [activeTab, setActiveTab] = useState('services');
+    const [deleteTarget, setDeleteTarget] = useState<{ type: 'service' | 'package'; id: string } | null>(null);
 
     // Forms state
     const [isAddingService, setIsAddingService] = useState(false);
@@ -97,17 +108,8 @@ export default function ServicesManagementPage() {
         }
     };
 
-    const handleDeleteService = async (id: string) => {
-        if (!firestore) return;
-        if (!confirm('Weet je zeker dat je deze dienst wilt verwijderen?')) return;
-        try {
-            await deleteDoc(doc(firestore, 'services', id));
-            toast({ title: 'Dienst verwijderd' });
-            fetchData();
-        } catch (e) {
-            console.error(e);
-            toast({ variant: 'destructive', title: 'Fout bij verwijderen' });
-        }
+    const handleDeleteService = (id: string) => {
+        setDeleteTarget({ type: 'service', id });
     };
 
     const startEditService = (s: Service) => {
@@ -166,16 +168,27 @@ export default function ServicesManagementPage() {
         }
     };
 
-    const handleDeletePackage = async (id: string) => {
-        if (!firestore) return;
-        if (!confirm('Weet je zeker dat je dit pakket wilt verwijderen?')) return;
+    const handleDeletePackage = (id: string) => {
+        setDeleteTarget({ type: 'package', id });
+    };
+
+    const confirmDelete = async () => {
+        if (!firestore || !deleteTarget) return;
+        const { type, id } = deleteTarget;
         try {
-            await deleteDoc(doc(firestore, 'servicePackages', id));
-            toast({ title: 'Pakket verwijderd' });
+            if (type === 'service') {
+                await deleteDoc(doc(firestore, 'services', id));
+                toast({ title: 'Dienst verwijderd' });
+            } else {
+                await deleteDoc(doc(firestore, 'servicePackages', id));
+                toast({ title: 'Pakket verwijderd' });
+            }
             fetchData();
         } catch (e) {
             console.error(e);
             toast({ variant: 'destructive', title: 'Fout bij verwijderen' });
+        } finally {
+            setDeleteTarget(null);
         }
     };
 
@@ -454,6 +467,25 @@ export default function ServicesManagementPage() {
                     </div>
                 </TabsContent>
             </Tabs>
+
+            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent className="glass-card-elevated border-white/5 bg-[#1C243A] text-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-white">
+                            {deleteTarget?.type === 'service' ? 'Dienst verwijderen?' : 'Pakket verwijderen?'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-300 font-medium">
+                            {deleteTarget?.type === 'service' 
+                                ? 'Weet je zeker dat je deze dienst wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.' 
+                                : 'Weet je zeker dat je dit pakket wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.'}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">Annuleren</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-500 text-white">Verwijderen</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

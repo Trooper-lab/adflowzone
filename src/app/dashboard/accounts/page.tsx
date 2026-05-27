@@ -25,6 +25,7 @@ import type { ParentClient, ChildAccount, AppUser } from '@/lib/types';
 type EnrichedAccount = ChildAccount & {
   parentName: string;
   assignedEmployeeName?: string;
+  derivedHours?: number;
 };
 
 type ClientGroup = {
@@ -156,7 +157,7 @@ export default function PortfolioPage() {
         const clients = clientSnap.docs.map((d) => ({ id: d.id, ...d.data() } as ParentClient));
         if (!clients.length) { setLoading(false); return; }
 
-        const [accountSnaps, teamSnap] = await Promise.all([
+        const [accountSnaps, teamSnap, packagesSnap] = await Promise.all([
           Promise.all(clients.map((c) =>
             isAdmin
               ? getDocs(collection(firestore, 'parentClients', c.id, 'childAccounts'))
@@ -168,7 +169,10 @@ export default function PortfolioPage() {
           isAdmin
             ? getDocs(query(collection(firestore, 'users'), where('managerId', '==', user.uid)))
             : Promise.resolve({ docs: [] as any[] }),
+          getDocs(query(collection(firestore, 'servicePackages'), where('ownerId', '==', managerUid)))
         ]);
+
+        const allPackages = packagesSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
         const empMap = new Map<string, string>();
         if (isAdmin) {
@@ -183,11 +187,22 @@ export default function PortfolioPage() {
           const accounts = accountSnaps[i].docs
             .map((d) => {
               const a = d.data() as ChildAccount;
+              
+              let dHours = 0;
+              a.connectedServices?.forEach(s => dHours += (Number(s.hours) || 0));
+              a.connectedPackages?.forEach(pkgRef => {
+                  const pkg = allPackages.find(p => p.id === pkgRef.packageId);
+                  if (pkg) {
+                      pkg.services?.forEach((s: any) => dHours += (Number(s.hours) || 0));
+                  }
+              });
+
               return {
                 ...a, id: d.id,
                 parentName: client.clientName,
                 assignedEmployeeName: a.assignedEmployeeId
                   ? empMap.get(a.assignedEmployeeId) : undefined,
+                derivedHours: dHours
               } as EnrichedAccount;
             })
             .filter((a) => {
@@ -197,7 +212,7 @@ export default function PortfolioPage() {
             .sort((a, b) => a.nickname.localeCompare(b.nickname));
 
           const tBudget = accounts.reduce((s, a) => s + (a.monthlyClickBudget || 0), 0);
-          const tFee = accounts.reduce((s, a) => s + ((a.fixedHours || 0) * (client.hourlyRate || 0)), 0);
+          const tFee = accounts.reduce((s, a) => s + ((a.derivedHours || 0) * (client.hourlyRate || 0)), 0);
           gBudget += tBudget; gFee += tFee; gCount += accounts.length;
 
           return { parentClient: client, accounts, totalBudget: tBudget, totalFee: tFee };
@@ -505,27 +520,17 @@ export default function PortfolioPage() {
                                         Vaste uren
                                         {account.connectedServices && account.connectedServices.length > 0 && <Briefcase className="size-2 text-blue-400" />}
                                     </span>
-                                    <InlineNumberInput
-                                      value={account.fixedHours || 0}
-                                      className="w-14"
-                                      disabled={account.connectedServices && account.connectedServices.length > 0}
-                                      onSave={async (val) => {
-                                        if (!firestore) return;
-                                        try {
-                                          await updateDoc(doc(firestore, 'parentClients', account.parentClientId, 'childAccounts', account.id), { fixedHours: val });
-                                          setGroups(prev => prev.map(g => g.parentClient.id === account.parentClientId ? {
-                                              ...g,
-                                              accounts: g.accounts.map(a => a.id === account.id ? { ...a, fixedHours: val } : a)
-                                          } : g));
-                                        } catch(e) {
-                                            console.error(e);
-                                        }
-                                      }}
-                                    />
+                                    <span className="text-sm font-semibold text-slate-300">
+                                      {account.derivedHours || 0}
+                                    </span>
                                 </div>
+                                <div className="w-[1px] h-6 bg-slate-700/50" />
                                 <div className="flex flex-col items-end min-w-[50px] justify-center pt-2">
+                                    <span className="text-[8px] text-slate-500 uppercase tracking-widest font-black mb-1">
+                                        Fee p/m
+                                    </span>
                                     <span className="text-sm font-bold text-blue-400">
-                                      €{((account.fixedHours || 0) * (group.parentClient.hourlyRate || 0)).toLocaleString('nl-NL')}
+                                      €{((account.derivedHours || 0) * (group.parentClient.hourlyRate || 0)).toLocaleString('nl-NL')}
                                     </span>
                                 </div>
                               </div>

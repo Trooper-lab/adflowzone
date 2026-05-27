@@ -4,9 +4,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { updateDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { updateDoc, getDocs, collection, query, where, writeBatch, getDoc, doc } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
 import type { Service, ServicePackage } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
@@ -20,9 +21,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import type { ChildAccount, AppUser } from '@/lib/types';
+import type { ChildAccount, AppUser, ParentClient } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const kpiItems = [
     { id: 'spend', label: 'Spend' },
@@ -53,6 +64,7 @@ const metaKpiItems = [
 const accountSettingsSchema = z.object({
     // General
     nickname: z.string().min(2, 'Nickname is required.'),
+    parentClientId: z.string().min(1, 'Parent client is required.'),
     assignedEmployeeId: z.string().optional().nullable(),
     primaryGoal: z.enum(['lead_generation', 'ecommerce_sales', 'brand_awareness', 'app_installs', 'other']),
     isPaused: z.boolean().optional(),
@@ -104,8 +116,11 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
     const firestore = useFirestore();
     const { toast } = useToast();
     const { user } = useUser();
+    const router = useRouter();
     const [employees, setEmployees] = useState<AppUser[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [pendingData, setPendingData] = useState<AccountSettingsFormData | null>(null);
     const [availableServices, setAvailableServices] = useState<Service[]>([]);
     const [availablePackages, setAvailablePackages] = useState<ServicePackage[]>([]);
 
@@ -113,6 +128,7 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
         resolver: zodResolver(accountSettingsSchema),
         defaultValues: {
             nickname: account.nickname || '',
+            parentClientId: account.parentClientId || '',
             assignedEmployeeId: account.assignedEmployeeId || null,
             primaryGoal: account.primaryGoal || 'lead_generation',
             isPaused: account.isPaused || false,
@@ -191,53 +207,184 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
         }
         fetchEmployees();
     }, [firestore]);
+    const [parentClients, setParentClients] = useState<ParentClient[]>([]);
 
     useEffect(() => {
         if (!firestore || !user?.uid || !isAdmin) return;
-        const fetchPackagesAndServices = async () => {
+        const fetchPackagesServicesAndClients = async () => {
             try {
                 const pkgSnap = await getDocs(query(collection(firestore, 'servicePackages'), where('ownerId', '==', user.uid)));
                 setAvailablePackages(pkgSnap.docs.map(d => ({ id: d.id, ...d.data() } as ServicePackage)));
 
                 const svcSnap = await getDocs(query(collection(firestore, 'services'), where('ownerId', '==', user.uid)));
                 setAvailableServices(svcSnap.docs.map(d => ({ id: d.id, ...d.data() } as Service)));
+
+                const clientSnap = await getDocs(query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid)));
+                setParentClients(clientSnap.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient)));
             } catch (e) {
-                console.error("Error fetching packages/services:", e);
+                console.error("Error fetching packages/services/clients:", e);
             }
         };
-        fetchPackagesAndServices();
+        fetchPackagesServicesAndClients();
     }, [firestore, user, isAdmin]);
 
-    async function onSubmit(data: AccountSettingsFormData) {
+    const transferAccount = async (newParentId: string) => {
+        if (!firestore || !user) return newParentId;
+        const oldParentId = account.parentClientId;
+        const accountId = account.id;
+
+        const oldRef = doc(firestore, 'parentClients', oldParentId, 'childAccounts', accountId);
+        const newRef = doc(firestore, 'parentClients', newParentId, 'childAccounts', accountId);
+
+        const oldDoc = await getDoc(oldRef);
+        if (!oldDoc.exists()) {
+            throw new Error("Source child account does not exist");
+        }
+        const accountData = oldDoc.data();
+
+        const updatedData = {
+            ...accountData,
+            parentClientId: newParentId,
+            nickname: form.getValues('nickname'),
+            assignedEmployeeId: form.getValues('assignedEmployeeId'),
+            primaryGoal: form.getValues('primaryGoal'),
+            isPaused: form.getValues('isPaused'),
+            totalMonthlyBudget: form.getValues('totalMonthlyBudget'),
+            kpisToTrack: form.getValues('kpisToTrack'),
+            targetKpiValues: form.getValues('targetKpiValues') || [],
+            fixedHours: form.getValues('fixedHours'),
+            connectedServices: form.getValues('connectedServices') || [],
+            connectedPackages: form.getValues('connectedPackages') || [],
+            googleAdsClientId: form.getValues('googleAdsClientId'),
+            googleAdsAccountName: form.getValues('googleAdsAccountName'),
+            googleAdsBudget: form.getValues('googleAdsBudget'),
+            googleAdsKpis: form.getValues('googleAdsKpis') || [],
+            googleAdsContext: form.getValues('googleAdsContext'),
+            metaAdsAccountId: form.getValues('metaAdsAccountId'),
+            metaAdsAccountName: form.getValues('metaAdsAccountName'),
+            metaBusinessManagerId: form.getValues('metaBusinessManagerId'),
+            metaPixelId: form.getValues('metaPixelId'),
+            metaAdsBudget: form.getValues('metaAdsBudget'),
+            metaAdsKpis: form.getValues('metaAdsKpis') || [],
+            metaAdsContext: form.getValues('metaAdsContext'),
+            monthlyClickBudget: form.getValues('totalMonthlyBudget'),
+        };
+
+        const batch = writeBatch(firestore);
+        batch.set(newRef, updatedData);
+        batch.delete(oldRef);
+        await batch.commit();
+
+        // Update related collections:
+        // A. checklistRuns
+        const runsSnap = await getDocs(query(collection(firestore, 'checklistRuns'), where('childAccountId', '==', accountId)));
+        const runsBatch = writeBatch(firestore);
+        runsSnap.forEach((runDoc) => {
+            runsBatch.update(doc(firestore, 'checklistRuns', runDoc.id), { parentClientId: newParentId });
+        });
+        if (!runsSnap.empty) await runsBatch.commit();
+
+        // B. todos
+        const todosSnap = await getDocs(query(collection(firestore, 'users', user.uid, 'todos'), where('childAccountId', '==', accountId)));
+        const todosBatch = writeBatch(firestore);
+        todosSnap.forEach((todoDoc) => {
+            todosBatch.update(doc(firestore, 'users', user.uid, 'todos', todoDoc.id), { parentClientId: newParentId });
+        });
+        if (!todosSnap.empty) await todosBatch.commit();
+
+        // C. reports
+        const reportsSnap = await getDocs(query(collection(firestore, 'reports'), where('childAccountId', '==', accountId)));
+        const reportsBatch = writeBatch(firestore);
+        reportsSnap.forEach((reportDoc) => {
+            reportsBatch.update(doc(firestore, 'reports', reportDoc.id), { parentClientId: newParentId });
+        });
+        if (!reportsSnap.empty) await reportsBatch.commit();
+
+        // D. projects
+        const projectsSnap = await getDocs(query(collection(firestore, 'projects'), where('childAccountId', '==', accountId)));
+        const projectsBatch = writeBatch(firestore);
+        projectsSnap.forEach((projectDoc) => {
+            projectsBatch.update(doc(firestore, 'projects', projectDoc.id), { parentClientId: newParentId });
+        });
+        if (!projectsSnap.empty) await projectsBatch.commit();
+
+        // E. timeEntries
+        const timeSnap = await getDocs(query(collection(firestore, 'timeEntries'), where('childAccountId', '==', accountId)));
+        const timeBatch = writeBatch(firestore);
+        timeSnap.forEach((timeDoc) => {
+            timeBatch.update(doc(firestore, 'timeEntries', timeDoc.id), { parentClientId: newParentId });
+        });
+        if (!timeSnap.empty) await timeBatch.commit();
+        
+        return newParentId;
+    };
+
+    const onInvalid = (errors: any) => {
+        console.error("Form validation errors:", errors);
+        toast({
+            variant: 'destructive',
+            title: 'Fout bij opslaan',
+            description: 'Vul alle verplichte velden correct in.',
+        });
+    };
+
+    const handleConfirmTransfer = async () => {
+        if (!pendingData) return;
+        setIsConfirmOpen(false);
         setIsSaving(true);
         try {
-            await updateDoc(accountDocRef, {
-                ...data,
-                // Ensure legacy field is kept in sync if needed
-                monthlyClickBudget: data.totalMonthlyBudget,
-            });
+            const newParentId = await transferAccount(pendingData.parentClientId);
             toast({
-                title: 'Opgeslagen',
-                description: 'Advertising setup is succesvol bijgewerkt.',
+                title: 'Overgezet',
+                description: 'Het account is succesvol overgezet naar de nieuwe klant.',
             });
-        } catch (e: any) {
-            console.error("Error updating document: ", e);
-            toast({
-                variant: 'destructive',
-                title: 'Fout bij opslaan',
-                description: 'De wijzigingen konden niet worden opgeslagen.',
-            });
-            const permissionError = new FirestorePermissionError({
-                path: accountDocRef.path,
-                operation: 'update',
-                requestResourceData: data,
-            });
-            errorEmitter.emit('permission-error', permissionError);
+            router.push(`/dashboard/accounts/${account.id}?parent=${newParentId}`);
+        } catch (e) {
+            console.error(e);
+            toast({ variant: 'destructive', title: 'Fout bij overzetten', description: 'Kon het account niet overzetten.' });
         } finally {
             setIsSaving(false);
+            setPendingData(null);
+        }
+    };
+
+    async function onSubmit(data: AccountSettingsFormData) {
+        console.log("onSubmit called. data.parentClientId:", data.parentClientId, "account.parentClientId:", account.parentClientId);
+        const hasParentChanged = data.parentClientId !== account.parentClientId;
+        console.log("hasParentChanged:", hasParentChanged);
+        if (hasParentChanged) {
+            setPendingData(data);
+            setIsConfirmOpen(true);
+        } else {
+            setIsSaving(true);
+            try {
+                await updateDoc(accountDocRef, {
+                    ...data,
+                    // Ensure legacy field is kept in sync if needed
+                    monthlyClickBudget: data.totalMonthlyBudget,
+                });
+                toast({
+                    title: 'Opgeslagen',
+                    description: 'Advertising setup is succesvol bijgewerkt.',
+                });
+            } catch (e: any) {
+                console.error("Error updating document: ", e);
+                toast({
+                    variant: 'destructive',
+                    title: 'Fout bij opslaan',
+                    description: 'De wijzigingen konden niet worden opgeslagen.',
+                });
+                const permissionError = new FirestorePermissionError({
+                    path: accountDocRef.path,
+                    operation: 'update',
+                    requestResourceData: data,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            } finally {
+                setIsSaving(false);
+            }
         }
     }
-
     if (!isAdmin) {
         return (
             <div className="rounded-xl border border-dashed border-[#2A3552] p-10 flex flex-col items-center justify-center text-center">
@@ -250,7 +397,7 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-8">
                 
                 {/* 1. Algemene Strategie & Toewijzing */}
                 <Card className="bg-[#1C243A] border-[#2A3552]">
@@ -296,9 +443,7 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
                                     </FormItem>
                                 )}
                             />
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField
                                 control={form.control}
                                 name="primaryGoal"
@@ -322,7 +467,8 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
                                         <FormMessage />
                                     </FormItem>
                                 )}
-                            />
+                             />
+
                             <FormField
                                 control={form.control}
                                 name="isPaused"
@@ -335,6 +481,31 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
                                         <FormControl>
                                             <Switch checked={field.value} onCheckedChange={field.onChange} />
                                         </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="parentClientId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-slate-300">Klant (Parent Client)</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="bg-[#0F1423] border-[#2A3552] text-white">
+                                                    <SelectValue placeholder="Selecteer klant..." />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {parentClients.map(client => (
+                                                    <SelectItem key={client.id} value={client.id}>{client.clientName}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormDescription className="text-xs text-slate-400">
+                                            Zet dit account over naar een andere parent client.
+                                        </FormDescription>
+                                        <FormMessage />
                                     </FormItem>
                                 )}
                             />
@@ -366,143 +537,6 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="fixedHours"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-slate-300">Vaste Uren per Maand</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.5" className="bg-[#0F1423] border-[#2A3552] text-white" placeholder="5" {...field} value={field.value ?? ''} disabled={form.watch('connectedServices') && form.watch('connectedServices')!.length > 0} />
-                                        </FormControl>
-                                        <FormDescription className="text-xs">
-                                            {form.watch('connectedServices') && form.watch('connectedServices')!.length > 0 
-                                                ? "Wordt automatisch berekend o.b.v. gekoppelde diensten." 
-                                                : "Het aantal vaste beheeruren per maand."}
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <div className="space-y-4 pt-4 border-t border-[#2A3552]">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400">Gekoppelde Diensten & Uren</h4>
-                                    <p className="text-xs text-muted-foreground mt-1">Koppel diensten om de vaste uren op de factuur uit te splitsen.</p>
-                                </div>
-                                <Button type="button" variant="outline" size="sm" onClick={() => appendService({ serviceId: '', serviceName: '', hours: 0 })} className="bg-[#0F1423] border-[#2A3552] text-white">
-                                    <PlusCircle className="size-4 mr-2" /> Dienst Toevoegen
-                                </Button>
-                            </div>
-                            
-                            {serviceFields.length > 0 && (
-                                <div className="space-y-3">
-                                    {serviceFields.map((field, index) => (
-                                        <div key={field.id} className="grid grid-cols-[1fr_120px_auto] gap-3 items-start p-4 border border-[#2A3552] bg-[#0F1423] rounded-lg">
-                                            <FormField
-                                                control={form.control}
-                                                name={`connectedServices.${index}.serviceId`}
-                                                render={({ field: selectField }) => (
-                                                    <FormItem>
-                                                        <Select 
-                                                            onValueChange={(val) => {
-                                                                selectField.onChange(val);
-                                                                const svc = availableServices.find(s => s.id === val);
-                                                                if (svc) {
-                                                                    form.setValue(`connectedServices.${index}.serviceName`, svc.name);
-                                                                }
-                                                            }} 
-                                                            defaultValue={selectField.value}
-                                                        >
-                                                            <FormControl>
-                                                                <SelectTrigger className="bg-[#1C243A] border-[#2A3552] text-white"><SelectValue placeholder="Kies een dienst..." /></SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                {availableServices.map(svc => (
-                                                                    <SelectItem key={svc.id} value={svc.id}>{svc.name}</SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={form.control}
-                                                name={`connectedServices.${index}.hours`}
-                                                render={({ field: inputField }) => (
-                                                    <FormItem>
-                                                        <FormControl>
-                                                            <div className="relative">
-                                                                <Input type="number" step="0.1" placeholder="Uren" {...inputField} className="pr-10 bg-[#1C243A] border-[#2A3552] text-white" />
-                                                                <span className="absolute inset-y-0 right-3 flex items-center text-xs text-slate-500 font-bold">uur</span>
-                                                            </div>
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeService(index)} className="hover:text-red-400 hover:bg-red-500/10">
-                                                <Trash2 className="size-4 text-red-400" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="space-y-4 pt-4 border-t border-[#2A3552]">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400">Gekoppelde Pakketten</h4>
-                                    <p className="text-xs text-muted-foreground mt-1">Koppel een pakket om diensten te bundelen.</p>
-                                </div>
-                                <Button type="button" variant="outline" size="sm" onClick={() => appendPackage({ packageId: '', packageName: '' })} className="bg-[#0F1423] border-[#2A3552] text-white">
-                                    <PlusCircle className="size-4 mr-2" /> Pakket Toevoegen
-                                </Button>
-                            </div>
-                            
-                            {packageFields.length > 0 && (
-                                <div className="space-y-3">
-                                    {packageFields.map((field, index) => (
-                                        <div key={field.id} className="grid grid-cols-[1fr_auto] gap-3 items-start p-4 border border-[#2A3552] bg-[#0F1423] rounded-lg">
-                                            <FormField
-                                                control={form.control}
-                                                name={`connectedPackages.${index}.packageId`}
-                                                render={({ field: selectField }) => (
-                                                    <FormItem>
-                                                        <Select 
-                                                            onValueChange={(val) => {
-                                                                selectField.onChange(val);
-                                                                const pkg = availablePackages.find(p => p.id === val);
-                                                                if (pkg) {
-                                                                    form.setValue(`connectedPackages.${index}.packageName`, pkg.name);
-                                                                }
-                                                            }} 
-                                                            defaultValue={selectField.value}
-                                                        >
-                                                            <FormControl>
-                                                                <SelectTrigger className="bg-[#1C243A] border-[#2A3552] text-white"><SelectValue placeholder="Kies een pakket..." /></SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                {availablePackages.map(pkg => (
-                                                                    <SelectItem key={pkg.id} value={pkg.id}>{pkg.name}</SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => removePackage(index)} className="hover:text-red-400 hover:bg-red-500/10">
-                                                <Trash2 className="size-4 text-red-400" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
                         </div>
 
                         <div className="space-y-4 border-t border-[#2A3552] pt-4">
@@ -550,7 +584,7 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
                                             name={`targetKpiValues.${index}.kpi`}
                                             render={({ field }) => (
                                                 <FormItem className="flex-1">
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
                                                         <FormControl>
                                                             <SelectTrigger className="bg-[#1C243A] border-[#2A3552] text-white h-8"><SelectValue placeholder="Select KPI..." /></SelectTrigger>
                                                         </FormControl>
@@ -696,11 +730,35 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
                 </Card>
 
                 <div className="flex justify-end gap-4 mt-8 pb-10">
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold" disabled={isSaving}>
+                    <Button 
+                        type="submit" 
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold" 
+                        disabled={isSaving}
+                        onClick={() => {
+                            console.log("Button clicked! Form values:", form.getValues());
+                            console.log("Form State Errors:", form.formState.errors);
+                            console.log("account object:", account);
+                        }}
+                    >
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {isSaving ? 'Opslaan...' : 'Wijzigingen Opslaan'}
                     </Button>
                 </div>
+
+                <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+                    <AlertDialogContent className="glass-card-elevated border-white/5 bg-[#1C243A] text-white">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white">Account overzetten?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-slate-300 font-medium">
+                                Weet je zeker dat je dit account wilt overzetten naar een andere klant? Alle gekoppelde uren, checklist runs en rapportages worden mee verhuisd.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel className="bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white" onClick={() => setPendingData(null)}>Annuleren</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleConfirmTransfer} className="bg-blue-600 hover:bg-blue-500 text-white">Overzetten</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </form>
         </Form>
     );
