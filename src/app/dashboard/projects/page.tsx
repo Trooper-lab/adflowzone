@@ -15,8 +15,7 @@ import {
     arrayUnion, 
     arrayRemove,
     onSnapshot,
-    writeBatch,
-    collectionGroup
+    writeBatch
 } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -156,7 +155,9 @@ export default function TasksPage() {
         if (!firestore || !managerUid) return;
 
         setLoadingTodos(true);
-        const q = isAdmin ? query(collectionGroup(firestore, 'todos')) : query(collection(firestore, 'users', managerUid, 'todos'));
+        const q = isAdmin
+            ? query(collection(firestore, 'todos'), where('completed', '==', false))
+            : query(collection(firestore, 'todos'), where('ownerId', '==', managerUid));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedTodos = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Todo));
             setTodos(fetchedTodos);
@@ -220,11 +221,10 @@ export default function TasksPage() {
         const client = clients.find(c => c.id === childAccount.parentClientId);
         if (!client) return;
 
-        const todoCollection = collection(firestore, 'users', managerUid, 'todos');
         const now = new Date();
 
         const newTodo: Omit<Todo, 'id'> = {
-            userId: managerUid,
+            ownerId: managerUid,
             parentClientId: client.id,
             parentClientName: client.clientName,
             childAccountId: childAccount.id,
@@ -237,7 +237,7 @@ export default function TasksPage() {
         };
 
         try {
-            const docRef = await addDoc(todoCollection, newTodo);
+            const docRef = await addDoc(collection(firestore, 'todos'), newTodo);
             
             // Add to child account pending ids
             const accountRef = doc(firestore, 'parentClients', client.id, 'childAccounts', childAccount.id);
@@ -262,7 +262,7 @@ export default function TasksPage() {
         const status = completed ? 'completed' : 'todo';
         const completedAt = completed ? new Date().toISOString() : null;
 
-        const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+        const todoRef = doc(firestore, 'todos', todo.id);
         const accountRef = doc(firestore, 'parentClients', todo.parentClientId, 'childAccounts', todo.childAccountId);
 
         try {
@@ -298,7 +298,7 @@ export default function TasksPage() {
         const completed = status === 'completed';
         const completedAt = completed ? new Date().toISOString() : null;
 
-        const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+        const todoRef = doc(firestore, 'todos', todo.id);
         const accountRef = doc(firestore, 'parentClients', todo.parentClientId, 'childAccounts', todo.childAccountId);
 
         try {
@@ -331,7 +331,7 @@ export default function TasksPage() {
     const handleAssigneeChange = async (todo: Todo, assignee: AppUser | null) => {
         if (!firestore || !managerUid) return;
 
-        const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+        const todoRef = doc(firestore, 'todos', todo.id);
         try {
             await updateDoc(todoRef, {
                 assigneeId: assignee?.uid || null,
@@ -348,7 +348,7 @@ export default function TasksPage() {
     const handleDueDateChange = async (todo: Todo, date: Date | undefined) => {
         if (!firestore || !managerUid) return;
 
-        const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+        const todoRef = doc(firestore, 'todos', todo.id);
         try {
             await updateDoc(todoRef, {
                 dueDate: date ? date.toISOString() : null
@@ -366,7 +366,7 @@ export default function TasksPage() {
         const hours = val === '' ? 0 : parseFloat(val);
         if (isNaN(hours)) return;
 
-        const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+        const todoRef = doc(firestore, 'todos', todo.id);
         try {
             await updateDoc(todoRef, { workedHours: hours });
             await syncHoursToTimeEntry(todo, hours);
@@ -380,7 +380,7 @@ export default function TasksPage() {
     const handleTitleChange = async (todo: Todo, val: string) => {
         if (!firestore || !managerUid || !val.trim() || val === todo.content) return;
 
-        const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+        const todoRef = doc(firestore, 'todos', todo.id);
         try {
             await updateDoc(todoRef, { content: val.trim() });
         } catch (e) {
@@ -392,7 +392,7 @@ export default function TasksPage() {
     const handleDeleteTask = async (todo: Todo) => {
         if (!firestore || !managerUid) return;
 
-        const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+        const todoRef = doc(firestore, 'todos', todo.id);
         const accountRef = doc(firestore, 'parentClients', todo.parentClientId, 'childAccounts', todo.childAccountId);
 
         try {
@@ -458,7 +458,7 @@ export default function TasksPage() {
 
         try {
             selectedTodos.forEach(todo => {
-                const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+                const todoRef = doc(firestore, 'todos', todo.id);
                 batch.update(todoRef, { status, completed, completedAt });
             });
 
@@ -499,7 +499,7 @@ export default function TasksPage() {
 
         try {
             taskIds.forEach(id => {
-                const todoRef = doc(firestore, 'users', selectedTodos.find(t => t.id === id)?.userId || managerUid, 'todos', id);
+                const todoRef = doc(firestore, 'todos', id);
                 batch.update(todoRef, {
                     assigneeId: assignee?.uid || null,
                     assigneeName: assignee?.displayName || assignee?.email || null,
@@ -526,7 +526,7 @@ export default function TasksPage() {
 
         try {
             taskIds.forEach(id => {
-                const todoRef = doc(firestore, 'users', selectedTodos.find(t => t.id === id)?.userId || managerUid, 'todos', id);
+                const todoRef = doc(firestore, 'todos', id);
                 batch.update(todoRef, { dueDate: isoDate });
             });
 
@@ -553,7 +553,7 @@ export default function TasksPage() {
 
         try {
             taskIds.forEach(id => {
-                const todoRef = doc(firestore, 'users', selectedTodos.find(t => t.id === id)?.userId || managerUid, 'todos', id);
+                const todoRef = doc(firestore, 'todos', id);
                 batch.delete(todoRef);
             });
 
@@ -606,7 +606,7 @@ export default function TasksPage() {
         try {
             const tasksByAccount: Record<string, string[]> = {};
             selectedTodos.forEach(todo => {
-                const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+                const todoRef = doc(firestore, 'todos', todo.id);
                 batch.update(todoRef, { status, completed, completedAt });
 
                 if (!tasksByAccount[todo.childAccountId]) {
@@ -658,7 +658,7 @@ export default function TasksPage() {
 
         try {
             taskIds.forEach(id => {
-                const todoRef = doc(firestore, 'users', selectedTodos.find(t => t.id === id)?.userId || managerUid, 'todos', id);
+                const todoRef = doc(firestore, 'todos', id);
                 batch.update(todoRef, {
                     assigneeId: assignee?.uid || null,
                     assigneeName: assignee?.displayName || assignee?.email || null,
@@ -685,7 +685,7 @@ export default function TasksPage() {
 
         try {
             taskIds.forEach(id => {
-                const todoRef = doc(firestore, 'users', selectedTodos.find(t => t.id === id)?.userId || managerUid, 'todos', id);
+                const todoRef = doc(firestore, 'todos', id);
                 batch.update(todoRef, { dueDate: isoDate });
             });
 
@@ -711,7 +711,7 @@ export default function TasksPage() {
         try {
             const tasksByAccount: Record<string, string[]> = {};
             selectedTodos.forEach(todo => {
-                const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+                const todoRef = doc(firestore, 'todos', todo.id);
                 batch.delete(todoRef);
 
                 if (!tasksByAccount[todo.childAccountId]) {
@@ -786,7 +786,7 @@ export default function TasksPage() {
             if (sheetMode === 'create') {
                 const now = new Date();
                 const newTodo: Omit<Todo, 'id'> = {
-                    userId: managerUid,
+                    ownerId: managerUid,
                     parentClientId: client.id,
                     parentClientName: client.clientName,
                     childAccountId: targetAccount.id,
@@ -802,7 +802,7 @@ export default function TasksPage() {
                     assigneePhotoUrl: assigneeObj?.photoURL || null
                 };
 
-                const docRef = await addDoc(collection(firestore, 'users', managerUid, 'todos'), newTodo);
+                const docRef = await addDoc(collection(firestore, 'todos'), newTodo);
                 const accountRef = doc(firestore, 'parentClients', client.id, 'childAccounts', targetAccount.id);
                 await updateDoc(accountRef, {
                     [completed ? 'todoRunIds' : 'pendingTodoIds']: arrayUnion(docRef.id)
@@ -825,7 +825,7 @@ export default function TasksPage() {
                     assigneePhotoUrl: assigneeObj?.photoURL || null
                 };
                 
-                const todoRef = doc(firestore, 'users', selectedTodo.userId || managerUid, 'todos', selectedTodo.id);
+                const todoRef = doc(firestore, 'todos', selectedTodo.id);
                 await updateDoc(todoRef, updates);
 
                 // Handle child account array references if status changed to/from completed
@@ -868,7 +868,7 @@ export default function TasksPage() {
             createdAt: new Date().toISOString()
         };
 
-        const todoRef = doc(firestore, 'users', selectedTodo.userId || managerUid, 'todos', selectedTodo.id);
+        const todoRef = doc(firestore, 'todos', selectedTodo.id);
         try {
             const updatedComments = [...(selectedTodo.comments || []), newComment];
             await updateDoc(todoRef, { comments: updatedComments });

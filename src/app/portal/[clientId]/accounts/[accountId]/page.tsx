@@ -49,10 +49,10 @@ function AddTodoForm({ parentClient, childAccount, onTodoAdded, onCancel }: { pa
         
         setLoading(true);
         
-        const todoCollection = collection(firestore, 'users', parentClient.ownerId, 'todos');
+        const todoCollection = collection(firestore, 'todos');
 
         const newTodo: Omit<Todo, 'id'> = {
-            userId: parentClient.ownerId,
+            ownerId: parentClient.ownerId,
             parentClientId: parentClient.id,
             parentClientName: parentClient.clientName,
             childAccountId: childAccount.id,
@@ -162,7 +162,7 @@ function TodosSection({ parentClient, childAccount }: { parentClient: ParentClie
 
             // Fetch pending todos
             if (childAccount.pendingTodoIds && childAccount.pendingTodoIds.length > 0) {
-                const pendingPromises = childAccount.pendingTodoIds.map(id => getDoc(doc(firestore, `users/${ownerId}/todos/${id}`)));
+                const pendingPromises = childAccount.pendingTodoIds.map(id => getDoc(doc(firestore, `todos/${id}`)));
                 const pendingSnaps = await Promise.all(pendingPromises);
                 setPendingTodos(pendingSnaps.filter(s => s.exists()).map(s => ({ id: s.id, ...s.data() } as Todo)));
             } else {
@@ -171,7 +171,7 @@ function TodosSection({ parentClient, childAccount }: { parentClient: ParentClie
 
             // Fetch completed todos
             if (childAccount.todoRunIds && childAccount.todoRunIds.length > 0) {
-                const completedPromises = childAccount.todoRunIds.map(id => getDoc(doc(firestore, `users/${ownerId}/todos/${id}`)));
+                const completedPromises = childAccount.todoRunIds.map(id => getDoc(doc(firestore, `todos/${id}`)));
                 const completedSnaps = await Promise.all(completedPromises);
                 setCompletedTodos(completedSnaps.filter(s => s.exists()).map(s => ({ id: s.id, ...s.data() } as Todo)));
             } else {

@@ -136,9 +136,9 @@ export default function CheckInPage() {
                 const runsSnap = await getDocs(runsQuery);
                 const runs = runsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ChecklistRun));
                 
-                // 2. Fetch Completed Todos (Fetch from manager's collection)
+                // 2. Fetch Completed Todos
                 const todosQuery = query(
-                    collection(firestore, 'users', account.ownerId, 'todos'),
+                    collection(firestore, 'todos'),
                     where('childAccountId', '==', selectedAccountId),
                     where('completed', '==', true)
                 );

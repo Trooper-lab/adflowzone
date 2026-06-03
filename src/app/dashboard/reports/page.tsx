@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, doc, writeBatch, arrayUnion, Timestamp, getDoc, updateDoc, onSnapshot, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, writeBatch, arrayUnion, Timestamp, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import type { ParentClient, ChildAccount, MonthlyReport, KpiData, Todo, ChecklistRun, ChecklistTemplate } from '@/lib/types';
 import { format, subMonths, addMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -357,13 +357,11 @@ export default function ReportDashboard() {
                 })
                 .map(run => run.id);
 
-            const todosQuery = isAdmin 
-                ? query(collectionGroup(firestore, 'todos'), where('childAccountId', '==', account.id), where('completed', '==', true))
-                : query(
-                    collection(firestore, 'users', managerUid, 'todos'),
-                    where('childAccountId', '==', account.id),
-                    where('completed', '==', true)
-                );
+            const todosQuery = query(
+                collection(firestore, 'todos'),
+                where('childAccountId', '==', account.id),
+                where('completed', '==', true)
+            );
             const todosSnapshot = await getDocs(todosQuery);
             const completedTodoIds = todosSnapshot.docs
                  .map(doc => {
@@ -469,9 +467,10 @@ export default function ReportDashboard() {
             const parentClientRef = doc(firestore, 'parentClients', report.parentClientId);
             
             // 1. Fetch all necessary data for the email
-            const todosQuery = isAdmin 
-                ? query(collectionGroup(firestore, 'todos'), where('childAccountId', '==', account.id))
-                : query(collection(firestore, 'users', managerUid, 'todos'));
+            const todosQuery = query(
+                collection(firestore, 'todos'),
+                where('childAccountId', '==', account.id)
+            );
 
             const [clientSnap, checklistTemplatesSnap, kpiDocsSnap, checklistRunsSnap, allTodosSnap] = await Promise.all([
                 getDoc(parentClientRef),

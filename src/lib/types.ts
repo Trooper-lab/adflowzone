@@ -218,7 +218,8 @@ export type KpiData = {
 
 export type Todo = {
   id: string;
-  userId: string;
+  ownerId: string;       // uid of the manager/admin who owns this todo (top-level collection)
+  userId?: string;       // legacy field – kept for backwards compat
   parentClientId: string;
   parentClientName: string;
   childAccountId: string;

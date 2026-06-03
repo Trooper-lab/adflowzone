@@ -104,7 +104,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
 
   const todosQuery = useMemoFirebase(() => {
     if (!firestore || !managerId || !account) return null;
-    return query(collection(firestore, 'users', managerId, 'todos'), where('childAccountId', '==', account.id), where('completed', '==', false));
+    return query(collection(firestore, 'todos'), where('ownerId', '==', managerId), where('childAccountId', '==', account.id), where('completed', '==', false));
   }, [firestore, managerId, account, open]);
   
   const { data: pendingTodos, loading: todosLoading } = useCollection(todosQuery);
@@ -226,7 +226,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
   const handleToggleTodo = async (todo: Todo) => {
     if (!firestore || !user || !managerId || !account) return;
     
-    const todoRef = doc(firestore, 'users', managerId, 'todos', todo.id);
+    const todoRef = doc(firestore, 'todos', todo.id);
     const accountRef = doc(firestore, 'parentClients', account.parentClientId, 'childAccounts', account.id);
 
     try {
@@ -250,10 +250,10 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
     if (!firestore || !user || !managerId || !account || !parentClient || !newTodoContent.trim()) return;
     
     setIsAddingTodo(true);
-    const todoCollection = collection(firestore, 'users', managerId, 'todos');
+    const todoCollection = collection(firestore, 'todos');
 
     const newTodo: Omit<Todo, 'id'> = {
-        userId: managerId,
+        ownerId: managerId,
         parentClientId: parentClient.id,
         parentClientName: parentClient.clientName,
         childAccountId: account.id,
@@ -336,7 +336,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
     if (!firestore || !managerId || !status) return;
     const completed = status === 'completed';
     const completedAt = completed ? new Date().toISOString() : null;
-    const todoRef = doc(firestore, 'users', managerId, 'todos', todo.id);
+    const todoRef = doc(firestore, 'todos', todo.id);
     const accountRef = doc(firestore, 'parentClients', todo.parentClientId, 'childAccounts', todo.childAccountId);
     try {
       await updateDoc(todoRef, { status, completed, completedAt });

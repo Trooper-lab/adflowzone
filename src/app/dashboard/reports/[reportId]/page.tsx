@@ -173,9 +173,9 @@ const ReportPage = () => {
             
             const kpiQuery = query(collection(firestore as any, 'kpiData'), where('childAccountId', '==', childAccount.id));
             
-            const completedTodoPromises = (report.completedTodoRunIds || []).map(id => getDoc(doc(firestore as any, 'users', managerUid!, 'todos', id)));
+            const completedTodoPromises = (report.completedTodoRunIds || []).map(id => getDoc(doc(firestore as any, 'todos', id)));
             
-            const pendingTodoPromises = (childAccount.pendingTodoIds || []).map(id => getDoc(doc(firestore as any, 'users', managerUid!, 'todos', id)));
+            const pendingTodoPromises = (childAccount.pendingTodoIds || []).map(id => getDoc(doc(firestore as any, 'todos', id)));
 
             const checklistRunPromises = (report.completedChecklistRunIds || []).map(id => getDoc(doc(firestore as any, 'checklistRuns', id)));
             
@@ -309,7 +309,7 @@ const ReportPage = () => {
 
         if (result.nextSteps && result.nextSteps.length > 0) {
             const now = new Date();
-            const todosCollection = collection(firestore, 'users', user.uid, 'todos');
+            const todosCollection = collection(firestore, 'todos');
             
             result.nextSteps.forEach((stepContent, index) => {
                 const todoDocRef = doc(todosCollection); // Create a new doc ref for each todo
@@ -318,7 +318,7 @@ const ReportPage = () => {
                 const dueDate = addDays(now, 15 + index * 2); // Stagger due dates
 
                 const newTodo: Omit<Todo, 'id'> = {
-                    userId: user.uid,
+                    ownerId: managerUid || user.uid,
                     parentClientId: report.parentClientId,
                     parentClientName: parentClient.clientName,
                     childAccountId: report.childAccountId,

@@ -45,7 +45,7 @@ function EditTodoDialog({ todo, open, onOpenChange, onSaved }: EditTodoDialogPro
         if (!firestore || !user || !content.trim()) return;
         setLoading(true);
 
-        const todoRef = doc(firestore, 'users', todo.userId || user.uid, 'todos', todo.id);
+        const todoRef = doc(firestore, 'todos', todo.id);
         
         try {
             await updateDoc(todoRef, {
@@ -137,7 +137,7 @@ export default function AccountTodos({ parentClient, childAccount, childAccountR
             setLoading(true);
 
             if (childAccount.pendingTodoIds && childAccount.pendingTodoIds.length > 0) {
-                const pendingPromises = childAccount.pendingTodoIds.map(id => getDoc(doc(firestore, `users/${managerId}/todos/${id}`)));
+                const pendingPromises = childAccount.pendingTodoIds.map(id => getDoc(doc(firestore, 'todos', id)));
                 const pendingSnaps = await Promise.all(pendingPromises);
                 const fetchedPending = pendingSnaps
                     .filter(snap => snap.exists() && !snap.data().completed)
@@ -148,7 +148,7 @@ export default function AccountTodos({ parentClient, childAccount, childAccountR
             }
             
             if (childAccount.todoRunIds && childAccount.todoRunIds.length > 0) {
-                const completedPromises = childAccount.todoRunIds.map(id => getDoc(doc(firestore, `users/${managerId}/todos/${id}`)));
+                const completedPromises = childAccount.todoRunIds.map(id => getDoc(doc(firestore, 'todos', id)));
                 const completedSnaps = await Promise.all(completedPromises);
                 const fetchedCompleted = completedSnaps
                     .filter(snap => snap.exists() && snap.data().completed)
@@ -178,11 +178,8 @@ export default function AccountTodos({ parentClient, childAccount, childAccountR
     const handleAddTodo = () => {
         if (!firestore || !user || !newTodoContent.trim()) return;
         
-        const todoCollection = collection(firestore, 'users', managerId, 'todos');
-        const now = new Date();
-
         const newTodo: Omit<Todo, 'id'> = {
-            userId: managerId,
+            ownerId: managerId,
             parentClientId: parentClient.id,
             parentClientName: parentClient.clientName,
             childAccountId: childAccount.id,
@@ -194,7 +191,7 @@ export default function AccountTodos({ parentClient, childAccount, childAccountR
             dueDate: (newTodoDueDate || now).toISOString()
         };
         
-        addDoc(todoCollection, newTodo)
+        addDoc(collection(firestore, 'todos'), newTodo)
             .then((docRef) => {
                 if (childAccountRef) {
                     updateDoc(childAccountRef, {
@@ -225,7 +222,7 @@ export default function AccountTodos({ parentClient, childAccount, childAccountR
 
     const handleToggleTodo = (todo: Todo) => {
         if (!firestore || !user || !childAccountRef) return;
-        const todoRef = doc(firestore, 'users', managerId, 'todos', todo.id);
+        const todoRef = doc(firestore, 'todos', todo.id);
         
         updateDoc(todoRef, { completed: true, completedAt: new Date().toISOString(), status: 'completed' })
             .then(() => {
@@ -247,7 +244,7 @@ export default function AccountTodos({ parentClient, childAccount, childAccountR
     
     const handleDeleteTodo = async (todo: Todo) => {
         if (!firestore || !user || !childAccountRef) return;
-        const todoRef = doc(firestore, 'users', managerId, 'todos', todo.id);
+        const todoRef = doc(firestore, 'todos', todo.id);
         
         try {
             await deleteDoc(todoRef);

@@ -285,10 +285,10 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
         if (!runsSnap.empty) await runsBatch.commit();
 
         // B. todos
-        const todosSnap = await getDocs(query(collection(firestore, 'users', user.uid, 'todos'), where('childAccountId', '==', accountId)));
+        const todosSnap = await getDocs(query(collection(firestore, 'todos'), where('childAccountId', '==', accountId)));
         const todosBatch = writeBatch(firestore);
         todosSnap.forEach((todoDoc) => {
-            todosBatch.update(doc(firestore, 'users', user.uid, 'todos', todoDoc.id), { parentClientId: newParentId });
+            todosBatch.update(doc(firestore, 'todos', todoDoc.id), { parentClientId: newParentId });
         });
         if (!todosSnap.empty) await todosBatch.commit();
 

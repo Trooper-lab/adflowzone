@@ -4,7 +4,6 @@ import { useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { 
     collection,
-    collectionGroup,
     query, 
     where, 
     getDocs, 
@@ -569,8 +568,8 @@ export default function DashboardPage() {
                 : query(collection(firestore, 'projects'), where('ownerId', '==', user.uid));
                 
             const todosQuery = isAdmin
-                ? query(collectionGroup(firestore, 'todos'), where('completed', '==', false))
-                : query(collection(firestore, 'users', managerUid, 'todos'), where('completed', '==', false));
+                ? query(collection(firestore, 'todos'), where('completed', '==', false))
+                : query(collection(firestore, 'todos'), where('ownerId', '==', managerUid), where('completed', '==', false));
 
             const [runsSnapshot, projectsSnapshot, todosSnapshot] = await Promise.all([
                 getDocs(runsQuery),
@@ -739,8 +738,7 @@ export default function DashboardPage() {
     if (!firestore || !managerUid || !status) return;
     const completed = status === 'completed';
     const completedAt = completed ? new Date().toISOString() : null;
-    const ownerUid = todo.userId || managerUid;
-    const todoRef = doc(firestore, 'users', ownerUid, 'todos', todo.id);
+    const todoRef = doc(firestore, 'todos', todo.id);
     try {
       await updateDoc(todoRef, { status, completed, completedAt });
       if (todo.parentClientId && todo.childAccountId) {
@@ -770,7 +768,7 @@ export default function DashboardPage() {
 
   const handleAssigneeChange = async (todo: Todo, assignee: AppUser | null) => {
     if (!firestore || !managerUid) return;
-    const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+    const todoRef = doc(firestore, 'todos', todo.id);
     try {
       const updateData = {
         assigneeId: assignee?.uid || null,
@@ -788,7 +786,7 @@ export default function DashboardPage() {
 
   const handleDueDateChange = async (todo: Todo, date: Date | undefined) => {
     if (!firestore || !managerUid) return;
-    const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+    const todoRef = doc(firestore, 'todos', todo.id);
     try {
       await updateDoc(todoRef, { dueDate: date ? date.toISOString() : null });
       setActiveTodo(prev => prev ? { ...prev, dueDate: date ? date.toISOString() : undefined } : null);
@@ -803,7 +801,7 @@ export default function DashboardPage() {
     if (!firestore || !managerUid) return;
     const hours = val === '' ? 0 : parseFloat(val);
     if (isNaN(hours)) return;
-    const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+    const todoRef = doc(firestore, 'todos', todo.id);
     try {
       await updateDoc(todoRef, { workedHours: hours });
       await syncHoursToTimeEntry(todo, hours);
@@ -817,7 +815,7 @@ export default function DashboardPage() {
 
   const handleTitleChange = async (todo: Todo, val: string) => {
     if (!firestore || !managerUid || !val.trim() || val === todo.content) return;
-    const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
+    const todoRef = doc(firestore, 'todos', todo.id);
     try {
       await updateDoc(todoRef, { content: val.trim() });
       setActiveTodo(prev => prev ? { ...prev, content: val.trim() } : null);
@@ -830,8 +828,7 @@ export default function DashboardPage() {
   const handleDeleteTask = async (todo: Todo) => {
     if (!firestore || !managerUid) return;
     // Use todo.userId so admins can delete tasks owned by other users
-    const ownerUid = todo.userId || managerUid;
-    const todoRef = doc(firestore, 'users', ownerUid, 'todos', todo.id);
+    const todoRef = doc(firestore, 'todos', todo.id);
     try {
       await deleteDoc(todoRef);
       // Only update the account ref if the todo is actually linked to an account
@@ -855,18 +852,50 @@ export default function DashboardPage() {
   const handleSaveBriefing = async () => {
     if (!firestore || !managerUid || !activeTodo) return;
     setIsSavingDetails(true);
-    const todoRef = doc(firestore, 'users', managerUid, 'todos', activeTodo.id);
+    const todoRef = doc(firestore, 'todos', activeTodo.id);
     try {
-      await updateDoc(todoRef, { briefing: briefingText });
-      setActiveTodo(prev => prev ? { ...prev, briefing: briefingText } : null);
-      toast({ title: 'Briefing opgeslagen' });
+      if (briefingText !== (activeTodo.briefing || '')) {
+         await updateDoc(todoRef, { briefing: briefingText });
+         setActiveTodo(prev => prev ? { ...prev, briefing: briefingText } : null);
+         toast({ title: 'Briefing opgeslagen' });
+      }
       setRefreshTrigger(p => p + 1);
+      handleNextTask();
     } catch (e) {
       console.error("Error saving briefing:", e);
     } finally {
       setIsSavingDetails(false);
     }
   };
+
+  const handleNextTask = () => {
+    if (!activeTodo) return;
+    
+    // Sort tasks to match flowview
+    const activeTasks = [...scheduledTasks].filter(t => t.status === 'due' || t.status === 'overdue' || t.status === 'in_progress');
+    const allTasksForNext = activeTasks.length > 0 ? activeTasks : scheduledTasks;
+    
+    const currentIndex = allTasksForNext.findIndex(t => t.id === `todo-${activeTodo.id}`);
+    
+    if (currentIndex >= 0 && currentIndex < allTasksForNext.length - 1) {
+      const next = allTasksForNext[currentIndex + 1];
+      if (next.type === 'todo' && next.todo) {
+        setActiveTodo(next.todo);
+        setBriefingText(next.todo.briefing || '');
+        setCommentText('');
+      } else {
+        setIsTaskDetailOpen(false);
+        // Add a small delay so sheet closes smoothly before opening next
+        setTimeout(() => {
+           setActiveTask(next);
+           setIsChecklistRunnerOpen(true);
+        }, 300);
+      }
+    } else {
+      setIsTaskDetailOpen(false);
+    }
+  };
+
 
   const handleAddComment = async () => {
     if (!firestore || !managerUid || !activeTodo || !commentText.trim()) return;
@@ -878,7 +907,7 @@ export default function DashboardPage() {
       text: commentText.trim(),
       createdAt: new Date().toISOString()
     };
-    const todoRef = doc(firestore, 'users', managerUid, 'todos', activeTodo.id);
+    const todoRef = doc(firestore, 'todos', activeTodo.id);
     try {
       const updatedComments = [...(activeTodo.comments || []), newComment];
       await updateDoc(todoRef, { comments: updatedComments });
@@ -1170,10 +1199,10 @@ export default function DashboardPage() {
                     <Button 
                       size="sm" 
                       onClick={handleSaveBriefing} 
-                      disabled={isSavingDetails || briefingText === (activeTodo.briefing || '')}
+                      disabled={isSavingDetails}
                       className="bg-blue-600 hover:bg-blue-500 font-bold uppercase tracking-widest text-[9px] h-8 px-4"
                     >
-                      {isSavingDetails ? <Loader2 className="animate-spin size-3" /> : 'Opslaan'}
+                      {isSavingDetails ? <Loader2 className="animate-spin size-3" /> : 'Opslaan & Volgende'}
                     </Button>
                   </div>
                 </div>

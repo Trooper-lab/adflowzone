@@ -240,7 +240,7 @@ export default function AccountDetailPage() {
   // Open Todos fetch
   const openTodosQuery = useMemoFirebase(
     () => (firestore && managerUid && accountId ? query(
-      collection(firestore, 'users', managerUid, 'todos'),
+      collection(firestore, 'todos'),
       where('childAccountId', '==', accountId as string),
       where('status', 'in', ['todo', 'in_progress'])
     ) : null),

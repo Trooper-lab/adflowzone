@@ -113,14 +113,21 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
-    // Todos
-    match /users/{userId}/todos/{todoId} {
-      allow read, write: if isOwner(userId) || isAdmin() || isEmployee();
-    }
-
-    // Collection Group rules for todos (required for collectionGroup queries)
-    match /{path=**}/todos/{todoId} {
-      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
+    // Todos — top-level collection, single source of truth
+    match /todos/{todoId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        isEmployee() ||
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.assigneeId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && (isAdmin() || isEmployee());
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        isEmployee() ||
+        resource.data.assigneeId == request.auth.uid
+      );
+      allow delete: if isAdmin() || resource.data.ownerId == request.auth.uid;
     }
 
     // Projects
