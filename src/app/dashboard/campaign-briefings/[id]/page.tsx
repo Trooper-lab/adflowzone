@@ -884,32 +884,49 @@ export default function CampaignBriefingEditor() {
                           <div className="space-y-8 mt-10">
                                 {/* ROW 1: Keywords & Preview */}
                                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                                    <div className="xl:col-span-2 space-y-2">
-                                        <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
-                                            <Key className="size-3" />
-                                            {campaign.type === 'search' ? 'Zoekwoorden (één per regel)' : 'Search Themes / Assets'}
-                                        </Label>
-                                        <Textarea 
-                                            value={ag.keywords?.join('\n') || ''}
-                                            onChange={e => setBriefing(prev => {
-                                                const nc = [...prev.campaigns];
-                                                nc[cIdx].adGroups[agIdx].keywords = e.target.value.split('\n');
-                                                return {...prev, campaigns: nc};
-                                            })}
-                                            className="h-48 text-xs font-mono bg-slate-950 border-slate-800 leading-relaxed text-slate-200 focus:border-indigo-500/50"
-                                            placeholder="Voer keywords in..."
-                                        />
+                                    <div className="xl:col-span-2 space-y-6">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
+                                                <Globe className="size-3" /> Landingspagina (Specifiek voor deze groep)
+                                            </Label>
+                                            <Input 
+                                                value={ag.landingPage || ''}
+                                                onChange={e => setBriefing(prev => {
+                                                    const nc = [...prev.campaigns];
+                                                    nc[cIdx].adGroups[agIdx].landingPage = e.target.value;
+                                                    return {...prev, campaigns: nc};
+                                                })}
+                                                placeholder={briefing.context.website || 'https://...'}
+                                                className="h-10 bg-slate-950 border-slate-800 text-slate-200 focus:border-indigo-500/50"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
+                                                <Key className="size-3" />
+                                                {campaign.type === 'search' ? 'Zoekwoorden (één per regel)' : 'Search Themes / Assets'}
+                                            </Label>
+                                            <Textarea 
+                                                value={ag.keywords?.join('\n') || ''}
+                                                onChange={e => setBriefing(prev => {
+                                                    const nc = [...prev.campaigns];
+                                                    nc[cIdx].adGroups[agIdx].keywords = e.target.value.split('\n');
+                                                    return {...prev, campaigns: nc};
+                                                })}
+                                                className="h-32 text-xs font-mono bg-slate-950 border-slate-800 leading-relaxed text-slate-200 focus:border-indigo-500/50"
+                                                placeholder="Voer keywords in..."
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">
                                         <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
                                             <Globe className="size-3" /> Advertentie Preview
                                         </Label>
-                                        <div className="bg-slate-950/30 rounded-2xl border border-slate-800/50 p-6 h-[192px] flex items-center justify-center">
+                                        <div className="bg-slate-950/30 rounded-2xl border border-slate-800/50 p-6 h-[220px] flex items-center justify-center">
                                             <AdPreview 
                                                 headlines={ag.headlines} 
                                                 descriptions={ag.descriptions} 
-                                                website={briefing.context.website || 'www.jouwwebsite.nl'} 
+                                                website={ag.landingPage || briefing.context.website || 'www.jouwwebsite.nl'} 
                                             />
                                         </div>
                                     </div>
