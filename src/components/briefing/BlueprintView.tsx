@@ -121,10 +121,12 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                 <div className="w-2 h-2 rounded-full bg-blue-400" />
                 <span className="text-xs font-bold text-slate-300">Taal: {context.language}</span>
               </div>
-              {budgetAllocation && (
+              {context.monthlyBudget && (
                 <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-amber-400" />
-                  <span className="text-xs font-bold text-slate-300">Budget: {budgetAllocation.totalBudget}/maand</span>
+                  <span className="text-xs font-bold text-slate-300">
+                    Budget: {context.monthlyBudget.includes('€') ? '' : '€'}{context.monthlyBudget} {context.monthlyBudget.toLowerCase().includes('maand') ? '' : '/ maand'}
+                  </span>
                 </div>
               )}
             </div>
