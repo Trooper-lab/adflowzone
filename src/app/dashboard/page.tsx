@@ -552,8 +552,7 @@ export default function DashboardPage() {
             const visibleChildAccounts = allChildAccounts.filter(account => {
                 if (account.isPaused) return false;
                 if (isAdmin) {
-                    // Admins see only unassigned accounts in their own planning view
-                    return !account.assignedEmployeeId;
+                    return true;
                 }
                 return account.assignedEmployeeId === user.uid;
             });
