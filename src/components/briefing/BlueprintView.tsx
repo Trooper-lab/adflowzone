@@ -108,7 +108,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
             <h1 className="text-5xl font-black tracking-tight leading-[1.1] mb-6">
               {briefing.title}
             </h1>
-            <p className="text-xl text-slate-400 font-medium leading-relaxed mb-10">
+            <p className="text-xl text-slate-300 font-medium leading-relaxed mb-10">
               Uw route naar een lagere CPL en maximaal rendement voor <span className="text-white">{context.clientName}</span>.
             </p>
 
@@ -315,7 +315,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                   <div className="bg-slate-50 size-16 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-slate-100">
                       <AlertCircle className="size-8 text-slate-300" />
                   </div>
-                  <div className="text-slate-400 text-sm font-black uppercase tracking-widest">Geen tracking gegevens beschikbaar.</div>
+                  <div className="text-slate-500 text-sm font-black uppercase tracking-widest">Geen tracking gegevens beschikbaar.</div>
                 </div>
               )}
             </div>
@@ -324,18 +324,18 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
       </main>
 
       <footer className="bg-slate-900 text-slate-400 px-12 py-12">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-8 border-b border-white/5 pb-12 mb-12">
-          <div className="text-xl font-black tracking-tighter flex items-center gap-1.5 grayscale opacity-50">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-8 border-b border-white/10 pb-12 mb-12">
+          <div className="text-xl font-black tracking-tighter flex items-center gap-1.5 grayscale opacity-70">
             <span className="text-white">AD</span>
             <span>FLOW</span>
             <span className="text-white">ZONE</span>
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest">
-            <span className="text-white/40">© 2026 AdFlowZone B.V.</span>
-            <span className="text-white/40">Vertrouwelijk document</span>
+            <span className="text-slate-400">© 2026 AdFlowZone B.V.</span>
+            <span className="text-slate-400">Vertrouwelijk document</span>
           </div>
         </div>
-        <div className="text-center text-[10px] font-medium text-slate-600">
+        <div className="text-center text-[10px] font-medium text-slate-400">
           Gegenereerd door AI Architect | Project: {context.clientName} | {new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}
         </div>
       </footer>

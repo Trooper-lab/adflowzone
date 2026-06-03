@@ -38,7 +38,7 @@ export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps)
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Campaign {String(index).padStart(2, '0')}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Campaign {String(index).padStart(2, '0')}</span>
               <Badge variant="secondary" className={`text-[9px] font-black uppercase tracking-wider border-0 px-2 py-0.5 ${isPMax ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>
                 {campaign.type}
               </Badge>
@@ -48,7 +48,7 @@ export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps)
         </div>
         <div className="flex items-center gap-8">
             <div className="text-right hidden sm:block">
-                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Doelstelling</div>
+                <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Doelstelling</div>
                 <div className="text-sm font-black text-slate-900">{campaign.objective}</div>
             </div>
             <div className="bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-xl shadow-slate-900/20 flex items-center gap-4">
@@ -71,7 +71,7 @@ export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps)
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Target className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Strategische Rationale</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Strategische Rationale</span>
               </div>
               <p className="text-sm font-medium text-slate-600 leading-relaxed">
                 {campaign.rationale}
@@ -82,7 +82,7 @@ export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps)
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
                         <Globe className="w-3.5 h-3.5 text-blue-500" />
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Targeting</span>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Targeting</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 font-bold text-[10px]">📍 {campaign.targetLocations || 'Nederland'}</Badge>
@@ -92,7 +92,7 @@ export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps)
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
                         <Coins className="w-3.5 h-3.5 text-orange-500" />
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Biedstrategie</span>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Biedstrategie</span>
                     </div>
                     <div className="text-sm font-black text-slate-900">Maximize Conversions (tCPA)</div>
                 </div>
@@ -102,7 +102,7 @@ export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps)
         <div className="p-8 bg-slate-50/30 flex flex-col justify-center">
             <div className="space-y-4">
                 <div className="text-center">
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Budget Verdeling</div>
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Budget Verdeling</div>
                     <div className="relative w-24 h-24 mx-auto">
                         <svg className="w-full h-full" viewBox="0 0 36 36">
                             <path className="text-slate-100" strokeWidth="3" stroke="currentColor" fill="transparent" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -113,7 +113,7 @@ export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps)
                         </div>
                     </div>
                 </div>
-                <p className="text-[10px] text-center font-bold text-slate-400 uppercase tracking-widest mt-2">Van Totaal Budget</p>
+                <p className="text-[10px] text-center font-bold text-slate-500 uppercase tracking-widest mt-2">Van Totaal Budget</p>
             </div>
         </div>
       </div>
@@ -122,11 +122,11 @@ export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps)
       <div className="bg-white">
         <div className="px-8 py-4 bg-slate-50/30 border-y border-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Advertentiegroepen & Assets</span>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Advertentiegroepen & Assets</span>
             <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-6 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 px-2 border border-slate-200 bg-white"
+                className="h-6 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 px-2 border border-slate-200 bg-white"
                 onClick={(e) => {
                   e.stopPropagation();
                   setAllAdGroupsExpanded(!allAdGroupsExpanded);
@@ -136,7 +136,7 @@ export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps)
                 {allAdGroupsExpanded ? 'Alles Inklappen' : 'Alles Uitklappen'}
               </Button>
           </div>
-          <span className="text-[10px] font-bold text-slate-400">{campaign.adGroups.length} items</span>
+          <span className="text-[10px] font-bold text-slate-500">{campaign.adGroups.length} items</span>
         </div>
         <div className="grid grid-cols-1 gap-6 p-8 bg-slate-50/30">
           {campaign.adGroups.map((ag, agIndex) => (
