@@ -127,6 +127,10 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                   </span>
                 </div>
               )}
+              <a href="#zoekwoorden-onderzoek" className="bg-white/5 border border-white/10 rounded-sm px-5 py-3 flex items-center gap-3 hover:bg-white/10 transition-colors cursor-pointer">
+                <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="text-xs font-bold text-slate-300 hover:text-white transition-colors">Bekijk Zoekwoord Volumes</span>
+              </a>
             </div>
           </div>
         </div>
@@ -213,7 +217,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
         </section>
 
         {/* 2. ZOEKWOORDEN ONDERZOEK */}
-        <section className="pt-12 border-t border-slate-100">
+        <section id="zoekwoorden-onderzoek" className="pt-12 border-t border-slate-100 scroll-mt-32">
           <div className="flex items-end justify-between mb-10">
             <div>
               <div className="text-[10px] font-black text-[#1A3C94] uppercase tracking-[0.2em] mb-2">Sectie 02</div>
