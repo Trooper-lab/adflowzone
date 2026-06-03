@@ -38,15 +38,15 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
           <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${isPMax ? 'bg-purple-600 text-white shadow-[0_2px_8px_rgba(147,51,234,0.3)]' : 'bg-emerald-600 text-white shadow-[0_2px_8px_rgba(5,150,105,0.3)]'}`}>
             {index}
           </span>
-          <span className="text-slate-500">
+          <span className="text-slate-900">
             {isPMax ? 'Assetgroep' : 'Advertentiegroep'}:
           </span>
           <span className="text-slate-900 ml-1 text-sm">{adGroup.name}</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-[10px] font-bold text-slate-300 normal-case">{adGroup.headlines.length} koppen • {adGroup.keywords?.length || 0} termen</span>
+          <span className="text-[10px] font-bold text-slate-900 normal-case">{adGroup.headlines.length} koppen • {adGroup.keywords?.length || 0} termen</span>
           <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
-            {isOpen ? <ChevronUp className="w-3 h-3 text-slate-500" /> : <ChevronDown className="w-3 h-3 text-slate-500" />}
+            {isOpen ? <ChevronUp className="w-3 h-3 text-slate-900" /> : <ChevronDown className="w-3 h-3 text-slate-900" />}
           </div>
         </div>
       </div>      {isOpen && (
@@ -55,13 +55,13 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
           <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
             {/* Keywords */}
             <div className="p-8">
-              <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 mb-6 pb-2 border-b border-slate-50 flex items-center justify-between">
+              <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-900 mb-6 pb-2 border-b border-slate-50 flex items-center justify-between">
                 <span>🔑 {isPMax ? 'Zoekthema\'s' : 'Zoekwoorden'}</span>
-                <span className="font-bold text-slate-300">{adGroup.keywords?.length || 0} items</span>
+                <span className="font-bold text-slate-900">{adGroup.keywords?.length || 0} items</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {adGroup.keywords?.map((kw, i) => (
-                  <span key={i} className={`px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm ring-1 transition-all hover:scale-105 cursor-default ${isPMax ? 'bg-purple-50 text-purple-700 ring-purple-100' : 'bg-blue-50 text-blue-700 ring-blue-100'}`}>
+                  <span key={i} className={`px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm ring-1 transition-all hover:scale-105 cursor-default ${isPMax ? 'bg-purple-100 text-purple-900 ring-purple-200' : 'bg-blue-100 text-blue-900 ring-blue-200'}`}>
                     {kw}
                   </span>
                 ))}
@@ -75,11 +75,11 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                       <div className="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-1.5">Custom Intent</div>
-                      <p className="text-[11px] text-slate-600 font-bold leading-relaxed line-clamp-2">{adGroup.audienceSignals.customIntent.join(', ')}</p>
+                      <p className="text-[11px] text-slate-800 font-bold leading-relaxed line-clamp-2">{adGroup.audienceSignals.customIntent.join(', ')}</p>
                     </div>
                     <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                       <div className="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-1.5">In-Market</div>
-                      <p className="text-[11px] text-slate-600 font-bold leading-relaxed line-clamp-2">{adGroup.audienceSignals.inMarket.join(', ')}</p>
+                      <p className="text-[11px] text-slate-800 font-bold leading-relaxed line-clamp-2">{adGroup.audienceSignals.inMarket.join(', ')}</p>
                     </div>
                   </div>
                 </div>
@@ -88,23 +88,23 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
 
             {/* Preview */}
             <div className="p-8 bg-slate-50/20">
-              <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 mb-6 pb-2 border-b border-slate-50">
+              <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-900 mb-6 pb-2 border-b border-slate-50">
                 <span>👁️ Advertentie Preview</span>
               </div>
               <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xl shadow-slate-200/40 ring-1 ring-slate-100 max-w-md">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-400">G</div>
+                  <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-800">G</div>
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-[10px] font-bold text-slate-900">Gesponsord</span>
-                      <span className="text-[10px] text-slate-500 font-medium">www.client.nl</span>
+                      <span className="text-[10px] text-slate-900 font-medium">www.client.nl</span>
                     </div>
                   </div>
                 </div>
                 <div className="text-lg font-bold text-[#1a0dab] hover:underline cursor-pointer leading-tight mb-2 tracking-tight line-clamp-2">
                   {adGroup.headlines[0]} – {adGroup.headlines[1]}
                 </div>
-                <div className="text-[12px] text-slate-600 leading-relaxed font-medium line-clamp-2">
+                <div className="text-[12px] text-slate-800 leading-relaxed font-medium line-clamp-2">
                   {adGroup.descriptions[0]} {adGroup.descriptions[1]}
                 </div>
               </div>
@@ -115,7 +115,7 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
           <div className="p-8">
             <div className="text-[10px] font-black uppercase tracking-[0.15em] text-indigo-600 mb-6 pb-2 border-b border-indigo-50 flex items-center justify-between">
               <span>📝 Koppen (Headlines)</span>
-              <span className="text-slate-300">{adGroup.headlines.length} / 15</span>
+              <span className="text-slate-900">{adGroup.headlines.length} / 15</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Group 1: Zoekwoord gericht */}
@@ -133,13 +133,13 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
                         className="flex items-center gap-3 py-2 px-3 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-indigo-100 transition-all group relative cursor-pointer"
                         onClick={() => copyToClipboard(hl, 'headline', globalIdx)}
                       >
-                        <span className="text-[10px] font-black text-slate-300 w-4">{globalIdx + 1}</span>
+                        <span className="text-[10px] font-black text-slate-900 w-4">{globalIdx + 1}</span>
                         <span className="text-[12px] font-bold text-slate-800 flex-grow tracking-tight leading-tight">{hl}</span>
                         <div className="flex items-center gap-2">
-                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${hl.length > 30 ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-500'}`}>
+                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${hl.length > 30 ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-900'}`}>
                             {hl.length}/30
                           </span>
-                          {isCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                          {isCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-900 opacity-0 group-hover:opacity-100 transition-opacity" />}
                         </div>
                       </div>
                     );
@@ -162,13 +162,13 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
                         className="flex items-center gap-3 py-2 px-3 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-indigo-100 transition-all group relative cursor-pointer"
                         onClick={() => copyToClipboard(hl, 'headline', globalIdx)}
                       >
-                        <span className="text-[10px] font-black text-slate-300 w-4">{globalIdx + 1}</span>
+                        <span className="text-[10px] font-black text-slate-900 w-4">{globalIdx + 1}</span>
                         <span className="text-[12px] font-bold text-slate-800 flex-grow tracking-tight leading-tight">{hl}</span>
                         <div className="flex items-center gap-2">
-                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${hl.length > 30 ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-500'}`}>
+                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${hl.length > 30 ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-900'}`}>
                             {hl.length}/30
                           </span>
-                          {isCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                          {isCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-900 opacity-0 group-hover:opacity-100 transition-opacity" />}
                         </div>
                       </div>
                     );
@@ -191,13 +191,13 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
                         className="flex items-center gap-3 py-2 px-3 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-indigo-100 transition-all group relative cursor-pointer"
                         onClick={() => copyToClipboard(hl, 'headline', globalIdx)}
                       >
-                        <span className="text-[10px] font-black text-slate-300 w-4">{globalIdx + 1}</span>
+                        <span className="text-[10px] font-black text-slate-900 w-4">{globalIdx + 1}</span>
                         <span className="text-[12px] font-bold text-slate-800 flex-grow tracking-tight leading-tight">{hl}</span>
                         <div className="flex items-center gap-2">
-                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${hl.length > 30 ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-500'}`}>
+                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${hl.length > 30 ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-900'}`}>
                             {hl.length}/30
                           </span>
-                          {isCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                          {isCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-900 opacity-0 group-hover:opacity-100 transition-opacity" />}
                         </div>
                       </div>
                     );
@@ -211,7 +211,7 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
           <div className="p-8 bg-slate-50/30">
             <div className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-6 pb-2 border-b border-emerald-50 flex items-center justify-between">
               <span>💬 Beschrijvingen</span>
-              <span className="text-slate-300">{adGroup.descriptions.length} / 4</span>
+              <span className="text-slate-900">{adGroup.descriptions.length} / 4</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {adGroup.descriptions.map((desc, i) => {
@@ -222,13 +222,13 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
                     className="flex items-start gap-3 py-4 px-5 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-emerald-100 transition-all group cursor-pointer"
                     onClick={() => copyToClipboard(desc, 'description', i)}
                   >
-                    <span className="text-[10px] font-black text-slate-300 w-4 mt-0.5">{i + 1}</span>
-                    <span className="text-[12px] font-medium text-slate-600 flex-grow leading-relaxed">{desc}</span>
+                    <span className="text-[10px] font-black text-slate-900 w-4 mt-0.5">{i + 1}</span>
+                    <span className="text-[12px] font-medium text-slate-800 flex-grow leading-relaxed">{desc}</span>
                     <div className="flex flex-col items-end gap-2 shrink-0">
-                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${desc.length > 90 ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-500'}`}>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${desc.length > 90 ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-900'}`}>
                         {desc.length}/90
                       </span>
-                      {isCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                      {isCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-900 opacity-0 group-hover:opacity-100 transition-opacity" />}
                     </div>
                   </div>
                 );
@@ -241,14 +241,14 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
             <div className="p-8 bg-slate-50/50">
               <div className="text-[10px] font-black uppercase tracking-[0.15em] text-purple-600 mb-6 pb-2 border-b border-purple-50 flex items-center justify-between">
                 <span>📏 Lange Koppen</span>
-                <span className="text-slate-300">{adGroup.longHeadlines.length} / 5</span>
+                <span className="text-slate-900">{adGroup.longHeadlines.length} / 5</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {adGroup.longHeadlines.map((lh, i) => (
                   <div key={i} className="flex items-start gap-3 py-4 px-5 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-purple-100 transition-colors group">
-                    <span className="text-[10px] font-black text-slate-300 w-4 mt-0.5">{i + 1}</span>
+                    <span className="text-[10px] font-black text-slate-900 w-4 mt-0.5">{i + 1}</span>
                     <span className="text-[12px] font-bold text-slate-800 flex-grow leading-relaxed">{lh}</span>
-                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${lh.length > 90 ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-500'} shrink-0 mt-0.5`}>
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${lh.length > 90 ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-900'} shrink-0 mt-0.5`}>
                       {lh.length}/90
                     </span>
                   </div>
@@ -273,10 +273,10 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
                     <div className="space-y-3">
                       {adGroup.extensions.sitelinks.map((sl, i) => (
                         <div key={i} className="flex items-start gap-3 py-3 px-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-amber-100 transition-colors">
-                          <span className="text-[10px] font-black text-slate-300 w-4 mt-0.5">{i + 1}</span>
+                          <span className="text-[10px] font-black text-slate-900 w-4 mt-0.5">{i + 1}</span>
                           <div className="flex-grow">
                             <div className="text-[12px] font-bold text-[#1a0dab] hover:underline cursor-pointer mb-1 tracking-tight">{sl.title}</div>
-                            <div className="text-[11px] text-slate-600 leading-snug font-medium">{sl.description}</div>
+                            <div className="text-[11px] text-slate-800 leading-snug font-medium">{sl.description}</div>
                           </div>
                         </div>
                       ))}
@@ -292,7 +292,7 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {adGroup.extensions.callouts.map((callout, i) => (
-                        <span key={i} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 shadow-sm flex items-center gap-1.5">
+                        <span key={i} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-slate-900 shadow-sm flex items-center gap-1.5">
                           <Check className="w-3 h-3 text-emerald-500" />
                           {callout}
                         </span>

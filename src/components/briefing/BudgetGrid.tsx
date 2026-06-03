@@ -12,27 +12,27 @@ export function BudgetGrid({ allocation }: BudgetGridProps) {
       {/* Search Budget */}
       <div className="group rounded-[2rem] p-8 bg-white border border-slate-100 shadow-xl shadow-slate-200/40 hover:shadow-2xl transition-all">
         <div className="flex items-center justify-between mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+          <div className="w-12 h-12 rounded-2xl bg-blue-100 border border-blue-100 flex items-center justify-center text-blue-600">
              <Search className="size-5" />
           </div>
-          <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-0 font-black text-[10px] px-3 py-1">SEARCH</Badge>
+          <Badge variant="secondary" className="bg-blue-100 text-blue-600 border-0 font-black text-[10px] px-3 py-1">SEARCH</Badge>
         </div>
         <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{allocation.searchBudget}</div>
-        <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Google Search Network</div>
-        <p className="text-xs text-slate-600 leading-relaxed font-medium">Focus op zoekwoorden met hoge koopintentie voor directe conversies.</p>
+        <div className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] mb-4">Google Search Network</div>
+        <p className="text-xs text-slate-800 leading-relaxed font-medium">Focus op zoekwoorden met hoge koopintentie voor directe conversies.</p>
       </div>
 
       {/* PMax Budget */}
       <div className="group rounded-[2rem] p-8 bg-white border border-slate-100 shadow-xl shadow-slate-200/40 hover:shadow-2xl transition-all">
         <div className="flex items-center justify-between mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
+          <div className="w-12 h-12 rounded-2xl bg-purple-100 border border-purple-100 flex items-center justify-center text-purple-600">
              <Zap className="size-5" />
           </div>
-          <Badge variant="secondary" className="bg-purple-50 text-purple-600 border-0 font-black text-[10px] px-3 py-1">PMAX</Badge>
+          <Badge variant="secondary" className="bg-purple-100 text-purple-600 border-0 font-black text-[10px] px-3 py-1">PMAX</Badge>
         </div>
         <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{allocation.pmaxBudget}</div>
-        <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Performance Max</div>
-        <p className="text-xs text-slate-600 leading-relaxed font-medium">AI-gestuurd bereik over alle Google kanalen voor maximale schaalbaarheid.</p>
+        <div className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] mb-4">Performance Max</div>
+        <p className="text-xs text-slate-800 leading-relaxed font-medium">AI-gestuurd bereik over alle Google kanalen voor maximale schaalbaarheid.</p>
       </div>
 
       {/* Total Budget */}

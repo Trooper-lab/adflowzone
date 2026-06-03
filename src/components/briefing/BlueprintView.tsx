@@ -145,7 +145,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
               </h3>
               <ul className="space-y-4 mb-8">
                 {(context.primaryGoals || '').split('\n').filter(g => g.trim()).map((goal, i) => (
-                  <li key={i} className="flex items-start gap-4 text-slate-700 font-bold leading-relaxed">
+                  <li key={i} className="flex items-start gap-4 text-slate-900 font-bold leading-relaxed">
                     <div className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     </div>
@@ -164,7 +164,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {context.usps.split('\n').filter(u => u.trim()).map((usp, i) => (
-                      <div key={i} className="bg-slate-50/80 text-xs font-bold text-slate-700 px-4 py-3 rounded-2xl border border-slate-100 flex items-center gap-3 transition-all hover:bg-white hover:shadow-md group">
+                      <div key={i} className="bg-slate-50/80 text-xs font-bold text-slate-800 px-4 py-3 rounded-2xl border border-slate-100 flex items-center gap-3 transition-all hover:bg-white hover:shadow-md group">
                         <div className="w-2 h-2 bg-emerald-500 rounded-full shrink-0 group-hover:scale-125 transition-transform" />
                         {usp.replace(/^[•\-\*]\s*/, '')}
                       </div>
@@ -180,12 +180,12 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className="text-[10px] font-black text-slate-500 uppercase mb-1 tracking-wider">Locaties</div>
-                    <div className="text-sm font-bold text-slate-800">{context.targetLocations || 'Niet gespecificeerd'}</div>
+                    <div className="text-[10px] font-black text-slate-600 uppercase mb-1 tracking-wider">Locaties</div>
+                    <div className="text-sm font-bold text-slate-900">{context.targetLocations || 'Niet gespecificeerd'}</div>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className="text-[10px] font-black text-slate-500 uppercase mb-1 tracking-wider">Talen</div>
-                    <div className="text-sm font-bold text-slate-800">{context.targetLanguages || 'Niet gespecificeerd'}</div>
+                    <div className="text-[10px] font-black text-slate-600 uppercase mb-1 tracking-wider">Talen</div>
+                    <div className="text-sm font-bold text-slate-900">{context.targetLanguages || 'Niet gespecificeerd'}</div>
                   </div>
                 </div>
               </div>
@@ -202,7 +202,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
               <div className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-2">Sectie 01</div>
               <h2 className="text-3xl font-black tracking-tight text-slate-900">Campagne Structuur</h2>
             </div>
-            <div className="text-right text-slate-500 text-xs font-bold uppercase tracking-widest">
+            <div className="text-right text-slate-700 text-xs font-bold uppercase tracking-widest">
               Strategisch Voorstel
             </div>
           </div>
@@ -239,7 +239,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                 {budgetAllocation ? (
                   <BudgetGrid allocation={budgetAllocation} />
                 ) : (
-                  <div className="text-slate-500 text-sm italic py-10 text-center">Geen budgetgegevens beschikbaar.</div>
+                  <div className="text-slate-700 text-sm italic py-10 text-center">Geen budgetgegevens beschikbaar.</div>
                 )}
               </div>
             </Card>
@@ -315,7 +315,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                   <div className="bg-slate-50 size-16 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-slate-100">
                       <AlertCircle className="size-8 text-slate-300" />
                   </div>
-                  <div className="text-slate-500 text-sm font-black uppercase tracking-widest">Geen tracking gegevens beschikbaar.</div>
+                  <div className="text-slate-700 text-sm font-black uppercase tracking-widest">Geen tracking gegevens beschikbaar.</div>
                 </div>
               )}
             </div>
