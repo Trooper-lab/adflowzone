@@ -19,7 +19,7 @@ interface SendBriefingTabProps {
 export function SendBriefingTab({ briefing }: SendBriefingTabProps) {
   const { toast } = useToast();
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const portalLink = `${origin}/portal/briefing/${briefing.shareToken}`;
+  const portalLink = `${origin}/portal/briefing/${briefing.id}`;
 
   const [toEmail, setToEmail] = useState(briefing.context.clientEmail || '');
   const [subject, setSubject] = useState(`Review: Google Ads Campagne Voorstel voor ${briefing.context.clientName}`);
