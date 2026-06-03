@@ -506,6 +506,7 @@ export type GenerateSingleAdGroupInput = z.infer<typeof GenerateSingleAdGroupInp
 export type AdGroupBriefing = {
   id: string;
   name: string;
+  landingPage?: string;
   keywords?: string[];
   metrics?: {
     searchVolume: number;

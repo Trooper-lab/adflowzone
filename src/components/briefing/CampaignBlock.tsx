@@ -9,9 +9,10 @@ interface CampaignBlockProps {
   campaign: CampaignBriefing;
   index: number;
   expanded?: boolean;
+  website?: string;
 }
 
-export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps) {
+export function CampaignBlock({ campaign, index, expanded, website }: CampaignBlockProps) {
   const [isOpen, setIsOpen] = useState(expanded ?? false);
   const [allAdGroupsExpanded, setAllAdGroupsExpanded] = useState(expanded ?? false);
 
@@ -146,6 +147,7 @@ export function CampaignBlock({ campaign, index, expanded }: CampaignBlockProps)
               index={agIndex + 1} 
               campaignType={campaign.type}
               expanded={allAdGroupsExpanded}
+              website={website}
             />
           ))}
         </div>

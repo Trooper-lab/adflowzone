@@ -8,9 +8,10 @@ interface AdGroupPreviewProps {
   index: number;
   campaignType: 'search' | 'pmax';
   expanded?: boolean;
+  website?: string;
 }
 
-export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGroupPreviewProps) {
+export function AdGroupPreview({ adGroup, index, campaignType, expanded, website }: AdGroupPreviewProps) {
   const [isOpen, setIsOpen] = useState(expanded ?? false);
   const [copiedIndex, setCopiedIndex] = useState<{type: string, index: number} | null>(null);
   const isPMax = campaignType === 'pmax';
@@ -97,7 +98,7 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded }: AdGro
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-[10px] font-bold text-slate-900">Gesponsord</span>
-                      <span className="text-[10px] text-slate-900 font-medium">www.client.nl</span>
+                      <span className="text-[10px] text-slate-900 font-medium">{adGroup.landingPage || website || 'www.website.nl'}</span>
                     </div>
                   </div>
                 </div>

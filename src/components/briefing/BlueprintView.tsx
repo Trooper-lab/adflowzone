@@ -217,7 +217,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
           
           <div className="space-y-8">
             {campaigns.map((camp, i) => (
-              <CampaignBlock key={camp.id} campaign={camp} index={i + 1} expanded={allExpanded} />
+              <CampaignBlock key={camp.id} campaign={camp} index={i + 1} expanded={allExpanded} website={context.website} />
             ))}
           </div>
         </section>
