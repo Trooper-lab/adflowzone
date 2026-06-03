@@ -134,9 +134,9 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
 
       {/* STRATEGIC OVERVIEW */}
       <div className="relative z-10 -mt-12 px-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-8 rounded-[2rem] border-0 shadow-2xl shadow-slate-200/50 bg-white ring-1 ring-slate-100 flex flex-col">
-            <div className="flex-1">
+        <Card className="p-8 rounded-[2rem] border-0 shadow-2xl shadow-slate-200/50 bg-white ring-1 ring-slate-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div>
               <h3 className="text-sm font-black uppercase tracking-[0.15em] text-emerald-600 mb-6 flex items-center gap-2">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full" />
                 Strategische Doelen
@@ -151,9 +151,11 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                   </li>
                 ))}
               </ul>
-
+            </div>
+            
+            <div className="space-y-8">
               {context.usps && (
-                <div className="mt-8 pt-8 border-t border-slate-100">
+                <div>
                   <h3 className="text-sm font-black uppercase tracking-[0.15em] text-emerald-600 mb-6 flex items-center gap-2">
                     <span className="w-2 h-2 bg-emerald-500 rounded-full" />
                     Belangrijkste USP's
@@ -168,31 +170,26 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                   </div>
                 </div>
               )}
-            </div>
-          </Card>
-          
-          <Card className="p-8 rounded-[2rem] border-0 shadow-2xl shadow-slate-200/50 bg-white ring-1 ring-slate-100 flex flex-col">
-            <div className="flex-1">
-              <h3 className="text-sm font-black uppercase tracking-[0.15em] text-blue-600 mb-6 flex items-center gap-2">
-                <span className="w-2 h-2 bg-blue-500 rounded-full" />
-                Onze Aanpak
-              </h3>
-              <p className="text-slate-600 font-medium leading-relaxed mb-8">
-                We bouwen een robuuste full-funnel structuur die zich richt op zowel directe conversies als duurzame groei, met focus op data-gedreven optimalisatie.
-              </p>
-              <div className="grid grid-cols-2 gap-4 mt-auto">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="text-[10px] font-black text-slate-500 uppercase mb-1 tracking-wider">Locaties</div>
-                  <div className="text-sm font-bold text-slate-800">{context.targetLocations || 'Niet gespecificeerd'}</div>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="text-[10px] font-black text-slate-500 uppercase mb-1 tracking-wider">Talen</div>
-                  <div className="text-sm font-bold text-slate-800">{context.targetLanguages || 'Niet gespecificeerd'}</div>
+              
+              <div className={context.usps ? "pt-8 border-t border-slate-100" : ""}>
+                <h3 className="text-sm font-black uppercase tracking-[0.15em] text-blue-600 mb-6 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                  Basisgegevens
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="text-[10px] font-black text-slate-500 uppercase mb-1 tracking-wider">Locaties</div>
+                    <div className="text-sm font-bold text-slate-800">{context.targetLocations || 'Niet gespecificeerd'}</div>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="text-[10px] font-black text-slate-500 uppercase mb-1 tracking-wider">Talen</div>
+                    <div className="text-sm font-bold text-slate-800">{context.targetLanguages || 'Niet gespecificeerd'}</div>
+                  </div>
                 </div>
               </div>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
       </div>
 
       <main className="px-12 py-16 space-y-24">
