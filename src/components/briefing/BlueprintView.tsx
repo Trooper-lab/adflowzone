@@ -85,9 +85,15 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
       {/* HEADER - Premium Dark Style */}
       <header className="relative bg-[#1A3C94] text-white pt-24 pb-32 px-12 lg:px-24 overflow-hidden">
         {/* Abstract Background Elements */}
-        <div className="absolute top-[-20%] right-[-10%] w-[1000px] h-[1000px] rounded-full border border-white/20 pointer-events-none" />
-        <div className="absolute top-[10%] right-[10%] w-[600px] h-[600px] rounded-full border border-white/10 pointer-events-none" />
-        <div className="absolute bottom-[-40%] left-[-20%] w-[800px] h-[800px] rounded-full border border-white/15 pointer-events-none" />
+        <svg viewBox="0 0 100 100" className="absolute top-[-30%] right-[-10%] w-[1000px] h-[1000px] text-white/20 pointer-events-none rotate-[15deg]" fill="none" stroke="currentColor" strokeWidth="0.2">
+          <path d="M41.012 17.917c3.962-6.862 14.014-6.862 17.976 0l29.434 50.98c3.962 6.863-1.064 15.438-8.988 15.438H20.566c-7.924 0-12.95-8.575-8.988-15.438l29.434-50.98z" />
+        </svg>
+        <svg viewBox="0 0 100 100" className="absolute top-[10%] right-[5%] w-[600px] h-[600px] text-white/10 pointer-events-none -rotate-[25deg]" fill="none" stroke="currentColor" strokeWidth="0.33">
+          <path d="M41.012 17.917c3.962-6.862 14.014-6.862 17.976 0l29.434 50.98c3.962 6.863-1.064 15.438-8.988 15.438H20.566c-7.924 0-12.95-8.575-8.988-15.438l29.434-50.98z" />
+        </svg>
+        <svg viewBox="0 0 100 100" className="absolute bottom-[-50%] left-[-20%] w-[800px] h-[800px] text-white/15 pointer-events-none rotate-[45deg]" fill="none" stroke="currentColor" strokeWidth="0.25">
+          <path d="M41.012 17.917c3.962-6.862 14.014-6.862 17.976 0l29.434 50.98c3.962 6.863-1.064 15.438-8.988 15.438H20.566c-7.924 0-12.95-8.575-8.988-15.438l29.434-50.98z" />
+        </svg>
         
         <div className="relative z-10 max-w-7xl mx-auto">
           <div className="flex justify-between items-start mb-16">
