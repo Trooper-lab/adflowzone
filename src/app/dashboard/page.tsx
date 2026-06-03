@@ -739,20 +739,23 @@ export default function DashboardPage() {
     if (!firestore || !managerUid || !status) return;
     const completed = status === 'completed';
     const completedAt = completed ? new Date().toISOString() : null;
-    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
-    const accountRef = doc(firestore, 'parentClients', todo.parentClientId, 'childAccounts', todo.childAccountId);
+    const ownerUid = todo.userId || managerUid;
+    const todoRef = doc(firestore, 'users', ownerUid, 'todos', todo.id);
     try {
       await updateDoc(todoRef, { status, completed, completedAt });
-      if (completed) {
-        await updateDoc(accountRef, {
-          pendingTodoIds: arrayRemove(todo.id),
-          todoRunIds: arrayUnion(todo.id)
-        });
-      } else {
-        await updateDoc(accountRef, {
-          pendingTodoIds: arrayUnion(todo.id),
-          todoRunIds: arrayRemove(todo.id)
-        });
+      if (todo.parentClientId && todo.childAccountId) {
+        const accountRef = doc(firestore, 'parentClients', todo.parentClientId, 'childAccounts', todo.childAccountId);
+        if (completed) {
+          await updateDoc(accountRef, {
+            pendingTodoIds: arrayRemove(todo.id),
+            todoRunIds: arrayUnion(todo.id)
+          }).catch(e => console.warn('accountRef update skipped:', e));
+        } else {
+          await updateDoc(accountRef, {
+            pendingTodoIds: arrayUnion(todo.id),
+            todoRunIds: arrayRemove(todo.id)
+          }).catch(e => console.warn('accountRef update skipped:', e));
+        }
       }
       if (todo.workedHours && todo.workedHours > 0) {
         await syncHoursToTimeEntry({ ...todo, completedAt: completedAt || undefined }, todo.workedHours);
@@ -767,7 +770,7 @@ export default function DashboardPage() {
 
   const handleAssigneeChange = async (todo: Todo, assignee: AppUser | null) => {
     if (!firestore || !managerUid) return;
-    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
+    const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
     try {
       const updateData = {
         assigneeId: assignee?.uid || null,
@@ -785,7 +788,7 @@ export default function DashboardPage() {
 
   const handleDueDateChange = async (todo: Todo, date: Date | undefined) => {
     if (!firestore || !managerUid) return;
-    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
+    const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
     try {
       await updateDoc(todoRef, { dueDate: date ? date.toISOString() : null });
       setActiveTodo(prev => prev ? { ...prev, dueDate: date ? date.toISOString() : undefined } : null);
@@ -800,7 +803,7 @@ export default function DashboardPage() {
     if (!firestore || !managerUid) return;
     const hours = val === '' ? 0 : parseFloat(val);
     if (isNaN(hours)) return;
-    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
+    const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
     try {
       await updateDoc(todoRef, { workedHours: hours });
       await syncHoursToTimeEntry(todo, hours);
@@ -814,7 +817,7 @@ export default function DashboardPage() {
 
   const handleTitleChange = async (todo: Todo, val: string) => {
     if (!firestore || !managerUid || !val.trim() || val === todo.content) return;
-    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
+    const todoRef = doc(firestore, 'users', todo.userId || managerUid, 'todos', todo.id);
     try {
       await updateDoc(todoRef, { content: val.trim() });
       setActiveTodo(prev => prev ? { ...prev, content: val.trim() } : null);
@@ -826,20 +829,26 @@ export default function DashboardPage() {
 
   const handleDeleteTask = async (todo: Todo) => {
     if (!firestore || !managerUid) return;
-    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
-    const accountRef = doc(firestore, 'parentClients', todo.parentClientId, 'childAccounts', todo.childAccountId);
+    // Use todo.userId so admins can delete tasks owned by other users
+    const ownerUid = todo.userId || managerUid;
+    const todoRef = doc(firestore, 'users', ownerUid, 'todos', todo.id);
     try {
       await deleteDoc(todoRef);
-      await updateDoc(accountRef, {
-        pendingTodoIds: arrayRemove(todo.id),
-        todoRunIds: arrayRemove(todo.id)
-      });
+      // Only update the account ref if the todo is actually linked to an account
+      if (todo.parentClientId && todo.childAccountId) {
+        const accountRef = doc(firestore, 'parentClients', todo.parentClientId, 'childAccounts', todo.childAccountId);
+        await updateDoc(accountRef, {
+          pendingTodoIds: arrayRemove(todo.id),
+          todoRunIds: arrayRemove(todo.id)
+        }).catch(e => console.warn('Could not update account ref (orphan todo):', e));
+      }
       await syncHoursToTimeEntry(todo, 0);
       setIsTaskDetailOpen(false);
       toast({ title: 'Taak verwijderd' });
       setRefreshTrigger(p => p + 1);
     } catch (e) {
       console.error("Error deleting todo:", e);
+      toast({ title: 'Fout bij verwijderen', description: 'Probeer het opnieuw.', variant: 'destructive' });
     }
   };
 
