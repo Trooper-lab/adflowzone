@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Check, Globe, ExternalLink } from 'lucide-react';
 import { AdGroupBriefing } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
@@ -56,6 +56,17 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded, website
           <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
             {/* Keywords */}
             <div className="p-8">
+              <div className="mb-8">
+                <div className="text-[10px] font-black uppercase tracking-[0.15em] text-[#1A3C94] mb-3 flex items-center gap-2">
+                  <Globe className="w-3 h-3" />
+                  <span>Landingspagina</span>
+                </div>
+                <a href={adGroup.landingPage || website || '#'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-white transition-all rounded-sm border border-slate-200 text-sm font-bold text-[#1A3C94] shadow-sm hover:shadow group">
+                  <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-[#1A3C94] transition-colors" />
+                  {adGroup.landingPage || website || 'Geen URL opgegeven'}
+                </a>
+              </div>
+
               <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-900 mb-6 pb-2 border-b border-slate-50 flex items-center justify-between">
                 <span>🔑 {isPMax ? 'Zoekthema\'s' : 'Zoekwoorden'}</span>
                 <span className="font-bold text-slate-900">{adGroup.keywords?.length || 0} items</span>
