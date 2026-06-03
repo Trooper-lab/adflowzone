@@ -3,7 +3,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { 
-    collection, 
+    collection,
+    collectionGroup,
     query, 
     where, 
     getDocs, 
@@ -16,6 +17,7 @@ import {
     arrayUnion,
     arrayRemove
 } from 'firebase/firestore';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
