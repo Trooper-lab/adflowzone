@@ -2,9 +2,8 @@
 
 import React from 'react';
 import { Briefing, CampaignBriefing, AdGroupBriefing } from '@/lib/types';
-import { BudgetGrid } from './BudgetGrid';
 import { CampaignBlock } from './CampaignBlock';
-import { KPITable } from './KPITable';
+import { KeywordResearchBlock } from './KeywordResearchBlock';
 import { TrackingTable } from './TrackingTable';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,10 +21,10 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
   const [allExpanded, setAllExpanded] = React.useState(false);
 
   return (
-    <div className="relative max-w-[1080px] mx-auto bg-[#f8fafc] min-h-screen text-[#1e293b] font-sans pb-20 shadow-2xl my-8 rounded-3xl overflow-hidden ring-1 ring-black/5 print:my-0 print:rounded-none print:shadow-none print:ring-0">
+    <div className="relative w-full mx-auto bg-white min-h-screen text-[#1e293b] font-sans pb-20 print:my-0 print:rounded-none print:shadow-none print:ring-0">
       {/* ACTION BAR (Floating) */}
-      <div className="sticky top-4 z-50 px-4 print:hidden">
-        <div className="bg-white/95 backdrop-blur-md border border-slate-200 shadow-2xl rounded-2xl px-6 py-3 flex items-center justify-between gap-4 max-w-2xl mx-auto ring-1 ring-black/5">
+      <div className="sticky top-4 z-50 px-8 print:hidden">
+        <div className="bg-white/95 backdrop-blur-md border border-slate-200 shadow-md rounded-sm px-6 py-3 flex items-center justify-between gap-4 max-w-5xl mx-auto ring-1 ring-black/5">
           <div className="flex items-center gap-3">
             <div className={`w-2.5 h-2.5 rounded-full ${briefing.status === 'approved' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'} animate-pulse`} />
             <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">
@@ -69,7 +68,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                <Button 
                 variant={briefing.status === 'approved' ? 'outline' : 'default'} 
                 size="sm" 
-                className={`rounded-xl h-8 text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${
+                className={`rounded-sm h-8 text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${
                   briefing.status === 'approved' 
                     ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' 
                     : 'bg-slate-900 hover:bg-slate-800 text-white border-0'
@@ -84,22 +83,21 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
       </div>
 
       {/* HEADER - Premium Dark Style */}
-      <header className="relative bg-[#0f172a] text-white pt-20 pb-24 px-12 overflow-hidden">
+      <header className="relative bg-[#1A3C94] text-white pt-24 pb-32 px-12 lg:px-24 overflow-hidden">
         {/* Abstract Background Elements */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/4" />
+        <div className="absolute top-[-20%] right-[-10%] w-[1000px] h-[1000px] rounded-full border border-white/20 pointer-events-none" />
+        <div className="absolute top-[10%] right-[10%] w-[600px] h-[600px] rounded-full border border-white/10 pointer-events-none" />
+        <div className="absolute bottom-[-40%] left-[-20%] w-[800px] h-[800px] rounded-full border border-white/15 pointer-events-none" />
         
-        <div className="relative z-10">
-          <div className="flex justify-between items-start mb-12">
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-3 rounded-2xl">
+        <div className="relative z-10 max-w-7xl mx-auto">
+          <div className="flex justify-between items-start mb-16">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-sm">
                <div className="text-xl font-black tracking-tighter flex items-center gap-1.5">
-                <span className="text-emerald-400">AD</span>
-                <span className="text-white">FLOW</span>
-                <span className="text-emerald-400">ZONE</span>
+                <span className="text-white">ADFLOWZONE</span>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400 mb-2">Google Ads Strategy</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3d4ff] mb-2">Google Ads Strategy</div>
               <div className="text-2xl font-bold tracking-tight">Blueprint 2026</div>
             </div>
           </div>
@@ -113,17 +111,17 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
+              <div className="bg-white/5 border border-white/10 rounded-sm px-5 py-3 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-[#1A3C94]" />
                 <span className="text-xs font-bold text-slate-300">Website: {context.website}</span>
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-blue-400" />
+              <div className="bg-white/5 border border-white/10 rounded-sm px-5 py-3 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-white" />
                 <span className="text-xs font-bold text-slate-300">Taal: {context.language}</span>
               </div>
               {context.monthlyBudget && (
-                <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-amber-400" />
+                <div className="bg-white/5 border border-white/10 rounded-sm px-5 py-3 flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-[#b3d4ff]" />
                   <span className="text-xs font-bold text-slate-300">
                     Budget: {context.monthlyBudget.includes('€') ? '' : '€'}{context.monthlyBudget} {context.monthlyBudget.toLowerCase().includes('maand') ? '' : '/ maand'}
                   </span>
@@ -136,18 +134,18 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
 
       {/* STRATEGIC OVERVIEW */}
       <div className="relative z-10 -mt-12 px-12">
-        <Card className="p-8 rounded-[2rem] border-0 shadow-2xl shadow-slate-200/50 bg-white ring-1 ring-slate-100">
+        <Card className="p-8 rounded-sm border border-slate-200 shadow-sm bg-white max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div>
-              <h3 className="text-sm font-black uppercase tracking-[0.15em] text-emerald-600 mb-6 flex items-center gap-2">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full" />
+              <h3 className="text-sm font-black uppercase tracking-[0.15em] text-[#1A3C94] mb-6 flex items-center gap-2">
+                <span className="w-2 h-2 bg-[#1A3C94] rounded-full" />
                 Strategische Doelen
               </h3>
               <ul className="space-y-4 mb-8">
                 {(context.primaryGoals || '').split('\n').filter(g => g.trim()).map((goal, i) => (
                   <li key={i} className="flex items-start gap-4 text-slate-900 font-bold leading-relaxed">
-                    <div className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
+                      <CheckCircle2 className="w-4 h-4 text-[#1A3C94]" />
                     </div>
                     {goal.replace(/^[•\-\*]\s*/, '')}
                   </li>
@@ -158,14 +156,14 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
             <div className="space-y-8">
               {context.usps && (
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-[0.15em] text-emerald-600 mb-6 flex items-center gap-2">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full" />
+                  <h3 className="text-sm font-black uppercase tracking-[0.15em] text-[#1A3C94] mb-6 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-[#1A3C94] rounded-full" />
                     Belangrijkste USP's
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {context.usps.split('\n').filter(u => u.trim()).map((usp, i) => (
-                      <div key={i} className="bg-slate-50/80 text-xs font-bold text-slate-800 px-4 py-3 rounded-2xl border border-slate-100 flex items-center gap-3 transition-all hover:bg-white hover:shadow-md group">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full shrink-0 group-hover:scale-125 transition-transform" />
+                      <div key={i} className="bg-slate-50/80 text-xs font-bold text-slate-800 px-4 py-3 rounded-sm border border-slate-100 flex items-center gap-3 transition-all hover:bg-white hover:shadow-sm group">
+                        <div className="w-2 h-2 bg-[#1A3C94] rounded-full shrink-0 group-hover:scale-125 transition-transform" />
                         {usp.replace(/^[•\-\*]\s*/, '')}
                       </div>
                     ))}
@@ -174,16 +172,16 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
               )}
               
               <div className={context.usps ? "pt-8 border-t border-slate-100" : ""}>
-                <h3 className="text-sm font-black uppercase tracking-[0.15em] text-blue-600 mb-6 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                <h3 className="text-sm font-black uppercase tracking-[0.15em] text-[#1A3C94] mb-6 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-[#1A3C94] rounded-full" />
                   Basisgegevens
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="p-4 bg-slate-50 rounded-sm border border-slate-100">
                     <div className="text-[10px] font-black text-slate-600 uppercase mb-1 tracking-wider">Locaties</div>
                     <div className="text-sm font-bold text-slate-900">{context.targetLocations || 'Niet gespecificeerd'}</div>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="p-4 bg-slate-50 rounded-sm border border-slate-100">
                     <div className="text-[10px] font-black text-slate-600 uppercase mb-1 tracking-wider">Talen</div>
                     <div className="text-sm font-bold text-slate-900">{context.targetLanguages || 'Niet gespecificeerd'}</div>
                   </div>
@@ -194,12 +192,12 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
         </Card>
       </div>
 
-      <main className="px-12 py-16 space-y-24">
+      <main className="max-w-7xl mx-auto px-12 py-16 space-y-24">
         {/* 1. CAMPAIGN STRUCTURE */}
         <section>
           <div className="flex items-end justify-between mb-10">
             <div>
-              <div className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-2">Sectie 01</div>
+              <div className="text-[10px] font-black text-[#1A3C94] uppercase tracking-[0.2em] mb-2">Sectie 01</div>
               <h2 className="text-3xl font-black tracking-tight text-slate-900">Campagne Structuur</h2>
             </div>
             <div className="text-right text-slate-700 text-xs font-bold uppercase tracking-widest">
@@ -214,96 +212,33 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
           </div>
         </section>
 
-        {/* 2. BUDGET & ROI */}
+        {/* 2. ZOEKWOORDEN ONDERZOEK */}
         <section className="pt-12 border-t border-slate-100">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <div className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-2">Sectie 02</div>
-              <h2 className="text-3xl font-black tracking-tight text-slate-900">Budget & Rendement</h2>
+              <div className="text-[10px] font-black text-[#1A3C94] uppercase tracking-[0.2em] mb-2">Sectie 02</div>
+              <h2 className="text-3xl font-black tracking-tight text-slate-900">Zoekwoorden Onderzoek</h2>
+            </div>
+            <div className="text-right text-slate-700 text-xs font-bold uppercase tracking-widest">
+              Marktanalyse & Intentie
             </div>
           </div>
           
-          <div className="space-y-8">
-            {/* Row 1: Budget Allocation */}
-            <Card className="rounded-[2.5rem] border-0 shadow-xl shadow-slate-200/50 bg-white ring-1 ring-slate-100 overflow-hidden">
-              <div className="bg-slate-50/80 px-10 py-5 border-b border-slate-100 flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-200">
-                    <Euro className="size-4 text-slate-600" />
-                  </div>
-                  <span className="text-sm font-black text-slate-900 uppercase tracking-widest">Maandelijkse Allocatie</span>
-                </div>
-                <Badge variant="outline" className="rounded-xl px-4 py-1 bg-white font-black text-slate-900 border-slate-200 shadow-sm">{budgetAllocation?.totalBudget || 'N.v.t.'}</Badge>
-              </div>
-              <div className="p-10">
-                {budgetAllocation ? (
-                  <BudgetGrid allocation={budgetAllocation} />
-                ) : (
-                  <div className="text-slate-700 text-sm italic py-10 text-center">Geen budgetgegevens beschikbaar.</div>
-                )}
-              </div>
-            </Card>
-
-            {/* Row 2: Strategy & ROI */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {bidStrategy && (
-                <Card className="p-10 rounded-[2.5rem] border-0 shadow-2xl shadow-slate-900/10 bg-slate-900 text-white relative overflow-hidden group min-h-[360px]">
-                  <div className="absolute top-0 right-0 p-8 text-emerald-500/10 group-hover:text-emerald-500/20 transition-colors">
-                    <TrendingUp className="size-16" />
-                  </div>
-                  
-                  <div className="relative z-10 h-full flex flex-col">
-                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-400 mb-8 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                      Biedstrategie
-                    </h4>
-                    <div className="space-y-6 flex-1">
-                      {bidStrategy.phases.slice(0, 3).map((phase, i) => (
-                        <div key={i} className="relative pl-8 pb-4 last:pb-0">
-                          {i < Math.min(bidStrategy.phases.length, 3) - 1 && (
-                            <div className="absolute left-[4px] top-5 bottom-0 w-[2px] bg-white/10" />
-                          )}
-                          <div className="absolute left-0 top-1.5 w-2.5 h-2.5 rounded-full border-2 border-emerald-500 bg-slate-900" />
-                          <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">{phase.name}</div>
-                          <div className="text-[14px] font-bold leading-relaxed text-slate-200">{phase.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
-              )}
-
-              {kpis && kpis.length > 0 && (
-                <Card className="p-10 rounded-[2.5rem] border-0 shadow-2xl shadow-emerald-900/20 bg-emerald-600 text-white relative overflow-hidden group min-h-[360px]">
-                  <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
-                  
-                  <div className="relative z-10 h-full flex flex-col">
-                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-white mb-8 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
-                      Verwacht Rendement
-                    </h4>
-                    <div className="bg-white/5 backdrop-blur-sm rounded-[2rem] p-2 border border-white/10 mt-auto">
-                      <KPITable kpis={kpis} />
-                    </div>
-                  </div>
-                </Card>
-              )}
-            </div>
-          </div>
+          <KeywordResearchBlock context={context} />
         </section>
 
         {/* 3. TRACKING & DATA STRATEGIE */}
         <section className="pt-12 border-t border-slate-100">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <div className="text-[10px] font-black text-purple-600 uppercase tracking-[0.2em] mb-2">Sectie 03</div>
+              <div className="text-[10px] font-black text-[#1A3C94] uppercase tracking-[0.2em] mb-2">Sectie 03</div>
               <h2 className="text-3xl font-black tracking-tight text-slate-900">Tracking & Data Strategie</h2>
             </div>
           </div>
-          <Card className="rounded-[2.5rem] border-0 shadow-2xl shadow-slate-200/50 bg-white ring-1 ring-slate-100 overflow-hidden">
+          <Card className="rounded-sm border border-slate-200 shadow-sm bg-white overflow-hidden">
             <div className="bg-slate-50/80 px-10 py-6 border-b border-slate-100 flex items-center gap-3">
               <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-200">
-                <BarChart3 className="size-4 text-purple-600" />
+                <BarChart3 className="size-4 text-[#1A3C94]" />
               </div>
               <span className="text-sm font-black text-slate-900 uppercase tracking-widest">Conversie Doelen & Setup</span>
             </div>
@@ -312,7 +247,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
                 <TrackingTable tracking={tracking} />
               ) : (
                 <div className="p-20 text-center">
-                  <div className="bg-slate-50 size-16 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-slate-100">
+                  <div className="bg-slate-50 size-16 rounded-sm flex items-center justify-center mx-auto mb-6 border border-slate-100">
                       <AlertCircle className="size-8 text-slate-300" />
                   </div>
                   <div className="text-slate-700 text-sm font-black uppercase tracking-widest">Geen tracking gegevens beschikbaar.</div>
@@ -323,7 +258,7 @@ export function BlueprintView({ briefing, onStatusChange }: BlueprintViewProps) 
         </section>
       </main>
 
-      <footer className="bg-slate-900 text-slate-400 px-12 py-12">
+      <footer className="bg-[#161615] text-slate-400 px-12 py-12">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8 border-b border-white/10 pb-12 mb-12">
           <div className="text-xl font-black tracking-tighter flex items-center gap-1.5 grayscale opacity-70">
             <span className="text-white">AD</span>
