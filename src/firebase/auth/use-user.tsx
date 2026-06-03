@@ -11,9 +11,10 @@ export const useUser = () => {
 
   useEffect(() => {
     if (!auth) {
-      setLoading(false);
       return;
     }
+    
+    setLoading(true);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -21,5 +22,5 @@ export const useUser = () => {
     return () => unsubscribe();
   }, [auth]);
 
-  return {user, loading};
+  return {user, loading: loading || !auth};
 };

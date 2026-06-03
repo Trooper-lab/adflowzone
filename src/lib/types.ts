@@ -228,6 +228,20 @@ export type Todo = {
   createdAt: string; // ISO string
   dueDate?: string; // ISO string
   completedAt?: string; // ISO string - for completed todos from runs
+  status?: 'todo' | 'in_progress' | 'on_hold' | 'completed';
+  workedHours?: number;
+  assigneeId?: string;
+  assigneeName?: string;
+  assigneePhotoUrl?: string;
+  briefing?: string;
+  comments?: Array<{
+    id: string;
+    userId: string;
+    userName: string;
+    userPhotoUrl?: string;
+    text: string;
+    createdAt: string; // ISO string
+  }>;
 };
 
 export type TodoRun = {
@@ -296,6 +310,7 @@ export type TimeEntry = {
   durationMinutes: number;
   description: string;
   hourlyRateAtTime: number;
+  todoId?: string; // Links back to the task for billing
 };
 
 export type CampaignPerformance = {

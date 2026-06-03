@@ -42,7 +42,7 @@ export default function UserManagementPage() {
 
     const isAdmin = useMemo(() => {
         const role = (appUser as any)?.role?.toLowerCase();
-        return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+        return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es' || user?.email?.toLowerCase() === 'admin@onlyforward.nl';
     }, [appUser, user?.email]);
 
     useEffect(() => {

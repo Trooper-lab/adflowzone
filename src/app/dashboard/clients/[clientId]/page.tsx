@@ -118,7 +118,8 @@ export default function ClientDetailPage() {
     return (
       role === 'admin' ||
       user?.email === 'billy@pearsonline.nl' ||
-      user?.email === 'billy@trooper.es'
+      user?.email === 'billy@trooper.es' ||
+      user?.email?.toLowerCase() === 'admin@onlyforward.nl'
     );
   }, [appUser, user?.email]);
 

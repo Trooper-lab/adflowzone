@@ -4,6 +4,7 @@ import {
   collection,
   query,
   onSnapshot,
+  getDocs,
   Query,
   DocumentData,
   FirestoreError,
@@ -29,9 +30,12 @@ export function useCollection(q: Query | null) {
 
     setLoading(true);
 
+    let resolved = false;
+
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        resolved = true;
         const data = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -40,6 +44,7 @@ export function useCollection(q: Query | null) {
         setLoading(false);
       },
       async (err) => {
+        resolved = true;
         setError(err);
         // @ts-ignore internal _query property
         const internalQuery = q._query;
@@ -58,7 +63,37 @@ export function useCollection(q: Query | null) {
       }
     );
 
-    return () => unsubscribe();
+    // Timeout fallback: if onSnapshot doesn't resolve in 4 seconds,
+    // try to fetch once via getDocs.
+    const timeoutId = setTimeout(async () => {
+      if (!resolved) {
+        console.warn(`useCollection: onSnapshot timed out. Attempting fallback getDocs...`);
+        try {
+          const snapshot = await getDocs(q);
+          if (!resolved) {
+            resolved = true;
+            const data = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            setData(data);
+            setLoading(false);
+          }
+        } catch (err: any) {
+          if (!resolved) {
+            resolved = true;
+            console.error(`useCollection: Fallback getDocs also failed:`, err);
+            setError(err);
+            setLoading(false);
+          }
+        }
+      }
+    }, 4000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, [firestore, q]);
 
   return {data, loading, error};

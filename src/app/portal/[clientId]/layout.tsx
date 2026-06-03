@@ -14,6 +14,7 @@ import { doc } from 'firebase/firestore';
 import type { ParentClient } from '@/lib/types';
 import { Loader2, LogOut, LayoutDashboard, FileText, Settings, ChevronDown, ListChecks, Library } from 'lucide-react';
 import { useMemo } from 'react';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   SidebarProvider,
@@ -63,21 +64,12 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   };
 
   if (userLoading || clientLoading || !user || !client) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="ml-2">Loading Client Portal...</p>
-      </div>
-    );
+    return <LoadingScreen label="Client Portal laden..." />;
   }
   
   if (client && user.email !== (client as ParentClient).clientUserEmail) {
       handleLogout();
-      return (
-         <div className="flex min-h-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
-         </div>
-      );
+      return <LoadingScreen label="Toegang controleren..." />;
   }
 
   const parentClient = client as ParentClient;

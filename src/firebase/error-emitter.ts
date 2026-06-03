@@ -1,2 +1,30 @@
-import {EventEmitter} from 'events';
-export const errorEmitter = new EventEmitter();
+type Listener = (...args: any[]) => void;
+
+class ClientEventEmitter {
+  private events: { [key: string]: Listener[] } = {};
+
+  on(event: string, listener: Listener) {
+    if (!this.events[event]) {
+      this.events[event] = [];
+    }
+    this.events[event].push(listener);
+  }
+
+  off(event: string, listener: Listener) {
+    if (!this.events[event]) return;
+    this.events[event] = this.events[event].filter((l) => l !== listener);
+  }
+
+  emit(event: string, ...args: any[]) {
+    if (!this.events[event]) return;
+    this.events[event].forEach((listener) => {
+      try {
+        listener(...args);
+      } catch (error) {
+        console.error("ClientEventEmitter emit error:", error);
+      }
+    });
+  }
+}
+
+export const errorEmitter = new ClientEventEmitter();

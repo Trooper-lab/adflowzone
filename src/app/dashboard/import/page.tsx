@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, writeBatch, arrayUnion, getDoc, Timestamp, addDoc, updateDoc, orderBy, limit as firestoreLimit, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,13 +34,14 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { ParentClient, ChildAccount, KpiData, ChecklistRun, ChecklistTemplate } from '@/lib/types';
+import type { ParentClient, ChildAccount, KpiData, ChecklistRun, ChecklistTemplate, AppUser } from '@/lib/types';
 import { generateChecklistDraft } from '@/ai/flows/generate-checklist-draft';
 import { fetchCampaignPerformance } from '@/app/actions/google-ads-campaigns';
 import Link from 'next/link';
 import { subMonths, format, parseISO, startOfMonth } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { Combobox } from '@/components/ui/combobox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import * as XLSX from 'xlsx';
 
 // --- SCRIPT TEMPLATES ---
@@ -147,6 +148,18 @@ export default function DataImportPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+
+    const { data: appUser } = useDoc<AppUser>(
+        useMemo(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore])
+    );
+    const isAdmin = useMemo(() => {
+        if (!appUser) return false;
+        const role = appUser.role?.toLowerCase();
+        return role === 'admin' || 
+               user?.email === 'billy@pearsonline.nl' || 
+               user?.email === 'billy@trooper.es' || 
+               user?.email?.toLowerCase() === 'admin@onlyforward.nl';
+    }, [appUser, user]);
     
     const [rawJson, setRawJson] = useState('');
     const [parsedData, setParsedData] = useState<ImportItem[]>([]);
@@ -183,7 +196,9 @@ export default function DataImportPage() {
         const fetchAccounts = async () => {
             setLoadingAccounts(true);
             try {
-                const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
+                const clientsQuery = isAdmin
+                    ? collection(firestore, 'parentClients')
+                    : query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
                 const clientsSnap = await getDocs(clientsQuery);
                 const allParents = clientsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient));
                 setParents(allParents);
@@ -202,7 +217,7 @@ export default function DataImportPage() {
         };
 
         fetchAccounts();
-    }, [firestore, user]);
+    }, [firestore, user, isAdmin]);
 
     const handleCopyScript = (key: string, code: string) => {
         navigator.clipboard.writeText(code).then(() => {
@@ -708,7 +723,10 @@ export default function DataImportPage() {
             
             // Reload parents to include 'Onbekende Klant' if it was created
             if (!unknownClient) {
-                const clientsSnap = await getDocs(query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid)));
+                const clientsQuery = isAdmin
+                    ? collection(firestore, 'parentClients')
+                    : query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
+                const clientsSnap = await getDocs(clientsQuery);
                 setParents(clientsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient)));
             }
 
@@ -799,33 +817,40 @@ export default function DataImportPage() {
                                                                 <td className="px-4 py-2 bg-white/[0.02] rounded-r-lg border-y border-r border-white/5 group-hover:bg-white/[0.04] transition-colors">
                                                                     <div className="flex items-center justify-between gap-4">
                                                                         <div className="flex-1">
-                                                                            <select 
-                                                                                className={cn(
-                                                                                    "w-full bg-black/40 border border-white/10 rounded-md px-3 py-1.5 text-xs text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/50 focus:border-transparent outline-none transition-all appearance-none cursor-pointer",
-                                                                                    mapping.type === 'unknown' ? "border-red-500/50 text-red-300" : 
-                                                                                    mapping.type === 'manual' ? "border-blue-500/50 text-blue-300" :
-                                                                                    "border-green-500/20 text-green-300"
-                                                                                )}
+                                                                            <Select 
                                                                                 value={mapping.childId || (mapping.type === 'parent' ? 'parent_only' : '')}
-                                                                                onChange={(e) => {
-                                                                                    if (e.target.value === 'CREATE_NEW') {
+                                                                                onValueChange={(val) => {
+                                                                                    if (val === 'CREATE_NEW') {
                                                                                         setClientToCreate(mapping.rawName);
                                                                                         setIsCreateClientDialogOpen(true);
-                                                                                    } else if (e.target.value && e.target.value !== 'parent_only') {
-                                                                                        handleManualMappingChange(mapping.rawName, e.target.value);
+                                                                                    } else if (val && val !== 'parent_only' && val !== 'UNKNOWN') {
+                                                                                        handleManualMappingChange(mapping.rawName, val);
                                                                                     }
                                                                                 }}
                                                                             >
-                                                                                <option value="CREATE_NEW" className="text-blue-400 font-bold bg-[#1C243A]">✨ + Nieuwe Klant Aanmaken</option>
-                                                                                {mapping.type === 'unknown' && <option value="" disabled className="text-red-400">Onbekende Klant ⚠️</option>}
-                                                                                {mapping.type === 'parent' && <option value="parent_only" disabled className="text-green-400">{mapping.matchedName} (Parent) ✅</option>}
-                                                                                
-                                                                                {accounts.map(acc => (
-                                                                                    <option key={acc.id} value={acc.id} className="text-slate-200 bg-[#0F1423]">
-                                                                                        {acc.nickname}
-                                                                                    </option>
-                                                                                ))}
-                                                                            </select>
+                                                                                <SelectTrigger 
+                                                                                    className={cn(
+                                                                                        "w-full bg-black/40 border-white/10 rounded-md px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-blue-500/50 outline-none transition-all cursor-pointer h-8",
+                                                                                        mapping.type === 'unknown' ? "border-red-500/50 text-red-300" : 
+                                                                                        mapping.type === 'manual' ? "border-blue-500/50 text-blue-300" :
+                                                                                        "border-green-500/20 text-green-300"
+                                                                                    )}
+                                                                                >
+                                                                                    <SelectValue placeholder="Selecteer account" />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent className="bg-[#0A0D17] border-white/10 max-h-[300px]">
+                                                                                    <SelectItem value="CREATE_NEW" className="text-blue-400 font-bold bg-[#1C243A] mb-1">✨ + Nieuwe Klant Aanmaken</SelectItem>
+                                                                                    
+                                                                                    {mapping.type === 'unknown' && <SelectItem value="UNKNOWN" disabled className="text-red-400">Onbekende Klant ⚠️</SelectItem>}
+                                                                                    {mapping.type === 'parent' && <SelectItem value="parent_only" disabled className="text-green-400">{mapping.matchedName} (Parent) ✅</SelectItem>}
+                                                                                    
+                                                                                    {accounts.map(acc => (
+                                                                                        <SelectItem key={acc.id} value={acc.id} className="text-slate-200 focus:bg-white/[0.05]">
+                                                                                            {acc.nickname}
+                                                                                        </SelectItem>
+                                                                                    ))}
+                                                                                </SelectContent>
+                                                                            </Select>
                                                                         </div>
                                                                         <div className="w-20 text-right">
                                                                             {mapping.type === 'unknown' && <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px] shadow-sm"><AlertCircle className="size-3 mr-1"/> Check</Badge>}
@@ -1147,16 +1172,21 @@ export default function DataImportPage() {
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-300">Aan welk Parent Account toewijzen?</label>
-                            <select 
-                                className="w-full bg-black/40 border border-white/10 rounded-md px-3 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500/50 outline-none"
+                            <Select 
                                 value={selectedParentForNewClient}
-                                onChange={(e) => setSelectedParentForNewClient(e.target.value)}
+                                onValueChange={setSelectedParentForNewClient}
                             >
-                                <option value="" disabled>Selecteer parent...</option>
-                                {parents.map(p => (
-                                    <option key={p.id} value={p.id}>{p.clientName}</option>
-                                ))}
-                            </select>
+                                <SelectTrigger className="w-full bg-black/40 border-white/10 rounded-md px-3 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500/50 outline-none h-10">
+                                    <SelectValue placeholder="Selecteer parent..." />
+                                </SelectTrigger>
+                                <SelectContent className="bg-[#0A0D17] border-white/10 max-h-[300px]">
+                                    {parents.map(p => (
+                                        <SelectItem key={p.id} value={p.id} className="text-slate-200 focus:bg-white/[0.05]">
+                                            {p.clientName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                     <DialogFooter>

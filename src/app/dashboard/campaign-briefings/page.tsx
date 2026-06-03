@@ -56,7 +56,10 @@ export default function CampaignBriefingsPage() {
         setLoading(true);
         // Admin sees all, employees see their own or based on assigned accounts (simplified for now to ownerId)
         const role = (appUser as any)?.role?.toLowerCase();
-        const isAdmin = role === 'admin' || user.email === 'billy@pearsonline.nl' || user.email === 'billy@trooper.es';
+        const isAdmin = role === 'admin' || 
+                        user.email === 'billy@pearsonline.nl' || 
+                        user.email === 'billy@trooper.es' ||
+                        user.email?.toLowerCase() === 'admin@onlyforward.nl';
         
         let q;
         if (isAdmin) {

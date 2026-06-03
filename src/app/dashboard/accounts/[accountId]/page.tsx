@@ -167,7 +167,8 @@ export default function AccountDetailPage() {
     return (
       role === 'admin' ||
       user?.email === 'billy@pearsonline.nl' ||
-      user?.email === 'billy@trooper.es'
+      user?.email === 'billy@trooper.es' ||
+      user?.email?.toLowerCase() === 'admin@onlyforward.nl'
     );
   }, [appUser, user?.email]);
 
@@ -191,8 +192,11 @@ export default function AccountDetailPage() {
 
   const managerUid = useMemo(() => {
     if (!user || !appUser) return null;
-    return isAdmin ? user.uid : (appUser as AppUser)?.managerId || null;
-  }, [user, appUser, isAdmin]);
+    if (isAdmin) {
+      return (parentClient as ParentClient)?.ownerId || user.uid;
+    }
+    return (appUser as AppUser)?.managerId || null;
+  }, [user, appUser, isAdmin, parentClient]);
 
   const checklistsQuery = useMemoFirebase(
     () => (firestore && managerUid

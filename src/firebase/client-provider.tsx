@@ -5,9 +5,10 @@ import {useEffect, useState, useMemo, createContext, type ReactNode} from 'react
 import {FirebaseApp, getApps, initializeApp} from 'firebase/app';
 import {Auth, getAuth} from 'firebase/auth';
 import {Firestore, getFirestore, initializeFirestore} from 'firebase/firestore';
-import {Loader2} from 'lucide-react';
+import {AlertCircle} from 'lucide-react';
 import {FirebaseErrorListener} from '@/components/FirebaseErrorListener';
 import {firebaseConfig} from './config';
+import {LoadingScreen} from '@/components/ui/loading-screen';
 
 type FirebaseContextValue = {
   app: FirebaseApp | null;
@@ -22,17 +23,33 @@ export const FirebaseContext = createContext<FirebaseContextValue>({
 });
 
 export const initializeFirebase = () => {
-  const apps = getApps();
-  const app = apps.length > 0 ? apps[0] : initializeApp(firebaseConfig);
+  let app;
+  try {
+    const apps = getApps();
+    app = apps.length > 0 ? apps[0] : initializeApp(firebaseConfig);
+  } catch (err) {
+    console.error("initializeFirebase: initializeApp failed:", err);
+    const apps = getApps();
+    if (apps.length > 0) {
+      app = apps[0];
+    } else {
+      throw err;
+    }
+  }
+
   const auth = getAuth(app);
   
-  // Always connect to the (default) Firestore database.
-  // Do NOT pass a databaseId - omitting it is the correct way to use (default).
-  const firestore = apps.length > 0
-    ? getFirestore(app)
-    : initializeFirestore(app, {
-        experimentalAutoDetectLongPolling: true,
-      });
+  let firestore;
+  try {
+    firestore = getApps().length > 0
+      ? getFirestore(app)
+      : initializeFirestore(app, {
+          experimentalAutoDetectLongPolling: true,
+        });
+  } catch (err) {
+    console.error("initializeFirebase: initializeFirestore failed, falling back to getFirestore:", err);
+    firestore = getFirestore(app);
+  }
       
   return {app, auth, firestore};
 };
@@ -47,10 +64,21 @@ export function FirebaseClientProvider({children}: FirebaseClientProviderProps) 
     auth: Auth;
     firestore: Firestore;
   } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    const instances = initializeFirebase();
-    setFirebase(instances);
+    console.log("FirebaseClientProvider: Component mounted on client.");
+    try {
+      console.log("FirebaseClientProvider: Initializing Firebase...");
+      const instances = initializeFirebase();
+      console.log("FirebaseClientProvider: Firebase initialized successfully.");
+      setFirebase(instances);
+    } catch (error: any) {
+      console.error("FirebaseClientProvider: Failed to initialize Firebase:", error);
+      setInitError(error?.message || String(error));
+    }
+    setMounted(true);
   }, []);
 
   const contextValue = useMemo(() => {
@@ -62,15 +90,33 @@ export function FirebaseClientProvider({children}: FirebaseClientProviderProps) 
     };
   }, [firebase]);
 
-  if (!firebase) {
+  if (initError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="animate-spin text-blue-500 size-10" />
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Firebase Initialiseren...</p>
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100 p-6">
+        <div className="max-w-md w-full bg-slate-900 border border-red-500/20 rounded-2xl p-6 text-center space-y-4 shadow-xl">
+          <div className="size-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto text-red-500">
+             <AlertCircle className="size-6" />
+          </div>
+          <h2 className="text-xl font-bold font-headline text-slate-100">Firebase Initialisatie Mislukt</h2>
+          <p className="text-xs text-slate-400 leading-relaxed font-medium">
+             De applicatie kon Firebase niet initialiseren. Dit kan komen door ontbrekende omgevingsvariabelen of een tijdelijk verbindingsprobleem.
+          </p>
+          <div className="bg-slate-950/60 p-3 rounded-lg text-left text-[11px] font-mono text-red-400 border border-slate-800 break-all select-all">
+             Error: {initError}
+          </div>
+          <button 
+            className="w-full bg-red-600 hover:bg-red-500 text-xs font-bold uppercase tracking-wider h-10 rounded-lg transition-colors text-white"
+            onClick={() => window.location.reload()}
+          >
+             Pagina Vernieuwen
+          </button>
         </div>
       </div>
     );
+  }
+
+  if (!mounted || !firebase) {
+    return <LoadingScreen label="Firebase Initialiseren..." />;
   }
 
   return (

@@ -119,7 +119,12 @@ const ReportPage = () => {
   const userRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: appUser } = useDoc(userRef) as { data: AppUser | null };
   const isAdmin = appUser?.role === 'admin' || !appUser?.role;
-  const managerUid = isAdmin ? user?.uid : appUser?.managerId;
+  const managerUid = useMemo(() => {
+    if (isAdmin) {
+      return parentClient?.ownerId || user?.uid || null;
+    }
+    return appUser?.managerId || null;
+  }, [isAdmin, user, appUser, parentClient]);
 
   const reportRef = useMemoFirebase(() => {
     if (!reportId || !firestore) return null;

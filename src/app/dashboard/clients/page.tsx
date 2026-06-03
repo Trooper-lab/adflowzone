@@ -98,7 +98,7 @@ export default function ClientsPage() {
 
     const isAdmin = useMemo(() => {
         const role = (appUser as any)?.role?.toLowerCase();
-        return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+        return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es' || user?.email?.toLowerCase() === 'admin@onlyforward.nl';
     }, [appUser, user?.email]);
 
     const [loading, setLoading] = useState(true);
@@ -112,13 +112,15 @@ export default function ClientsPage() {
 
             try {
                 const managerUid = isAdmin ? user.uid : appUser.managerId;
-                if (!managerUid) {
+                if (!managerUid && !isAdmin) {
                     setLoading(false);
                     return;
                 }
 
-                // 1. Fetch parent clients
-                const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
+                // 1. Fetch parent clients (Admin sees all)
+                const clientsQuery = isAdmin 
+                    ? collection(firestore, 'parentClients') 
+                    : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
                 const clientsSnapshot = await getDocs(clientsQuery);
                 const parentClients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ParentClient));
 

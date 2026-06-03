@@ -24,7 +24,9 @@ export default function WaitingPage() {
   useEffect(() => {
     // If user is actually an admin or employee, send them back to dashboard
     // Special case: billy@pearsonline.nl and billy@trooper.es are always admins
-    if (!loading && (user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es')) {
+    if (!loading && (user?.email === 'billy@pearsonline.nl' || 
+                     user?.email === 'billy@trooper.es' ||
+                     user?.email?.toLowerCase() === 'admin@onlyforward.nl')) {
       router.push('/dashboard');
       return;
     }

@@ -7,8 +7,8 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/firestore';
 import { LoginForm } from '@/components/auth/login-form';
 import { LogoIcon } from '@/components/icons';
-import { Loader2 } from 'lucide-react';
 import type { AppUser } from '@/lib/types';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 
 export default function LoginPage() {
   const { user, loading: userLoading } = useUser();
@@ -32,7 +32,9 @@ export default function LoginPage() {
       console.log("LOGIN_STEP: Checking role for", user.email, user.uid);
 
       // Special case: billy@pearsonline.nl and billy@trooper.es are always admins
-      if (user.email === 'billy@pearsonline.nl' || user.email === 'billy@trooper.es') {
+      if (user.email === 'billy@pearsonline.nl' || 
+          user.email === 'billy@trooper.es' ||
+          user.email?.toLowerCase() === 'admin@onlyforward.nl') {
         console.log("LOGIN_STEP: Special admin email detected, redirecting to dashboard");
         router.push('/dashboard');
         return;
@@ -97,12 +99,7 @@ export default function LoginPage() {
 
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Toegang controleren...</p>
-      </div>
-    );
+    return <LoadingScreen label="Toegang controleren..." />;
   }
 
   return (

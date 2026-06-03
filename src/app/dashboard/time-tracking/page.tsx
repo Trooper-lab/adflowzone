@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDoc, getDocs, addDoc, deleteDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -113,9 +113,16 @@ export default function TimeTrackingPage() {
         if (!firestore || !user) return;
         setLoading(true);
         try {
+            const userDocSnap = await getDoc(doc(firestore, 'users', user.uid));
+            const role = userDocSnap.exists() ? userDocSnap.data().role?.toLowerCase() : null;
+            const isAdmin = role === 'admin' || user.email === 'billy@pearsonline.nl' || user.email === 'billy@trooper.es' || user.email?.toLowerCase() === 'admin@onlyforward.nl';
+
+            const clientsQuery = isAdmin ? collection(firestore, 'parentClients') : query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
+            const entriesQuery = isAdmin ? collection(firestore, 'timeEntries') : query(collection(firestore, 'timeEntries'), where('ownerId', '==', user.uid));
+
             const [clientsSnap, entriesSnap] = await Promise.all([
-                getDocs(query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid))),
-                getDocs(query(collection(firestore, 'timeEntries'), where('ownerId', '==', user.uid)))
+                getDocs(clientsQuery),
+                getDocs(entriesQuery)
             ]);
 
             const fetchedClients = clientsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient));

@@ -28,7 +28,10 @@ export function GlobalSearch() {
   
   const isAdmin = React.useMemo(() => {
     const role = (appUser as any)?.role?.toLowerCase();
-    return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+    return role === 'admin' || 
+           user?.email === 'billy@pearsonline.nl' || 
+           user?.email === 'billy@trooper.es' ||
+           user?.email?.toLowerCase() === 'admin@onlyforward.nl';
   }, [appUser, user?.email]);
   const router = useRouter();
   const params = useParams();
@@ -76,7 +79,9 @@ export function GlobalSearch() {
         // Manager Dashboard: Fetch all clients and accounts
         const managerUid = isAdmin ? user.uid : (appUser as any)?.managerId;
         if (!managerUid) return;
-        const parentClientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
+        const parentClientsQuery = isAdmin
+          ? query(collection(firestore, 'parentClients'))
+          : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
         const clientsSnapshot = await getDocs(parentClientsQuery);
         const parentClients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ParentClient));
 

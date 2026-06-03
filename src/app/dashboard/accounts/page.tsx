@@ -136,7 +136,8 @@ export default function PortfolioPage() {
     return (
       role === 'admin' ||
       user?.email === 'billy@pearsonline.nl' ||
-      user?.email === 'billy@trooper.es'
+      user?.email === 'billy@trooper.es' ||
+      user?.email?.toLowerCase() === 'admin@onlyforward.nl'
     );
   }, [appUser, user?.email]);
 
@@ -149,11 +150,13 @@ export default function PortfolioPage() {
       setLoading(true);
       try {
         const managerUid = isAdmin ? user.uid : (appUser as AppUser).managerId;
-        if (!managerUid) { setLoading(false); return; }
+        if (!managerUid && !isAdmin) { setLoading(false); return; }
 
-        const clientSnap = await getDocs(
-          query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid)),
-        );
+        const clientsQuery = isAdmin 
+          ? collection(firestore, 'parentClients') 
+          : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
+        
+        const clientSnap = await getDocs(clientsQuery);
         const clients = clientSnap.docs.map((d) => ({ id: d.id, ...d.data() } as ParentClient));
         if (!clients.length) { setLoading(false); return; }
 

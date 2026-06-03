@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo, Fragment } from 'react';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, collectionGroup } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc } from '@/firebase';
+import { collection, query, where, getDoc, getDocs, collectionGroup, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Receipt, ChevronLeft, ChevronRight, ChevronDown, Copy, CheckCircle2 } from 'lucide-react';
-import type { ParentClient, ChildAccount, TimeEntry, ServicePackage } from '@/lib/types';
+import type { ParentClient, ChildAccount, TimeEntry, ServicePackage, AppUser } from '@/lib/types';
 import { format, startOfMonth, endOfMonth, subMonths, addMonths, parseISO, isWithinInterval } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -50,6 +50,19 @@ export default function InvoicesPage() {
     const [invoiceData, setInvoiceData] = useState<InvoiceData[]>([]);
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
+    const { data: appUser } = useDoc<AppUser>(
+        useMemo(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore])
+    );
+
+    const isAdmin = useMemo(() => {
+        if (!appUser) return false;
+        const role = appUser.role?.toLowerCase();
+        return role === 'admin' || 
+               user?.email === 'billy@pearsonline.nl' || 
+               user?.email === 'billy@trooper.es' || 
+               user?.email?.toLowerCase() === 'admin@onlyforward.nl';
+    }, [appUser, user]);
+
     useEffect(() => {
         const fetchInvoiceData = async () => {
             if (!firestore || !user) return;
@@ -59,11 +72,15 @@ export default function InvoicesPage() {
                 const monthEnd = endOfMonth(currentMonth);
 
                 // 1. Fetch all clients
-                const clientsSnap = await getDocs(query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid)));
+                const clientsQuery = isAdmin 
+                    ? collection(firestore, 'parentClients') 
+                    : query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
+                const clientsSnap = await getDocs(clientsQuery);
                 const clients = clientsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient));
 
                 // 1.5 Fetch packages
-                const packagesSnap = await getDocs(query(collection(firestore, 'servicePackages'), where('ownerId', '==', user.uid)));
+                const packagesQuery = isAdmin ? collection(firestore, 'servicePackages') : query(collection(firestore, 'servicePackages'), where('ownerId', '==', user.uid));
+                const packagesSnap = await getDocs(packagesQuery);
                 const allPackages = packagesSnap.docs.map(d => ({ id: d.id, ...d.data() } as any as ServicePackage));
 
                 // 2. Fetch all child accounts for fixed fees
@@ -166,7 +183,8 @@ export default function InvoicesPage() {
                 });
 
                 // 3. Fetch time entries
-                const timeEntriesSnap = await getDocs(query(collection(firestore, 'timeEntries'), where('ownerId', '==', user.uid)));
+                const timeEntriesQuery = isAdmin ? collection(firestore, 'timeEntries') : query(collection(firestore, 'timeEntries'), where('ownerId', '==', user.uid));
+                const timeEntriesSnap = await getDocs(timeEntriesQuery);
                 const allEntries = timeEntriesSnap.docs.map(d => ({ id: d.id, ...d.data() } as TimeEntry));
                 
                 // Filter for current month
@@ -232,7 +250,7 @@ export default function InvoicesPage() {
         };
 
         fetchInvoiceData();
-    }, [firestore, user, currentMonth]);
+    }, [firestore, user, currentMonth, isAdmin]);
 
     const copyToClipboard = (data: InvoiceData) => {
         const text = `Factuur Details voor ${data.clientName} - ${format(currentMonth, 'MMMM yyyy', { locale: nl })}\n` +

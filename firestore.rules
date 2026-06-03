@@ -18,9 +18,9 @@ service cloud.firestore {
     // Safe admin check: handles missing user document gracefully
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email in ["billy@pearsonline.nl", "billy@trooper.es"] ||
+        request.auth.token.email in ["billy@pearsonline.nl", "billy@trooper.es", "admin@onlyforward.nl"] ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'Admin'])
       );
     }
 
@@ -76,6 +76,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (isAdmin() || isEmployee() || isOwner(resource.data.ownerId));
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (
+        isAdmin() ||
         isOwner(resource.data.ownerId) ||
         (
           resource.data.get('parentClientId', 'X') != 'X' && 
@@ -84,10 +85,16 @@ service cloud.firestore {
           get(/databases/$(database)/documents/parentClients/$(resource.data.get('parentClientId', 'X'))/childAccounts/$(resource.data.get('childAccountId', 'Y'))).data.get('assignedEmployeeId', '') == request.auth.uid
         )
       );
+      allow delete: if isAdmin();
     }
 
     // Checklist Templates (subcollection of users)
     match /users/{userId}/checklistTemplates/{templateId} {
+      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
+    }
+
+    // Collection Group rules for checklistTemplates (required for collectionGroup queries)
+    match /{path=**}/checklistTemplates/{templateId} {
       allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
@@ -109,6 +116,11 @@ service cloud.firestore {
     // Todos
     match /users/{userId}/todos/{todoId} {
       allow read, write: if isOwner(userId) || isAdmin() || isEmployee();
+    }
+
+    // Collection Group rules for todos (required for collectionGroup queries)
+    match /{path=**}/todos/{todoId} {
+      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
     // Projects

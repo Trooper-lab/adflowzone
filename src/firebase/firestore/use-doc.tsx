@@ -75,19 +75,20 @@ export function useDoc(ref: DocumentReference | null) {
       return;
     }
 
-    // Effect starts. Since we already set loading: true during render,
-    // we don't strictly need to set it here, but it's fine.
+    let resolved = false;
 
     const unsubscribe = onSnapshot(
       ref,
-      (doc) => {
-        if (doc.exists()) {
-          setState(s => ({ ...s, data: {id: doc.id, ...doc.data()}, loading: false, error: null }));
+      (docSnap) => {
+        resolved = true;
+        if (docSnap.exists()) {
+          setState(s => ({ ...s, data: {id: docSnap.id, ...docSnap.data()}, loading: false, error: null }));
         } else {
           setState(s => ({ ...s, data: null, loading: false, error: null }));
         }
       },
       (err) => {
+        resolved = true;
         setState(s => ({ ...s, error: err, loading: false }));
         const permissionError = new FirestorePermissionError({
           path: ref.path,
@@ -97,7 +98,35 @@ export function useDoc(ref: DocumentReference | null) {
       }
     );
 
-    return () => unsubscribe();
+    // Timeout fallback: if onSnapshot doesn't resolve in 4 seconds,
+    // try to fetch once via getDoc.
+    const timeoutId = setTimeout(async () => {
+      if (!resolved) {
+        console.warn(`useDoc: onSnapshot for path ${ref.path} timed out. Attempting fallback getDoc...`);
+        try {
+          const docSnap = await getDoc(ref);
+          if (!resolved) {
+            resolved = true;
+            if (docSnap.exists()) {
+              setState(s => ({ ...s, data: { id: docSnap.id, ...docSnap.data() }, loading: false, error: null }));
+            } else {
+              setState(s => ({ ...s, data: null, loading: false, error: null }));
+            }
+          }
+        } catch (err: any) {
+          if (!resolved) {
+            resolved = true;
+            console.error(`useDoc: Fallback getDoc for path ${ref.path} also failed:`, err);
+            setState(s => ({ ...s, error: err, loading: false }));
+          }
+        }
+      }
+    }, 4000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, [firestore, currentPath]); // use currentPath for stability
 
   return {data: state.data, loading: state.loading, error: state.error, refetch: fetchData};

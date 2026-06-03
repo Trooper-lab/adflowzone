@@ -2,11 +2,49 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
-import { collection, query, where, getDocs, doc, Timestamp, getDoc } from 'firebase/firestore';
+import { 
+    collection, 
+    query, 
+    where, 
+    getDocs, 
+    doc, 
+    Timestamp, 
+    getDoc,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    arrayUnion,
+    arrayRemove
+} from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlayCircle, CalendarClock, CalendarCheck, List, LayoutGrid, ChevronDown, ChevronRight, Check, AlertCircle, Clock, CalendarDays, Rocket, ArrowRight, Zap, ChevronLeft, Target, Activity, Users } from 'lucide-react';
-import type { ParentClient, ChildAccount, ConnectedChecklist, ChecklistRun, ChecklistTemplate, AppUser, Project } from '@/lib/types';
+import { 
+    Loader2, 
+    PlayCircle, 
+    CalendarClock, 
+    CalendarCheck, 
+    List, 
+    LayoutGrid, 
+    ChevronDown, 
+    ChevronRight, 
+    Check, 
+    AlertCircle, 
+    Clock, 
+    CalendarDays, 
+    Rocket, 
+    ArrowRight, 
+    Zap, 
+    ChevronLeft, 
+    Target, 
+    Activity, 
+    Users,
+    MessageSquare,
+    Calendar,
+    Trash2,
+    UserPlus,
+    ExternalLink
+} from 'lucide-react';
+import type { ParentClient, ChildAccount, ConnectedChecklist, ChecklistRun, ChecklistTemplate, AppUser, Project, Todo } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ChecklistRunner } from '@/components/checklist/ChecklistRunner';
@@ -17,10 +55,18 @@ import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { useToast } from '@/hooks/use-toast';
 
 type DashboardTask = {
     id: string; 
-    type: 'checklist';
+    type: 'checklist' | 'todo';
     accountNickname: string;
     parentName: string;
     parentClientId: string;
@@ -28,11 +74,12 @@ type DashboardTask = {
     title: string; 
     dueDate: Date;
     lastCompleted?: string | null;
-    frequency: 'daily' | 'weekly' | 'monthly' | 'one-off';
+    frequency?: 'daily' | 'weekly' | 'monthly' | 'one-off';
     status: 'due' | 'overdue' | 'upcoming' | 'in_progress';
-    checklist: ConnectedChecklist;
-    childAccount: ChildAccount;
+    checklist?: ConnectedChecklist;
+    childAccount?: ChildAccount;
     assignedEmployeeName?: string;
+    todo?: Todo;
 };
 
 function LoadingState() {
@@ -376,13 +423,47 @@ export default function DashboardPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [viewMode, setViewMode] = useState<'priorityFlow' | 'calendar' | 'clientList'>('priorityFlow');
 
+  const { toast } = useToast();
+
+  // Todo / Task Detail states
+  const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<AppUser[]>([]);
+  const [clients, setClients] = useState<ParentClient[]>([]);
+  const [briefingText, setBriefingText] = useState('');
+  const [commentText, setCommentText] = useState('');
+  const [isSavingDetails, setIsSavingDetails] = useState(false);
+
   const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
   const { data: appUser } = useDoc(userDocRef);
   
   const isAdmin = useMemo(() => {
     const role = (appUser as AppUser)?.role?.toLowerCase();
-    return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+    return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es' || user?.email?.toLowerCase() === 'admin@onlyforward.nl';
   }, [appUser, user?.email]);
+
+  // Fetch team members & clients
+  useEffect(() => {
+    if (!firestore || !user) return;
+    const fetchTeamAndClients = async () => {
+      try {
+        const teamSnap = await getDocs(collection(firestore, 'users'));
+        setTeamMembers(teamSnap.docs.map(d => ({ uid: d.id, ...d.data() } as AppUser)));
+
+        const ownerId = isAdmin ? user.uid : (appUser as any)?.managerId;
+        if (ownerId || isAdmin) {
+          const clientsQuery = isAdmin 
+            ? collection(firestore, 'parentClients') 
+            : query(collection(firestore, 'parentClients'), where('ownerId', '==', ownerId));
+          const clientsSnap = await getDocs(clientsQuery);
+          setClients(clientsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient)));
+        }
+      } catch (e) {
+        console.error("Error fetching dashboard team/clients metadata:", e);
+      }
+    };
+    fetchTeamAndClients();
+  }, [firestore, user, isAdmin, appUser]);
 
   const checklistsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -394,8 +475,15 @@ export default function DashboardPage() {
 
 
   const handleStartChecklist = (task: DashboardTask) => {
-    setActiveTask(task);
-    setIsChecklistRunnerOpen(true);
+    if (task.type === 'todo' && task.todo) {
+      setActiveTodo(task.todo);
+      setBriefingText(task.todo.briefing || '');
+      setCommentText('');
+      setIsTaskDetailOpen(true);
+    } else {
+      setActiveTask(task);
+      setIsChecklistRunnerOpen(true);
+    }
   };
   
   const handleChecklistComplete = () => {
@@ -426,8 +514,12 @@ export default function DashboardPage() {
             console.log("DASHBOARD_STEP: Start Load");
             
             // 1. Fetch Clients & Employees
+            const clientsQuery = isAdmin 
+                ? collection(firestore, 'parentClients') 
+                : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
+            
             const [clientsSnapshot, teamSnapshot] = await Promise.all([
-                getDocs(query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid))),
+                getDocs(clientsQuery),
                 isAdmin ? getDocs(query(collection(firestore, 'users'), where('managerId', '==', user.uid))) : Promise.resolve({ docs: [] })
             ]);
 
@@ -466,17 +558,31 @@ export default function DashboardPage() {
                 return account.assignedEmployeeId === user.uid;
             });
 
-            // 3. Fetch In Progress Runs & Projects safely
-            const [runsSnapshot, projectsSnapshot] = await Promise.all([
-                getDocs(query(collection(firestore, 'checklistRuns'), where(isAdmin ? 'managerId' : 'ownerId', '==', isAdmin ? managerUid : user.uid), where('status', '==', 'in_progress'))),
-                getDocs(query(collection(firestore, 'projects'), where('ownerId', '==', user.uid)))
+            // 3. Fetch In Progress Runs, Projects & open Todos safely
+            const runsQuery = isAdmin 
+                ? query(collection(firestore, 'checklistRuns'), where('status', '==', 'in_progress'))
+                : query(collection(firestore, 'checklistRuns'), where('ownerId', '==', user.uid), where('status', '==', 'in_progress'));
+                
+            const projectsQuery = isAdmin
+                ? collection(firestore, 'projects')
+                : query(collection(firestore, 'projects'), where('ownerId', '==', user.uid));
+                
+            const todosQuery = isAdmin
+                ? query(collectionGroup(firestore, 'todos'), where('completed', '==', false))
+                : query(collection(firestore, 'users', managerUid, 'todos'), where('completed', '==', false));
+
+            const [runsSnapshot, projectsSnapshot, todosSnapshot] = await Promise.all([
+                getDocs(runsQuery),
+                getDocs(projectsQuery),
+                getDocs(todosQuery)
             ]).catch(e => {
                 console.error("DASHBOARD_ERROR: Secondary data fetch failed", e);
-                return [ { docs: [] }, { docs: [] } ] as any[];
+                return [ { docs: [] }, { docs: [] }, { docs: [] } ] as any[];
             });
 
             const inProgressRuns = (runsSnapshot.docs || []).map((d: any) => ({ id: d.id, ...d.data() } as ChecklistRun));
             const projects = (projectsSnapshot.docs || []).map((d: any) => ({ id: d.id, ...d.data() } as Project));
+            const openTodos = (todosSnapshot.docs || []).map((d: any) => ({ id: d.id, ...d.data() } as Todo));
             
             setActiveProjects(projects.filter((p: any) => p.status === 'active'));
 
@@ -499,23 +605,23 @@ export default function DashboardPage() {
                     if (inProgressRun) {
                          dueDate = inProgressRun.runAt instanceof Timestamp ? inProgressRun.runAt.toDate() : parseISO(inProgressRun.runAt as unknown as string);
                     } else if (conn.lastRunAt) {
-                        const lastRunDate = startOfDay(parseISO(conn.lastRunAt));
-                        if (conn.frequency === 'daily') {
-                            dueDate = addDays(lastRunDate, 1);
-                        } else if (conn.frequency === 'weekly') {
-                            const scheduledDay = getDay(startDate);
-                            let nextInstance = setDay(addWeeks(lastRunDate,1), scheduledDay, { weekStartsOn: 1 });
-                            dueDate = nextInstance;
-                        } else if (conn.frequency === 'monthly') {
-                            const scheduledDate = startDate.getDate();
-                            let nextInstance = setDay(lastRunDate, scheduledDate);
-                            if (isPast(nextInstance)) {
-                                nextInstance = addMonths(nextInstance, 1);
-                            }
-                            dueDate = nextInstance;
-                        } else { 
-                            return; 
-                        }
+                         const lastRunDate = startOfDay(parseISO(conn.lastRunAt));
+                         if (conn.frequency === 'daily') {
+                             dueDate = addDays(lastRunDate, 1);
+                         } else if (conn.frequency === 'weekly') {
+                             const scheduledDay = getDay(startDate);
+                             let nextInstance = setDay(addWeeks(lastRunDate,1), scheduledDay, { weekStartsOn: 1 });
+                             dueDate = nextInstance;
+                         } else if (conn.frequency === 'monthly') {
+                             const scheduledDate = startDate.getDate();
+                             let nextInstance = setDay(lastRunDate, scheduledDate);
+                             if (isPast(nextInstance)) {
+                                 nextInstance = addMonths(nextInstance, 1);
+                             }
+                             dueDate = nextInstance;
+                         } else { 
+                             return; 
+                         }
                     } else {
                         dueDate = startDate;
                     }
@@ -523,7 +629,6 @@ export default function DashboardPage() {
                     const status: DashboardTask['status'] = inProgressRun 
                         ? 'in_progress' 
                         : (isPast(dueDate) && !isToday(dueDate) ? 'overdue' : (isToday(dueDate) ? 'due' : 'upcoming'));
-
 
                     allTasks.push({
                         id: `checklist-${account.id}-${conn.checklistId}-${conn.startDate}`,
@@ -541,6 +646,37 @@ export default function DashboardPage() {
                         childAccount: account,
                         assignedEmployeeName: isAdmin ? (account.assignedEmployeeId ? (employeeMap.get(account.assignedEmployeeId) || 'Onbekend Teamid') : 'Niet toegewezen') : undefined,
                     });
+                });
+            });
+
+            // Process and add open todos/tasks
+            openTodos.forEach((todo) => {
+                const dueDate = todo.dueDate ? parseISO(todo.dueDate) : new Date(todo.createdAt);
+                
+                const status: DashboardTask['status'] = todo.status === 'in_progress'
+                    ? 'in_progress'
+                    : (isPast(dueDate) && !isToday(dueDate) ? 'overdue' : (isToday(dueDate) ? 'due' : 'upcoming'));
+
+                const childAcc = allChildAccounts.find(a => a.id === todo.childAccountId);
+                if (childAcc && childAcc.isPaused) return;
+
+                if (!isAdmin && todo.assigneeId !== user.uid) {
+                    // Employees only see their own assigned tasks
+                    return;
+                }
+
+                allTasks.push({
+                    id: `todo-${todo.id}`,
+                    type: 'todo',
+                    accountNickname: todo.childAccountNickname,
+                    parentName: todo.parentClientName,
+                    parentClientId: todo.parentClientId,
+                    childAccountId: todo.childAccountId,
+                    title: todo.content,
+                    dueDate: dueDate,
+                    status: status,
+                    todo: todo,
+                    assignedEmployeeName: todo.assigneeName || undefined
                 });
             });
             
@@ -561,6 +697,216 @@ export default function DashboardPage() {
 
     fetchAllData();
   }, [firestore, user, refreshTrigger, checklistTemplates, appUser, isAdmin]);
+
+  // Invoicing hour sync
+  const syncHoursToTimeEntry = async (todo: Todo, hours: number) => {
+    if (!firestore || !managerUid) return;
+    try {
+      const timeEntriesSnap = await getDocs(query(
+        collection(firestore, 'timeEntries'),
+        where('todoId', '==', todo.id)
+      ));
+      if (hours > 0) {
+        const client = clients.find(c => c.id === todo.parentClientId);
+        const hourlyRate = client?.hourlyRate || 0;
+        const entryData = {
+          ownerId: managerUid,
+          parentClientId: todo.parentClientId,
+          childAccountId: todo.childAccountId,
+          date: todo.completedAt || todo.dueDate || new Date().toISOString(),
+          durationMinutes: hours * 60,
+          description: `Taak: ${todo.content}`,
+          hourlyRateAtTime: hourlyRate,
+          todoId: todo.id
+        };
+        if (!timeEntriesSnap.empty) {
+          await updateDoc(doc(firestore, 'timeEntries', timeEntriesSnap.docs[0].id), entryData);
+        } else {
+          await addDoc(collection(firestore, 'timeEntries'), entryData);
+        }
+      } else {
+        if (!timeEntriesSnap.empty) {
+          await deleteDoc(doc(firestore, 'timeEntries', timeEntriesSnap.docs[0].id));
+        }
+      }
+    } catch (e) {
+      console.error("Error syncing hours to time entry:", e);
+    }
+  };
+
+  const handleStatusChange = async (todo: Todo, status: Todo['status']) => {
+    if (!firestore || !managerUid || !status) return;
+    const completed = status === 'completed';
+    const completedAt = completed ? new Date().toISOString() : null;
+    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
+    const accountRef = doc(firestore, 'parentClients', todo.parentClientId, 'childAccounts', todo.childAccountId);
+    try {
+      await updateDoc(todoRef, { status, completed, completedAt });
+      if (completed) {
+        await updateDoc(accountRef, {
+          pendingTodoIds: arrayRemove(todo.id),
+          todoRunIds: arrayUnion(todo.id)
+        });
+      } else {
+        await updateDoc(accountRef, {
+          pendingTodoIds: arrayUnion(todo.id),
+          todoRunIds: arrayRemove(todo.id)
+        });
+      }
+      if (todo.workedHours && todo.workedHours > 0) {
+        await syncHoursToTimeEntry({ ...todo, completedAt: completedAt || undefined }, todo.workedHours);
+      }
+      setActiveTodo(prev => prev ? { ...prev, status, completed, completedAt: completedAt || undefined } : null);
+      toast({ title: 'Status bijgewerkt! ✔️' });
+      setRefreshTrigger(p => p + 1);
+    } catch (e) {
+      console.error("Error changing status:", e);
+    }
+  };
+
+  const handleAssigneeChange = async (todo: Todo, assignee: AppUser | null) => {
+    if (!firestore || !managerUid) return;
+    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
+    try {
+      const updateData = {
+        assigneeId: assignee?.uid || null,
+        assigneeName: assignee?.displayName || assignee?.email || null,
+        assigneePhotoUrl: assignee?.photoURL || null
+      };
+      await updateDoc(todoRef, updateData);
+      setActiveTodo(prev => prev ? { ...prev, ...updateData } : null);
+      toast({ title: 'Toewijzing bijgewerkt!' });
+      setRefreshTrigger(p => p + 1);
+    } catch (e) {
+      console.error("Error updating assignee:", e);
+    }
+  };
+
+  const handleDueDateChange = async (todo: Todo, date: Date | undefined) => {
+    if (!firestore || !managerUid) return;
+    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
+    try {
+      await updateDoc(todoRef, { dueDate: date ? date.toISOString() : null });
+      setActiveTodo(prev => prev ? { ...prev, dueDate: date ? date.toISOString() : undefined } : null);
+      toast({ title: 'Uitvoerdatum bijgewerkt!' });
+      setRefreshTrigger(p => p + 1);
+    } catch (e) {
+      console.error("Error updating due date:", e);
+    }
+  };
+
+  const handleWorkedHoursChange = async (todo: Todo, val: string) => {
+    if (!firestore || !managerUid) return;
+    const hours = val === '' ? 0 : parseFloat(val);
+    if (isNaN(hours)) return;
+    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
+    try {
+      await updateDoc(todoRef, { workedHours: hours });
+      await syncHoursToTimeEntry(todo, hours);
+      setActiveTodo(prev => prev ? { ...prev, workedHours: hours } : null);
+      toast({ title: 'Gewerkte uren bijgewerkt!' });
+      setRefreshTrigger(p => p + 1);
+    } catch (e) {
+      console.error("Error saving worked hours:", e);
+    }
+  };
+
+  const handleTitleChange = async (todo: Todo, val: string) => {
+    if (!firestore || !managerUid || !val.trim() || val === todo.content) return;
+    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
+    try {
+      await updateDoc(todoRef, { content: val.trim() });
+      setActiveTodo(prev => prev ? { ...prev, content: val.trim() } : null);
+      setRefreshTrigger(p => p + 1);
+    } catch (e) {
+      console.error("Error updating title:", e);
+    }
+  };
+
+  const handleDeleteTask = async (todo: Todo) => {
+    if (!firestore || !managerUid) return;
+    const todoRef = doc(firestore, 'users', managerUid, 'todos', todo.id);
+    const accountRef = doc(firestore, 'parentClients', todo.parentClientId, 'childAccounts', todo.childAccountId);
+    try {
+      await deleteDoc(todoRef);
+      await updateDoc(accountRef, {
+        pendingTodoIds: arrayRemove(todo.id),
+        todoRunIds: arrayRemove(todo.id)
+      });
+      await syncHoursToTimeEntry(todo, 0);
+      setIsTaskDetailOpen(false);
+      toast({ title: 'Taak verwijderd' });
+      setRefreshTrigger(p => p + 1);
+    } catch (e) {
+      console.error("Error deleting todo:", e);
+    }
+  };
+
+  const handleSaveBriefing = async () => {
+    if (!firestore || !managerUid || !activeTodo) return;
+    setIsSavingDetails(true);
+    const todoRef = doc(firestore, 'users', managerUid, 'todos', activeTodo.id);
+    try {
+      await updateDoc(todoRef, { briefing: briefingText });
+      setActiveTodo(prev => prev ? { ...prev, briefing: briefingText } : null);
+      toast({ title: 'Briefing opgeslagen' });
+      setRefreshTrigger(p => p + 1);
+    } catch (e) {
+      console.error("Error saving briefing:", e);
+    } finally {
+      setIsSavingDetails(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!firestore || !managerUid || !activeTodo || !commentText.trim()) return;
+    const newComment = {
+      id: Math.random().toString(36).substring(2, 9),
+      userId: user?.uid || '',
+      userName: appUser?.displayName || user?.displayName || user?.email || 'Onbekend',
+      userPhotoUrl: user?.photoURL || null,
+      text: commentText.trim(),
+      createdAt: new Date().toISOString()
+    };
+    const todoRef = doc(firestore, 'users', managerUid, 'todos', activeTodo.id);
+    try {
+      const updatedComments = [...(activeTodo.comments || []), newComment];
+      await updateDoc(todoRef, { comments: updatedComments });
+      setActiveTodo(prev => prev ? { ...prev, comments: updatedComments } : null);
+      setCommentText('');
+      setRefreshTrigger(p => p + 1);
+    } catch (e) {
+      console.error("Error adding comment:", e);
+    }
+  };
+
+  const parseTextWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a 
+            key={index} 
+            href={part} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-blue-400 hover:text-blue-300 underline break-all inline-flex items-center gap-1 transition-colors"
+          >
+            {part} <ExternalLink className="size-3" />
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
+  const STATUS_OPTIONS = [
+    { value: 'todo', label: 'Opstarten', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20' },
+    { value: 'in_progress', label: 'Lopend', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20' },
+    { value: 'on_hold', label: 'Wachtend', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20' },
+    { value: 'completed', label: 'Afgerond', color: 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20' }
+  ] as const;
 
   return (
     <div className="flex flex-col gap-8 max-w-6xl mx-auto px-4 pb-20">
@@ -660,6 +1006,237 @@ export default function DashboardPage() {
         onOpenChange={setIsChecklistRunnerOpen}
         onComplete={handleChecklistComplete}
       />
+
+      <Sheet open={isTaskDetailOpen} onOpenChange={setIsTaskDetailOpen}>
+        <SheetContent className="w-full sm:max-w-2xl bg-[#171f33]/95 backdrop-blur-xl border-white/5 text-slate-100 p-6 flex flex-col h-full shadow-2xl">
+          {activeTodo && (
+            <>
+              <SheetHeader className="pb-4 border-b border-white/5 shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-black">
+                    <span>{activeTodo.parentClientName}</span>
+                    <span>/</span>
+                    <span className="text-blue-400">{activeTodo.childAccountNickname}</span>
+                  </div>
+                </div>
+                <SheetTitle className="text-2xl font-headline text-slate-100 mt-2 leading-snug">{activeTodo.content}</SheetTitle>
+                <SheetDescription className="text-xs text-slate-500">Aangemaakt op {format(parseISO(activeTodo.createdAt), 'dd MMMM yyyy HH:mm', { locale: nl })}</SheetDescription>
+              </SheetHeader>
+
+              {/* Scrollable details and comment thread */}
+              <div className="flex-grow overflow-y-auto space-y-6 py-6 -mx-6 px-6">
+                
+                {/* Meta details (Assignee, Status, Date, Worked Hours) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
+                  {/* Status */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black uppercase text-slate-500">Status</span>
+                    <div className="pt-0.5">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[9px] uppercase font-black cursor-pointer px-2 py-0.5 border h-5 select-none",
+                              STATUS_OPTIONS.find(o => o.value === (activeTodo.status || 'todo'))?.color
+                            )}
+                          >
+                            {STATUS_OPTIONS.find(o => o.value === (activeTodo.status || 'todo'))?.label || 'Opstarten'}
+                          </Badge>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-slate-900 border-slate-800 text-slate-200">
+                          {STATUS_OPTIONS.map((opt) => (
+                            <DropdownMenuItem 
+                              key={opt.value} 
+                              onClick={() => handleStatusChange(activeTodo, opt.value)}
+                              className="text-xs uppercase font-bold"
+                            >
+                              {opt.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+
+                  {/* Assignee */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black uppercase text-slate-500">Uitvoerende</span>
+                    <div className="pt-0.5">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 outline-none select-none max-w-full">
+                            <Avatar className="size-5 border border-slate-800">
+                              {activeTodo.assigneePhotoUrl && <AvatarImage src={activeTodo.assigneePhotoUrl} />}
+                              <AvatarFallback className="text-[7px] font-black uppercase bg-slate-800 text-slate-300">
+                                {activeTodo.assigneeName ? activeTodo.assigneeName.substring(0, 2).toUpperCase() : <UserPlus className="size-2.5 opacity-55" />}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="truncate text-[10px] max-w-[80px]">
+                              {activeTodo.assigneeName ? activeTodo.assigneeName.split(' ')[0] : 'Toewijzen'}
+                            </span>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-slate-900 border-slate-800 text-slate-200 max-h-[200px] overflow-y-auto">
+                          <DropdownMenuItem onClick={() => handleAssigneeChange(activeTodo, null)}>
+                            Niemand
+                          </DropdownMenuItem>
+                          {teamMembers.map(member => (
+                            <DropdownMenuItem key={member.uid} onClick={() => handleAssigneeChange(activeTodo, member)} className="flex items-center gap-2">
+                              <Avatar className="size-4 border border-slate-800">
+                                {member.photoURL && <AvatarImage src={member.photoURL} />}
+                                <AvatarFallback className="text-[7px] bg-slate-800">{member.displayName?.substring(0,2) || 'M'}</AvatarFallback>
+                              </Avatar>
+                              <span>{member.displayName || member.email}</span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+
+                  {/* Date */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black uppercase text-slate-500">Uitvoerdatum</span>
+                    <div className="pt-0.5">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-200 outline-none select-none font-bold uppercase tracking-wider">
+                            <Calendar className="size-3 text-slate-500" />
+                            {activeTodo.dueDate ? format(parseISO(activeTodo.dueDate), 'd MMM', { locale: nl }) : 'Kies datum'}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-slate-900 border-slate-700 text-slate-200" align="start">
+                          <CalendarComponent 
+                            mode="single" 
+                            selected={activeTodo.dueDate ? parseISO(activeTodo.dueDate) : undefined} 
+                            onSelect={date => handleDueDateChange(activeTodo, date)} 
+                            initialFocus 
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  {/* Worked Hours */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black uppercase text-slate-500">Tijd (uren)</span>
+                    <div className="pt-0.5 flex items-center gap-1">
+                      <input 
+                        type="text" 
+                        placeholder="0"
+                        defaultValue={activeTodo.workedHours || ''}
+                        className="w-10 bg-transparent border-none text-left text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500/20 px-1 py-0.5 rounded text-xs font-mono font-bold"
+                        onBlur={e => handleWorkedHoursChange(activeTodo, e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
+                      />
+                      <Clock className="size-3 text-slate-600" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Briefing details */}
+                <div className="space-y-3">
+                  <Label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Briefing & Notities</Label>
+                  <Textarea 
+                    placeholder="Voeg hier gedetailleerde instructies, links of context toe..."
+                    value={briefingText}
+                    onChange={e => setBriefingText(e.target.value)}
+                    className="bg-slate-950/40 border-slate-800 text-slate-200 resize-none h-28 text-sm leading-relaxed"
+                  />
+                  <div className="flex justify-between items-center">
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteTask(activeTodo)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 font-bold uppercase tracking-widest text-[9px] h-8"
+                    >
+                      <Trash2 className="size-3.5 mr-1.5" /> Verwijder Taak
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={handleSaveBriefing} 
+                      disabled={isSavingDetails || briefingText === (activeTodo.briefing || '')}
+                      className="bg-blue-600 hover:bg-blue-500 font-bold uppercase tracking-widest text-[9px] h-8 px-4"
+                    >
+                      {isSavingDetails ? <Loader2 className="animate-spin size-3" /> : 'Opslaan'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Comments thread */}
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                  <Label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Reacties</Label>
+                  
+                  {/* Comments list */}
+                  <div className="space-y-4">
+                    {!activeTodo.comments || activeTodo.comments.length === 0 ? (
+                      <p className="text-xs text-slate-600 italic">Nog geen reacties geplaatst.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {activeTodo.comments.map((comment) => (
+                          <div key={comment.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2 text-xs">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="size-4.5 border border-slate-800">
+                                  {comment.userPhotoUrl && <AvatarImage src={comment.userPhotoUrl} />}
+                                  <AvatarFallback className="text-[6px] font-black uppercase bg-slate-800 text-slate-400">
+                                    {comment.userName.substring(0, 2)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="font-bold text-slate-300">{comment.userName}</span>
+                              </div>
+                              <span className="text-[9px] font-bold text-slate-600 uppercase">
+                                {format(parseISO(comment.createdAt), 'd MMM HH:mm', { locale: nl })}
+                              </span>
+                            </div>
+                            <p className="text-slate-300 font-medium leading-relaxed whitespace-pre-wrap">
+                              {parseTextWithLinks(comment.text)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Comment composer */}
+              <SheetFooter className="pt-4 border-t border-white/5 shrink-0 flex-col sm:flex-col items-stretch gap-3">
+                <div className="space-y-2">
+                  <Textarea 
+                    placeholder="Plaats een reactie (kopieer links hierin)..."
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    className="bg-slate-950/40 border-slate-800 text-slate-200 h-20 text-xs resize-none"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleAddComment();
+                      }
+                    }}
+                  />
+                  <div className="flex justify-between items-center">
+                    <p className="text-[9px] text-slate-600 font-bold uppercase">Shift+Enter voor nieuwe regel</p>
+                    <Button 
+                      size="sm" 
+                      onClick={handleAddComment} 
+                      disabled={!commentText.trim()}
+                      className="bg-blue-600 hover:bg-blue-500 font-bold uppercase tracking-widest text-[9px] h-8 px-4"
+                    >
+                      Plaats reactie
+                    </Button>
+                  </div>
+                </div>
+              </SheetFooter>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

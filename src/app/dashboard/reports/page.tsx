@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, doc, writeBatch, arrayUnion, Timestamp, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, writeBatch, arrayUnion, Timestamp, getDoc, updateDoc, onSnapshot, collectionGroup } from 'firebase/firestore';
 import type { ParentClient, ChildAccount, MonthlyReport, KpiData, Todo, ChecklistRun, ChecklistTemplate } from '@/lib/types';
 import { format, subMonths, addMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -186,7 +186,10 @@ export default function ReportDashboard() {
 
     const isAdmin = useMemo(() => {
         const role = (appUser as any)?.role?.toLowerCase();
-        return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+        return role === 'admin' || 
+               user?.email === 'billy@pearsonline.nl' || 
+               user?.email === 'billy@trooper.es' ||
+               user?.email?.toLowerCase() === 'admin@onlyforward.nl';
     }, [appUser, user?.email]);
 
     const [loading, setLoading] = useState(true);
@@ -214,7 +217,9 @@ export default function ReportDashboard() {
                 return;
             }
 
-            const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
+            const clientsQuery = isAdmin
+                ? collection(firestore, 'parentClients')
+                : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
             const [clientsSnapshot] = await Promise.all([getDocs(clientsQuery)]);
 
             const parentClientMap = new Map(clientsSnapshot.docs.map(doc => [doc.id, (doc.data() as ParentClient)]));
@@ -245,16 +250,13 @@ export default function ReportDashboard() {
 
             let reportsQuery;
             if (activeTab === 'history') {
-                reportsQuery = query(
-                    collection(firestore, 'reports'),
-                    where('ownerId', '==', managerUid)
-                );
+                reportsQuery = isAdmin
+                    ? query(collection(firestore, 'reports'))
+                    : query(collection(firestore, 'reports'), where('ownerId', '==', managerUid));
             } else {
-                reportsQuery = query(
-                    collection(firestore, 'reports'),
-                    where('ownerId', '==', managerUid),
-                    where('period', '==', selectedPeriod)
-                );
+                reportsQuery = isAdmin
+                    ? query(collection(firestore, 'reports'), where('period', '==', selectedPeriod))
+                    : query(collection(firestore, 'reports'), where('ownerId', '==', managerUid), where('period', '==', selectedPeriod));
             }
 
             const [kpiDocsSnaps, reportsSnapshot] = await Promise.all([Promise.all(kpiDocsPromises), getDocs(reportsQuery)]);
@@ -355,11 +357,13 @@ export default function ReportDashboard() {
                 })
                 .map(run => run.id);
 
-            const todosQuery = query(
-                collection(firestore, 'users', managerUid, 'todos'),
-                where('childAccountId', '==', account.id),
-                where('completed', '==', true)
-            );
+            const todosQuery = isAdmin 
+                ? query(collectionGroup(firestore, 'todos'), where('childAccountId', '==', account.id), where('completed', '==', true))
+                : query(
+                    collection(firestore, 'users', managerUid, 'todos'),
+                    where('childAccountId', '==', account.id),
+                    where('completed', '==', true)
+                );
             const todosSnapshot = await getDocs(todosQuery);
             const completedTodoIds = todosSnapshot.docs
                  .map(doc => {
@@ -465,12 +469,16 @@ export default function ReportDashboard() {
             const parentClientRef = doc(firestore, 'parentClients', report.parentClientId);
             
             // 1. Fetch all necessary data for the email
-            const [clientSnap, checklistTemplatesSnap, kpiDocsSnap, checklistRunsSnap, completedTodosSnap] = await Promise.all([
+            const todosQuery = isAdmin 
+                ? query(collectionGroup(firestore, 'todos'), where('childAccountId', '==', account.id))
+                : query(collection(firestore, 'users', managerUid, 'todos'));
+
+            const [clientSnap, checklistTemplatesSnap, kpiDocsSnap, checklistRunsSnap, allTodosSnap] = await Promise.all([
                 getDoc(parentClientRef),
                 getDocs(query(collection(firestore, 'users', managerUid, 'checklistTemplates'))),
                 getDocs(query(collection(firestore, 'kpiData'), where('childAccountId', '==', account.id))),
                 Promise.all((report.completedChecklistRunIds || []).map(id => getDoc(doc(firestore, 'checklistRuns', id)))),
-                Promise.all((report.completedTodoRunIds || []).map(id => getDoc(doc(firestore, `users/${managerUid}/todos/${id}`))))
+                getDocs(todosQuery)
             ]);
 
             const client = clientSnap.data() as ParentClient;
@@ -494,15 +502,15 @@ export default function ReportDashboard() {
                     return { ...data, name: templatesMap.get(data.checklistId) || 'Onbekende Checklist', completedAt, runAt };
                 });
 
-            const completedTodos = completedTodosSnap
-                .filter(s => s.exists())
-                .map(s => {
-                    const data = s.data();
-                    let completedAt = data?.completedAt;
+            const completedTodos = allTodosSnap.docs
+                .map(d => ({ id: d.id, ...d.data() } as Todo))
+                .filter(todo => (report.completedTodoRunIds || []).includes(todo.id))
+                .map(data => {
+                    let completedAt = data.completedAt;
                     if (completedAt instanceof Timestamp) completedAt = completedAt.toDate().toISOString();
-                    let createdAt = data?.createdAt;
+                    let createdAt = data.createdAt;
                     if (createdAt instanceof Timestamp) createdAt = createdAt.toDate().toISOString();
-                    return { id: s.id, ...data, completedAt, createdAt } as Todo;
+                    return { ...data, completedAt, createdAt } as Todo;
                 });
 
             // Helper to sanitize objects for Server Action

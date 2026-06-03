@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useDoc } from '@/firebase';
-import { collection, query, where, addDoc, updateDoc, doc, deleteDoc, getDocs, writeBatch, arrayUnion, arrayRemove, Timestamp } from 'firebase/firestore';
+import { collection, query, where, addDoc, updateDoc, doc, deleteDoc, getDocs, writeBatch, arrayUnion, arrayRemove, Timestamp, collectionGroup } from 'firebase/firestore';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -785,7 +785,7 @@ export default function ChecklistsPage() {
   
   const isAdmin = useMemo(() => {
     const role = (appUser as AppUser)?.role?.toLowerCase();
-    return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+    return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es' || user?.email?.toLowerCase() === 'admin@onlyforward.nl';
   }, [appUser, user?.email]);
 
   const [loading, setLoading] = useState(true);
@@ -808,14 +808,18 @@ export default function ChecklistsPage() {
             }
 
             // Fetch checklist templates
-            const checklistsQuery = query(collection(firestore, 'users', managerUid, 'checklistTemplates'));
+            const checklistsQuery = isAdmin
+                ? query(collectionGroup(firestore, 'checklistTemplates'))
+                : query(collection(firestore, 'users', managerUid, 'checklistTemplates'));
             const checklistSnapshot = await getDocs(checklistsQuery);
             const checklistData = checklistSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChecklistTemplate));
             const checklistMap = new Map(checklistData.map(c => [c.id, c.name]));
             setChecklists(checklistData);
 
             // Fetch parent clients
-            const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
+            const clientsQuery = isAdmin 
+                ? collection(firestore, 'parentClients')
+                : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
             const clientsSnapshot = await getDocs(clientsQuery);
             const parentClients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ParentClient));
             const parentClientMap = new Map(parentClients.map(c => [c.id, c.clientName]));
@@ -846,7 +850,9 @@ export default function ChecklistsPage() {
             setChecklists(checklistData);
             
             // Fetch checklist runs
-            const runsQuery = query(collection(firestore, 'checklistRuns'), where('managerId', '==', managerUid));
+            const runsQuery = isAdmin 
+                ? collection(firestore, 'checklistRuns')
+                : query(collection(firestore, 'checklistRuns'), where('managerId', '==', managerUid));
             const runsSnapshot = await getDocs(runsQuery);
             
             const runsData = runsSnapshot.docs.map(doc => {

@@ -44,7 +44,10 @@ export default function CheckInPage() {
     }, [userDocRef]);
     const isAdmin = useMemo(() => {
         const role = (appUser as any)?.role?.toLowerCase();
-        return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es';
+        return role === 'admin' || 
+               user?.email === 'billy@pearsonline.nl' || 
+               user?.email === 'billy@trooper.es' || 
+               user?.email?.toLowerCase() === 'admin@onlyforward.nl';
     }, [appUser, user?.email]);
 
     useEffect(() => {
@@ -57,7 +60,7 @@ export default function CheckInPage() {
                 const clientMap = new Map<string, string>();
 
                 if (isAdmin) {
-                    const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', user.uid));
+                    const clientsQuery = query(collection(firestore, 'parentClients'));
                     const clientsSnap = await getDocs(clientsQuery);
                     
                     clientsSnap.docs.forEach(d => {

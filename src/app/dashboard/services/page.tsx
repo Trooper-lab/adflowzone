@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, getDocs, addDoc, doc, deleteDoc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, getDoc, getDocs, addDoc, doc, deleteDoc, updateDoc, query, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,9 +49,16 @@ export default function ServicesManagementPage() {
         if (!firestore || !user) return;
         setLoading(true);
         try {
+            const userDocSnap = await getDoc(doc(firestore, 'users', user.uid));
+            const role = userDocSnap.exists() ? userDocSnap.data().role?.toLowerCase() : null;
+            const isAdmin = role === 'admin' || user.email === 'billy@pearsonline.nl' || user.email === 'billy@trooper.es' || user.email?.toLowerCase() === 'admin@onlyforward.nl';
+
+            const srvQuery = isAdmin ? collection(firestore, 'services') : query(collection(firestore, 'services'), where('ownerId', '==', user.uid));
+            const pkgQuery = isAdmin ? collection(firestore, 'servicePackages') : query(collection(firestore, 'servicePackages'), where('ownerId', '==', user.uid));
+
             const [srvSnap, pkgSnap] = await Promise.all([
-                getDocs(query(collection(firestore, 'services'), where('ownerId', '==', user.uid))),
-                getDocs(query(collection(firestore, 'servicePackages'), where('ownerId', '==', user.uid)))
+                getDocs(srvQuery),
+                getDocs(pkgQuery)
             ]);
             
             setServices(srvSnap.docs.map(d => ({ id: d.id, ...d.data() } as Service)).sort((a, b) => a.name.localeCompare(b.name)));
