@@ -101,6 +101,7 @@ export default function TasksPage() {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [sheetMode, setSheetMode] = useState<'create' | 'edit'>('create');
     const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
+    const [managerTaskTypes, setManagerTaskTypes] = useState<string[]>([]);
     
     // Form fields for the sheet
     const [sheetTitle, setSheetTitle] = useState('');
@@ -109,6 +110,7 @@ export default function TasksPage() {
     const [sheetAssignee, setSheetAssignee] = useState<string>('unassigned');
     const [sheetDueDate, setSheetDueDate] = useState<Date | undefined>(undefined);
     const [sheetBriefing, setSheetBriefing] = useState('');
+    const [sheetTaskType, setSheetTaskType] = useState('');
     
     const [commentText, setCommentText] = useState('');
     const [isSavingSheet, setIsSavingSheet] = useState(false);
@@ -140,6 +142,15 @@ export default function TasksPage() {
                 const teamSnap = await getDocs(collection(firestore, 'users'));
                 const team = teamSnap.docs.map(d => ({ id: d.id, ...d.data() } as AppUser));
                 setTeamMembers(team);
+
+                // 4. Fetch manager's task types
+                const managerDocSnap = teamSnap.docs.find(d => d.id === managerUid);
+                if (managerDocSnap) {
+                    const mData = managerDocSnap.data() as AppUser;
+                    if (mData.taskTypes) {
+                        setManagerTaskTypes(mData.taskTypes);
+                    }
+                }
             } catch (e) {
                 console.error("Error fetching static tasks metadata:", e);
             } finally {
@@ -385,6 +396,28 @@ export default function TasksPage() {
             await updateDoc(todoRef, { content: val.trim() });
         } catch (e) {
             console.error("Error updating title:", e);
+        }
+    };
+
+    // Change Task Type
+    const handleTaskTypeChange = async (todo: Todo, val: string) => {
+        if (!firestore || !managerUid) return;
+
+        const type = val.trim();
+        const todoRef = doc(firestore, 'todos', todo.id);
+        try {
+            await updateDoc(todoRef, { taskType: type || null });
+            
+            // If new type, save to manager settings
+            if (type && !managerTaskTypes.includes(type)) {
+                setManagerTaskTypes(prev => [...prev, type]);
+                const managerRef = doc(firestore, 'users', managerUid);
+                await updateDoc(managerRef, {
+                    taskTypes: arrayUnion(type)
+                });
+            }
+        } catch (e) {
+            console.error("Error updating task type:", e);
         }
     };
 
@@ -754,6 +787,7 @@ export default function TasksPage() {
         setSheetAssignee('unassigned');
         setSheetDueDate(new Date());
         setSheetBriefing('');
+        setSheetTaskType('');
         setCommentText('');
         setIsSheetOpen(true);
     };
@@ -767,6 +801,7 @@ export default function TasksPage() {
         setSheetAssignee(todo.assigneeId || 'unassigned');
         setSheetDueDate(todo.dueDate ? parseISO(todo.dueDate) : undefined);
         setSheetBriefing(todo.briefing || '');
+        setSheetTaskType(todo.taskType || '');
         setCommentText('');
         setIsSheetOpen(true);
     };
@@ -797,6 +832,7 @@ export default function TasksPage() {
                     status: sheetStatus,
                     dueDate: sheetDueDate ? sheetDueDate.toISOString() : null,
                     briefing: sheetBriefing,
+                    taskType: sheetTaskType.trim(),
                     assigneeId: assigneeObj?.uid || null,
                     assigneeName: assigneeObj?.displayName || assigneeObj?.email || null,
                     assigneePhotoUrl: assigneeObj?.photoURL || null
@@ -820,6 +856,7 @@ export default function TasksPage() {
                     completedAt: completedAt,
                     dueDate: sheetDueDate ? sheetDueDate.toISOString() : null,
                     briefing: sheetBriefing,
+                    taskType: sheetTaskType.trim(),
                     assigneeId: assigneeObj?.uid || null,
                     assigneeName: assigneeObj?.displayName || assigneeObj?.email || null,
                     assigneePhotoUrl: assigneeObj?.photoURL || null
@@ -844,11 +881,22 @@ export default function TasksPage() {
                     }
                 }
                 
-                toast({ title: 'Taak bijgewerkt!' });
+                toast({ title: 'Wijzigingen opgeslagen' });
                 setIsSheetOpen(false);
             }
+            
+            // Check if we need to save a new task type
+            const trimmedType = sheetTaskType.trim();
+            if (trimmedType && !managerTaskTypes.includes(trimmedType)) {
+                setManagerTaskTypes(prev => [...prev, trimmedType]);
+                const managerRef = doc(firestore, 'users', managerUid);
+                await updateDoc(managerRef, {
+                    taskTypes: arrayUnion(trimmedType)
+                });
+            }
+
         } catch (e) {
-            console.error("Error saving task:", e);
+            console.error("Error saving task sheet:", e);
             toast({ variant: 'destructive', title: 'Fout bij opslaan taak' });
         } finally {
             setIsSavingSheet(false);
@@ -1225,6 +1273,7 @@ export default function TasksPage() {
                                                 />
                                             </th>
                                             <th className="px-3 py-3 min-w-[200px]">Taak</th>
+                                            <th className="px-3 py-3 w-32">Soort</th>
                                             <th className="px-3 py-3 w-40">Klant / Account</th>
                                             <th className="w-12 py-3 text-center">Chat</th>
                                             <th className="w-28 px-3 py-3">Uitvoerende</th>
@@ -1266,6 +1315,23 @@ export default function TasksPage() {
                                                             setTodos(updated);
                                                         }}
                                                         onBlur={e => handleTitleChange(todo, e.target.value)}
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter') {
+                                                                (e.target as HTMLInputElement).blur();
+                                                            }
+                                                        }}
+                                                    />
+                                                </td>
+
+                                                {/* Task Type */}
+                                                <td className="px-3 py-2.5">
+                                                    <input 
+                                                        type="text"
+                                                        list="taskTypesList"
+                                                        placeholder="Soort..."
+                                                        defaultValue={todo.taskType || ''}
+                                                        className="w-full bg-transparent border border-white/10 hover:border-white/20 focus:border-blue-500/50 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/20 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors"
+                                                        onBlur={e => handleTaskTypeChange(todo, e.target.value)}
                                                         onKeyDown={e => {
                                                             if (e.key === 'Enter') {
                                                                 (e.target as HTMLInputElement).blur();
@@ -1588,6 +1654,7 @@ export default function TasksPage() {
                                                          />
                                                      </th>
                                                      <th className="px-3 py-2.5 min-w-[200px]">Subitem</th>
+                                                     <th className="px-3 py-2.5 w-32">Soort</th>
                                                      <th className="w-12 py-2.5 text-center">Chat</th>
                                                      <th className="w-28 px-3 py-2.5">Uitvoerende</th>
                                                      <th className="w-32 px-3 py-2.5">Status</th>
@@ -1635,6 +1702,23 @@ export default function TasksPage() {
                                                                 }}
                                                             />
                                                         </td>
+
+                                                         {/* Task Type */}
+                                                         <td className="px-3 py-2">
+                                                             <input 
+                                                                 type="text"
+                                                                 list="taskTypesList"
+                                                                 placeholder="Soort..."
+                                                                 defaultValue={todo.taskType || ''}
+                                                                 className="w-full bg-transparent border border-white/10 hover:border-white/20 focus:border-blue-500/50 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/20 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors"
+                                                                 onBlur={e => handleTaskTypeChange(todo, e.target.value)}
+                                                                 onKeyDown={e => {
+                                                                     if (e.key === 'Enter') {
+                                                                         (e.target as HTMLInputElement).blur();
+                                                                     }
+                                                                 }}
+                                                             />
+                                                         </td>
 
                                                         {/* Chat / Comments */}
                                                         <td className="py-2 text-center">
@@ -1880,6 +1964,20 @@ export default function TasksPage() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
+                                    <Label className="text-xs font-bold text-slate-400">Soort taak</Label>
+                                    <Input 
+                                        type="text"
+                                        list="taskTypesList"
+                                        placeholder="Kies of typ nieuw..."
+                                        value={sheetTaskType}
+                                        onChange={e => setSheetTaskType(e.target.value)}
+                                        className="bg-slate-950/60 border border-slate-800 text-slate-200 text-xs font-medium focus-visible:ring-blue-500/20 h-[34px]"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
                                     <Label className="text-xs font-bold text-slate-400">Uitvoerende</Label>
                                     <Select 
                                         value={sheetAssignee}
@@ -2011,6 +2109,12 @@ export default function TasksPage() {
                     )}
                 </SheetContent>
             </Sheet>
+
+            <datalist id="taskTypesList">
+                {managerTaskTypes.map((type, idx) => (
+                    <option key={idx} value={type} />
+                ))}
+            </datalist>
         </div>
     );
 }

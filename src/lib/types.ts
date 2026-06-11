@@ -100,6 +100,7 @@ export type AppUser = {
   photoURL: string;
   role: 'admin' | 'employee' | 'pending';
   managerId?: string;
+  taskTypes?: string[];
 };
 
 export type ParentClient = {
@@ -234,6 +235,7 @@ export type Todo = {
   assigneeId?: string;
   assigneeName?: string;
   assigneePhotoUrl?: string;
+  taskType?: string;
   briefing?: string;
   comments?: Array<{
     id: string;
