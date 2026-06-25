@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import {
@@ -47,9 +47,9 @@ function CreateClientButton() {
 
 function EmptyState() {
   return (
-    <Card className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-white/5">
+    <Card className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-border">
       <div className="flex flex-col items-center gap-4">
-        <div className="p-4 rounded-full bg-white/5">
+        <div className="p-4 rounded-full bg-secondary">
             <Users className="size-12 text-muted-foreground" />
         </div>
         <div className="space-y-2">
@@ -66,7 +66,7 @@ function EmptyState() {
 
 function LoadingState() {
     return (
-        <Card className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-white/5">
+        <Card className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-border">
             <div className="flex flex-col items-center gap-2">
                 <Loader2 className="size-12 text-blue-500 animate-spin" />
                 <h3 className="text-xl font-semibold font-headline">Klanten laden...</h3>
@@ -190,9 +190,9 @@ export default function ClientsPage() {
       {loading ? (
           <LoadingState />
       ) : clients.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-white/5 border rounded-xl">
+          <div className="flex flex-col items-center justify-center gap-6 p-20 text-center border-dashed bg-transparent border-border border rounded-xl">
             <div className="flex flex-col items-center gap-4">
-                <div className="p-4 rounded-full bg-white/5">
+                <div className="p-4 rounded-full bg-secondary">
                     <Users className="size-12 text-muted-foreground" />
                 </div>
                 <div className="space-y-2">
@@ -241,8 +241,8 @@ export default function ClientsPage() {
 
             <Card className="glass-card overflow-hidden shadow-xl">
                 <Table>
-                    <TableHeader className="bg-white/5">
-                        <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableHeader className="bg-secondary">
+                        <TableRow className="border-border hover:bg-transparent">
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 px-6">Klant & Type</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4">Contactpersoon</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 text-center">Accounts</TableHead>
@@ -253,7 +253,7 @@ export default function ClientsPage() {
                     </TableHeader>
                     <TableBody>
                         {clients.map((client) => (
-                            <TableRow key={client.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                            <TableRow key={client.id} className="border-border hover:bg-secondary transition-colors group">
                                 <TableCell className="py-4 px-6">
                                     <div className="flex flex-col">
                                         <Link href={`/dashboard/clients/${client.id}`} className="font-bold text-slate-100 group-hover:text-blue-400 transition-colors">
@@ -284,7 +284,7 @@ export default function ClientsPage() {
                                     </div>
                                 </TableCell>
                                 <TableCell className="py-4 text-center">
-                                    <Badge variant="outline" className="bg-white/5 border-white/5 text-slate-400 font-mono">
+                                    <Badge variant="outline" className="bg-secondary border-border text-slate-400 font-mono">
                                         {client.accountCount}
                                     </Badge>
                                 </TableCell>
@@ -299,23 +299,23 @@ export default function ClientsPage() {
                                 <TableCell className="py-4 text-right px-6">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-white/10">
+                                            <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-accent">
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end" className="glass-card text-slate-200">
                                             <DropdownMenuLabel>Beheer</DropdownMenuLabel>
-                                            <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                            <DropdownMenuItem asChild className="focus:bg-accent focus:text-foreground cursor-pointer">
                                                 <Link href={`/dashboard/clients/${client.id}/`}>
                                                     <Target className="mr-2 size-4" /> Accounts bekijken
                                                 </Link>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                            <DropdownMenuItem asChild className="focus:bg-accent focus:text-foreground cursor-pointer">
                                                 <Link href={`/dashboard/clients/${client.id}/edit`}>
                                                     <Briefcase className="mr-2 size-4" /> Klant bewerken
                                                 </Link>
                                             </DropdownMenuItem>
-                                            <DropdownMenuSeparator className="bg-white/5" />
+                                            <DropdownMenuSeparator className="bg-secondary" />
                                             <DropdownMenuItem className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
                                                 Verwijderen
                                             </DropdownMenuItem>

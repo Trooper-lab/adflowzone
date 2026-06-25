@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import { useCollection } from '@/firebase';
@@ -169,7 +169,7 @@ export default function AccountDocuments({ childAccountRef }: AccountDocumentsPr
       </div>
 
       <AlertDialog open={!!deleteLinkId} onOpenChange={(open) => !open && setDeleteLinkId(null)}>
-        <AlertDialogContent className="glass-card-elevated border-white/5 bg-[#1C243A] text-white">
+        <AlertDialogContent className="glass-card-elevated border-border bg-[#1C243A] text-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Link verwijderen?</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-300 font-medium">
@@ -177,7 +177,7 @@ export default function AccountDocuments({ childAccountRef }: AccountDocumentsPr
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">Annuleren</AlertDialogCancel>
+            <AlertDialogCancel className="bg-secondary border-border text-slate-300 hover:bg-accent hover:text-white">Annuleren</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-500 text-white">Verwijderen</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

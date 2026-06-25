@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
@@ -439,7 +439,7 @@ export default function TasksPage() {
             await syncHoursToTimeEntry(todo, 0);
 
             if (selectedTodo?.id === todo.id) {
-                setIsDetailOpen(false);
+                setIsSheetOpen(false);
             }
             toast({ title: 'Taak verwijderd' });
         } catch (e) {
@@ -830,12 +830,12 @@ export default function TasksPage() {
                     completed: completed,
                     createdAt: now.toISOString(),
                     status: sheetStatus,
-                    dueDate: sheetDueDate ? sheetDueDate.toISOString() : null,
+                    dueDate: sheetDueDate ? sheetDueDate.toISOString() : undefined,
                     briefing: sheetBriefing,
                     taskType: sheetTaskType.trim(),
-                    assigneeId: assigneeObj?.uid || null,
-                    assigneeName: assigneeObj?.displayName || assigneeObj?.email || null,
-                    assigneePhotoUrl: assigneeObj?.photoURL || null
+                    assigneeId: assigneeObj?.uid || undefined,
+                    assigneeName: assigneeObj?.displayName || assigneeObj?.email || undefined,
+                    assigneePhotoUrl: assigneeObj?.photoURL || undefined
                 };
 
                 const docRef = await addDoc(collection(firestore, 'todos'), newTodo);
@@ -847,19 +847,19 @@ export default function TasksPage() {
                 toast({ title: 'Taak aangemaakt! 🚀' });
                 setIsSheetOpen(false);
             } else if (sheetMode === 'edit' && selectedTodo) {
-                const completedAt = completed && selectedTodo.status !== 'completed' ? new Date().toISOString() : selectedTodo.completedAt || null;
+                const completedAt = completed && selectedTodo.status !== 'completed' ? new Date().toISOString() : selectedTodo.completedAt || undefined;
                 
                 const updates: Partial<Todo> = {
                     content: sheetTitle.trim(),
                     status: sheetStatus,
                     completed: completed,
                     completedAt: completedAt,
-                    dueDate: sheetDueDate ? sheetDueDate.toISOString() : null,
+                    dueDate: sheetDueDate ? sheetDueDate.toISOString() : undefined,
                     briefing: sheetBriefing,
                     taskType: sheetTaskType.trim(),
-                    assigneeId: assigneeObj?.uid || null,
-                    assigneeName: assigneeObj?.displayName || assigneeObj?.email || null,
-                    assigneePhotoUrl: assigneeObj?.photoURL || null
+                    assigneeId: assigneeObj?.uid || undefined,
+                    assigneeName: assigneeObj?.displayName || assigneeObj?.email || undefined,
+                    assigneePhotoUrl: assigneeObj?.photoURL || undefined
                 };
                 
                 const todoRef = doc(firestore, 'todos', selectedTodo.id);
@@ -911,7 +911,7 @@ export default function TasksPage() {
             id: Math.random().toString(36).substring(2, 9),
             userId: user?.uid || '',
             userName: appUser?.displayName || user?.displayName || user?.email || 'Onbekend',
-            userPhotoUrl: user?.photoURL || null,
+            userPhotoUrl: user?.photoURL || undefined,
             text: commentText.trim(),
             createdAt: new Date().toISOString()
         };
@@ -1079,7 +1079,7 @@ export default function TasksPage() {
             </div>
 
             {/* Filters */}
-            <Card className="glass-card border-white/5 bg-slate-900/30">
+            <Card className="glass-card border-border bg-slate-900/30">
                 <CardContent className="p-6 flex flex-col md:flex-row md:items-center gap-4">
                     <div className="relative flex-grow">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 size-4" />
@@ -1177,7 +1177,7 @@ export default function TasksPage() {
                     <div className="space-y-6">
                         {/* Page Bulk Action Bar */}
                         {Object.values(selectedTaskIds).flat().length > 0 && (
-                            <div className="flex flex-wrap items-center justify-between gap-4 bg-[#1e293b]/70 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-300 animate-in slide-in-from-top duration-300">
+                            <div className="flex flex-wrap items-center justify-between gap-4 bg-[#1e293b]/70 border border-border rounded-xl px-4 py-2.5 text-xs text-slate-300 animate-in slide-in-from-top duration-300">
                                 <div className="flex items-center gap-3">
                                     <span className="font-bold text-blue-400">{Object.values(selectedTaskIds).flat().length} geselecteerd</span>
                                     <button 
@@ -1260,11 +1260,11 @@ export default function TasksPage() {
                             </div>
                         )}
 
-                        <div className="rounded-xl border border-white/5 bg-slate-900/15 overflow-hidden">
+                        <div className="rounded-xl border border-border bg-slate-900/15 overflow-hidden">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-xs border-collapse">
                                     <thead>
-                                        <tr className="border-b border-white/5 bg-[#0f172a]/20 text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                                        <tr className="border-b border-border bg-[#0f172a]/20 text-[10px] font-black uppercase text-slate-500 tracking-widest">
                                             <th className="w-10 px-4 py-3 text-center">
                                                 <Checkbox 
                                                     checked={listTodos.length > 0 && (Object.values(selectedTaskIds).flat().length === listTodos.length)} 
@@ -1330,7 +1330,7 @@ export default function TasksPage() {
                                                         list="taskTypesList"
                                                         placeholder="Soort..."
                                                         defaultValue={todo.taskType || ''}
-                                                        className="w-full bg-transparent border border-white/10 hover:border-white/20 focus:border-blue-500/50 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/20 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors"
+                                                        className="w-full bg-transparent border border-border hover:border-border focus:border-blue-500/50 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/20 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors"
                                                         onBlur={e => handleTaskTypeChange(todo, e.target.value)}
                                                         onKeyDown={e => {
                                                             if (e.key === 'Enter') {
@@ -1352,7 +1352,7 @@ export default function TasksPage() {
                                                 <td className="py-2.5 text-center">
                                                     <button 
                                                         className={cn(
-                                                            "relative inline-flex items-center justify-center p-1 rounded hover:bg-white/5 transition-all text-slate-500 hover:text-slate-300",
+                                                            "relative inline-flex items-center justify-center p-1 rounded hover:bg-secondary transition-all text-slate-500 hover:text-slate-300",
                                                             todo.comments && todo.comments.length > 0 && "text-blue-400 hover:text-blue-300"
                                                         )}
                                                         onClick={() => openDetailPanel(todo)}
@@ -1512,10 +1512,10 @@ export default function TasksPage() {
                             : '-';
 
                         return (
-                            <div key={account.id} className="rounded-xl border border-white/5 bg-slate-900/15 overflow-hidden transition-all duration-300">
+                            <div key={account.id} className="rounded-xl border border-border bg-slate-900/15 overflow-hidden transition-all duration-300">
                                 {/* Child Account Header Row */}
                                 <div 
-                                    className="flex items-center justify-between px-4 py-3 bg-[#171f33]/40 border-b border-white/5 cursor-pointer select-none group"
+                                    className="flex items-center justify-between px-4 py-3 bg-[#171f33]/40 border-b border-border cursor-pointer select-none group"
                                     onClick={() => setCollapsedGroups(prev => ({ ...prev, [account.id]: !isCollapsed }))}
                                 >
                                     <div className="flex items-center gap-3 min-w-0">
@@ -1559,7 +1559,7 @@ export default function TasksPage() {
                                  <div className={cn("transition-all duration-300", isCollapsed ? "max-h-0 overflow-hidden" : "max-h-auto opacity-100")}>
                                      {/* Bulk Action Bar */}
                                      {selectedTaskIds[account.id]?.length > 0 && (
-                                         <div className="flex flex-wrap items-center justify-between gap-4 bg-[#1e293b]/70 border-b border-white/5 px-4 py-2.5 text-xs text-slate-300 animate-in slide-in-from-top duration-300">
+                                         <div className="flex flex-wrap items-center justify-between gap-4 bg-[#1e293b]/70 border-b border-border px-4 py-2.5 text-xs text-slate-300 animate-in slide-in-from-top duration-300">
                                              <div className="flex items-center gap-3">
                                                  <span className="font-bold text-blue-400">{selectedTaskIds[account.id].length} geselecteerd</span>
                                                  <button 
@@ -1645,7 +1645,7 @@ export default function TasksPage() {
                                      <div className="overflow-x-auto">
                                          <table className="w-full text-left text-xs border-collapse">
                                              <thead>
-                                                 <tr className="border-b border-white/5 bg-[#0f172a]/20 text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                                                 <tr className="border-b border-border bg-[#0f172a]/20 text-[10px] font-black uppercase text-slate-500 tracking-widest">
                                                      <th className="w-10 px-4 py-2.5 text-center">
                                                          <Checkbox 
                                                              checked={accountTodos.length > 0 && (selectedTaskIds[account.id]?.length === accountTodos.length)} 
@@ -1710,7 +1710,7 @@ export default function TasksPage() {
                                                                  list="taskTypesList"
                                                                  placeholder="Soort..."
                                                                  defaultValue={todo.taskType || ''}
-                                                                 className="w-full bg-transparent border border-white/10 hover:border-white/20 focus:border-blue-500/50 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/20 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors"
+                                                                 className="w-full bg-transparent border border-border hover:border-border focus:border-blue-500/50 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/20 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors"
                                                                  onBlur={e => handleTaskTypeChange(todo, e.target.value)}
                                                                  onKeyDown={e => {
                                                                      if (e.key === 'Enter') {
@@ -1724,7 +1724,7 @@ export default function TasksPage() {
                                                         <td className="py-2 text-center">
                                                             <button 
                                                                 className={cn(
-                                                                    "relative inline-flex items-center justify-center p-1 rounded hover:bg-white/5 transition-all text-slate-500 hover:text-slate-300",
+                                                                    "relative inline-flex items-center justify-center p-1 rounded hover:bg-secondary transition-all text-slate-500 hover:text-slate-300",
                                                                     todo.comments && todo.comments.length > 0 && "text-blue-400 hover:text-blue-300"
                                                                 )}
                                                                 onClick={() => openDetailPanel(todo)}
@@ -1894,8 +1894,8 @@ export default function TasksPage() {
 
             {/* Unified Task Sheet */}
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                <SheetContent className="w-full sm:max-w-xl bg-[#171f33]/95 backdrop-blur-xl border-white/5 text-slate-100 p-6 flex flex-col h-full shadow-2xl overflow-hidden">
-                    <SheetHeader className="pb-4 border-b border-white/5 shrink-0">
+                <SheetContent className="w-full sm:max-w-xl bg-[#171f33]/95 border-border text-slate-100 p-6 flex flex-col h-full shadow-2xl overflow-hidden">
+                    <SheetHeader className="pb-4 border-b border-border shrink-0">
                         <SheetTitle className="text-xl font-headline text-slate-100">
                             {sheetMode === 'create' ? 'Nieuwe Taak Aanmaken' : 'Taak Details'}
                         </SheetTitle>
@@ -2027,7 +2027,7 @@ export default function TasksPage() {
                             </div>
                             
                             {/* Opslaan Knop */}
-                            <div className="flex justify-end pt-4 pb-2 border-b border-white/5">
+                            <div className="flex justify-end pt-4 pb-2 border-b border-border">
                                 <Button 
                                     onClick={handleSaveTaskSheet} 
                                     disabled={isSavingSheet || !sheetTitle.trim() || !sheetAccountId}
@@ -2050,7 +2050,7 @@ export default function TasksPage() {
                                     ) : (
                                         <div className="space-y-3">
                                             {selectedTodo.comments.map((comment) => (
-                                                <div key={comment.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2 text-xs">
+                                                <div key={comment.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-border space-y-2 text-xs">
                                                     <div className="flex items-center justify-between gap-2">
                                                         <div className="flex items-center gap-2">
                                                             <Avatar className="size-4.5 border border-slate-800">
@@ -2079,7 +2079,7 @@ export default function TasksPage() {
 
                     {/* Comment composer */}
                     {sheetMode === 'edit' && selectedTodo && (
-                        <SheetFooter className="pt-4 border-t border-white/5 shrink-0 flex-col sm:flex-col items-stretch gap-3">
+                        <SheetFooter className="pt-4 border-t border-border shrink-0 flex-col sm:flex-col items-stretch gap-3">
                             <div className="space-y-2">
                                 <Textarea 
                                     placeholder="Plaats een reactie (kopieer links hierin)..."

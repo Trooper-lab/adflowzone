@@ -148,11 +148,11 @@ export default function EditBriefingPage() {
             Terug naar Editor
           </Link>
           <div className="space-y-2">
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+            <h1 className="text-4xl font-black text-slate-100 tracking-tight flex items-center gap-3">
               <Settings2 className="size-10 text-blue-600" />
               Bewerk Strategie
             </h1>
-            <p className="text-lg text-slate-500 max-w-2xl">
+            <p className="text-lg text-slate-400 max-w-2xl">
               Pas de kerngegevens van je briefing aan voor {briefing.context.clientName}.
             </p>
           </div>

@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -366,9 +366,9 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
     const todoRef = doc(firestore, 'users', managerId, 'todos', todo.id);
     try {
       const updateData = {
-        assigneeId: assignee?.uid || null,
-        assigneeName: assignee?.displayName || assignee?.email || null,
-        assigneePhotoUrl: assignee?.photoURL || null
+        assigneeId: assignee?.uid || undefined,
+        assigneeName: assignee?.displayName || assignee?.email || undefined,
+        assigneePhotoUrl: assignee?.photoURL || undefined
       };
       await updateDoc(todoRef, updateData);
       setActiveTodo(prev => prev ? { ...prev, ...updateData } : null);
@@ -444,7 +444,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
       id: Math.random().toString(36).substring(2, 9),
       userId: user?.uid || '',
       userName: appUser?.displayName || user?.displayName || user?.email || 'Onbekend',
-      userPhotoUrl: user?.photoURL || null,
+      userPhotoUrl: user?.photoURL || undefined,
       text: commentText.trim(),
       createdAt: new Date().toISOString()
     };
@@ -701,7 +701,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
     >
        <SheetContent 
          className={cn(
-           "w-full sm:max-w-2xl flex flex-col bg-[#171f33]/95 backdrop-blur-xl border-white/5 text-slate-50 p-0 transition-all duration-500 ease-in-out [&>button]:hidden", 
+           "w-full sm:max-w-2xl flex flex-col bg-[#171f33]/95 border-border text-slate-50 p-0 transition-all duration-500 ease-in-out [&>button]:hidden", 
            showTodos && "sm:max-w-5xl"
          )}
          onPointerDownOutside={(e) => {
@@ -723,7 +723,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
          )}
 
          <div className="flex w-full h-full overflow-hidden">
-            <div className={cn("w-full flex flex-col flex-shrink-0 border-r border-white/5 transition-all duration-500", showTodos ? "sm:w-3/5" : "sm:w-full")}>
+            <div className={cn("w-full flex flex-col flex-shrink-0 border-r border-border transition-all duration-500", showTodos ? "sm:w-3/5" : "sm:w-full")}>
                 
                 {timerStatus === 'idle' ? (
                     <div className="flex-grow flex flex-col items-center justify-center p-12 text-center space-y-8 animate-in fade-in zoom-in duration-500">
@@ -751,7 +751,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                                 size="lg"
                                 onClick={handleSkip}
                                 disabled={skipping}
-                                className="text-slate-400 hover:text-white hover:bg-white/5 font-bold uppercase tracking-widest text-xs h-12"
+                                className="text-slate-400 hover:text-white hover:bg-secondary font-bold uppercase tracking-widest text-xs h-12"
                             >
                                 {skipping ? <Loader2 className="animate-spin size-4 mr-2" /> : <SkipForward className="size-4 mr-2" />}
                                 Nu overslaan
@@ -791,7 +791,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                                     <Button 
                                         variant="ghost" 
                                         size="icon" 
-                                        className="size-10 rounded-full hover:bg-white/10"
+                                        className="size-10 rounded-full hover:bg-accent"
                                         onClick={() => setTimerStatus(timerStatus === 'running' ? 'paused' : 'running')}
                                     >
                                         {timerStatus === 'running' ? <Pause className="size-5 fill-current" /> : <Play className="size-5 fill-current" />}
@@ -804,7 +804,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                                     <span className="flex items-center gap-2">Voortgang {allCompleted && <Check className="size-3 text-green-400 animate-bounce" />}</span>
                                     <span className={cn("transition-colors duration-500", allCompleted ? "text-green-400" : "text-blue-400")}>{completedCount}/{totalCount} Taken</span>
                                 </div>
-                                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden border border-border">
                                     <div 
                                         className={cn("h-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(77,142,255,0.3)]", allCompleted ? "bg-emerald-400" : "bg-primary")}
                                         style={{ width: `${progressValue}%` }}
@@ -824,7 +824,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                                                 "p-4 border rounded-xl space-y-3 transition-all duration-300 transform", 
                                                 isCompleted 
                                                     ? 'bg-emerald-500/[0.03] border-emerald-500/20 opacity-80' 
-                                                    : 'bg-white/[0.03] border-white/5 shadow-sm hover:border-white/10',
+                                                    : 'bg-white/[0.03] border-border shadow-sm hover:border-border',
                                                 "animate-in fade-in slide-in-from-bottom-2 duration-500"
                                             )}
                                             style={{ animationDelay: `${index * 50}ms` }}
@@ -871,7 +871,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                                                             placeholder="Maak een observatie of notitie voor het rapport..."
                                                             value={taskStates[task.id]?.notes}
                                                             onChange={(e) => handleTaskChange(task.id, 'notes', e.target.value)}
-                                                            className="mt-1 bg-[#0b1326]/50 border-white/5 focus:border-primary/30 focus-visible:ring-primary/10 text-slate-200 text-sm placeholder:text-slate-600 min-h-[100px] rounded-lg transition-all"
+                                                            className="mt-1 bg-[#0b1326]/50 border-border focus:border-primary/30 focus-visible:ring-primary/10 text-slate-200 text-sm placeholder:text-slate-600 min-h-[100px] rounded-lg transition-all"
                                                             onBlur={() => !taskStates[task.id]?.notes && setActiveNote(null)}
                                                             autoFocus
                                                         />
@@ -892,7 +892,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                             </div>
                         </ScrollArea>
                         
-                        <SheetFooter className="gap-3 p-6 bg-[#171f33] border-t border-white/5 sm:justify-between items-center shadow-[0_-10px_30px_rgba(0,0,0,0.2)]">
+                        <SheetFooter className="gap-3 p-6 bg-[#171f33] border-t border-border sm:justify-between items-center shadow-[0_-10px_30px_rgba(0,0,0,0.2)]">
                             <div className="flex gap-2">
                                 <button 
                                     className={cn(
@@ -904,7 +904,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                                     <ListTodo className="mr-2 size-4" />
                                     Taken {pendingTodos && pendingTodos.length > 0 && <Badge className="ml-2 bg-blue-600 text-white h-5 px-1.5 min-w-[20px] justify-center text-[10px] animate-pulse border-none">{pendingTodos.length}</Badge>}
                                 </button>
-                                <Button variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all rounded-lg font-bold text-xs uppercase tracking-wider" onClick={handleSkip} disabled={skipping || loading}>
+                                <Button variant="ghost" className="text-slate-400 hover:text-white hover:bg-secondary active:scale-95 transition-all rounded-lg font-bold text-xs uppercase tracking-wider" onClick={handleSkip} disabled={skipping || loading}>
                                     {skipping ? <Loader2 className="animate-spin size-4 mr-2" /> : <SkipForward className="size-4 mr-2" />}
                                     Overslaan
                                 </Button>
@@ -927,7 +927,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                 )}
             </div>
 
-             <div className={cn("w-full sm:w-2/5 flex flex-col flex-shrink-0 bg-[#171f33]/90 transition-all duration-500 border-l border-white/5 ease-in-out", !showTodos && "hidden translate-x-full opacity-0")}>
+             <div className={cn("w-full sm:w-2/5 flex flex-col flex-shrink-0 bg-[#171f33]/90 transition-all duration-500 border-l border-border ease-in-out", !showTodos && "hidden translate-x-full opacity-0")}>
                 <div className="p-6 pb-2">
                     <h3 className="text-2xl font-bold font-headline text-slate-100 flex items-center gap-3">
                         <ListTodo className="text-blue-400 size-6" />
@@ -943,7 +943,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                              (pendingTodos as Todo[] || []).length > 0 ? (pendingTodos as Todo[]).map((todo, i) => (
                                 <div 
                                     key={todo.id} 
-                                    className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-start gap-3 group hover:border-primary/30 transition-all hover:bg-white/[0.04] animate-in fade-in slide-in-from-right-4 duration-500"
+                                    className="p-3.5 rounded-xl bg-white/[0.02] border border-border flex items-start gap-3 group hover:border-primary/30 transition-all hover:bg-white/[0.04] animate-in fade-in slide-in-from-right-4 duration-500"
                                     style={{ animationDelay: `${i * 100}ms` }}
                                 >
                                     <Checkbox 
@@ -956,7 +956,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                                             <Label htmlFor={`todo-runner-${todo.id}`} className="text-sm font-bold text-slate-300 leading-tight block cursor-pointer group-hover:text-slate-100 transition-colors">{todo.content}</Label>
                                             <button 
                                                 className={cn(
-                                                    "relative inline-flex items-center justify-center p-1 rounded hover:bg-white/5 transition-all text-slate-500 hover:text-slate-300 shrink-0",
+                                                    "relative inline-flex items-center justify-center p-1 rounded hover:bg-secondary transition-all text-slate-500 hover:text-slate-300 shrink-0",
                                                     todo.comments && todo.comments.length > 0 && "text-blue-400 hover:text-blue-300"
                                                 )}
                                                 onClick={() => openTodoDetail(todo)}
@@ -1012,8 +1012,8 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                                     </div>
                                 </div>
                             )) : (
-                                <div className="text-center py-16 px-4 border-2 border-dashed border-white/5 rounded-3xl animate-in fade-in duration-1000">
-                                    <div className="p-4 rounded-full bg-white/5 w-fit mx-auto mb-4 border border-white/5">
+                                <div className="text-center py-16 px-4 border-2 border-dashed border-border rounded-3xl animate-in fade-in duration-1000">
+                                    <div className="p-4 rounded-full bg-secondary w-fit mx-auto mb-4 border border-border">
                                         <Check className="size-8 text-slate-700" />
                                     </div>
                                     <p className="text-xs text-slate-500 font-black uppercase tracking-widest leading-relaxed">Alles onder controle</p>
@@ -1022,7 +1022,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                         )}
                     </div>
                  </ScrollArea>
-                 <div className="p-6 border-t border-white/5 bg-[#0f172a]/50">
+                 <div className="p-6 border-t border-border bg-[#0f172a]/50">
                     <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Nieuwe actie vastleggen</h4>
                      <div className="space-y-4">
                         <Input
@@ -1030,7 +1030,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                             value={newTodoContent}
                             onChange={(e) => setNewTodoContent(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
-                            className="bg-[#0b1326]/50 border-white/5 focus:border-primary/30 focus-visible:ring-primary/10 text-slate-200 h-11 text-sm placeholder:text-slate-600 rounded-lg transition-all"
+                            className="bg-[#0b1326]/50 border-border focus:border-primary/30 focus-visible:ring-primary/10 text-slate-200 h-11 text-sm placeholder:text-slate-600 rounded-lg transition-all"
                         />
                         <div className="flex gap-2">
                             <Popover>
@@ -1039,7 +1039,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                                     variant={"outline"}
                                     size="sm"
                                     className={cn(
-                                        "flex-grow justify-start text-left font-bold border border-white/5 bg-[#0b1326]/50 hover:bg-white/5 h-10 text-[10px] uppercase tracking-widest rounded-lg transition-all",
+                                        "flex-grow justify-start text-left font-bold border border-border bg-[#0b1326]/50 hover:bg-secondary h-10 text-[10px] uppercase tracking-widest rounded-lg transition-all",
                                         !dueDate && "text-slate-500"
                                     )}
                                     >
@@ -1078,10 +1078,10 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
        </SheetContent>
 
       <Dialog open={isTaskDetailOpen} onOpenChange={setIsTaskDetailOpen}>
-        <DialogContent className="w-full sm:max-w-2xl bg-[#171f33]/95 backdrop-blur-xl border-white/5 text-slate-100 p-6 flex flex-col h-[85vh] max-h-[85vh] shadow-2xl overflow-hidden">
+        <DialogContent className="w-full sm:max-w-2xl bg-[#171f33]/95 border-border text-slate-100 p-6 flex flex-col h-[85vh] max-h-[85vh] shadow-2xl overflow-hidden">
           {activeTodo && (
             <>
-              <DialogHeader className="pb-4 border-b border-white/5 shrink-0">
+              <DialogHeader className="pb-4 border-b border-border shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-black">
                     <span>{activeTodo.parentClientName}</span>
@@ -1099,7 +1099,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
               <div className="flex-grow overflow-y-auto space-y-6 py-6 -mx-6 px-6">
                 
                 {/* Meta details (Assignee, Status, Date, Worked Hours) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-white/[0.02] border border-border text-xs">
                   {/* Status */}
                   <div className="space-y-1">
                     <span className="text-[9px] font-black uppercase text-slate-500">Status</span>
@@ -1241,7 +1241,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                 </div>
 
                 {/* Comments thread */}
-                <div className="space-y-4 pt-4 border-t border-white/5">
+                <div className="space-y-4 pt-4 border-t border-border">
                   <Label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Reacties</Label>
                   
                   {/* Comments list */}
@@ -1251,7 +1251,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
                     ) : (
                       <div className="space-y-3">
                         {activeTodo.comments.map((comment) => (
-                          <div key={comment.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2 text-xs">
+                          <div key={comment.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-border space-y-2 text-xs">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
                                 <Avatar className="size-4.5 border border-slate-800">
@@ -1278,7 +1278,7 @@ export function ChecklistRunner({ account, checklistId, connectedChecklist, open
               </div>
 
               {/* Comment composer */}
-              <DialogFooter className="pt-4 border-t border-white/5 shrink-0 flex-col sm:flex-col items-stretch gap-3">
+              <DialogFooter className="pt-4 border-t border-border shrink-0 flex-col sm:flex-col items-stretch gap-3">
                 <div className="space-y-2">
                   <Textarea 
                     placeholder="Plaats een reactie (kopieer links hierin)..."

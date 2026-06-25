@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { query, collection, where } from 'firebase/firestore';
@@ -68,7 +68,7 @@ export default function AccountReports({ accountId }: { accountId: string }) {
         {!reportsLoading && reports.length > 0 && (
           <div className="space-y-2">
             {reports.map((report) => (
-                <div key={report.id} className="flex items-center justify-between p-2 rounded-md hover:bg-slate-800/50">
+                <div key={report.id} className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
                     <div>
                         <p className="font-medium">
                             {format(parseISO(report.period + '-02'), 'MMMM yyyy')} Report

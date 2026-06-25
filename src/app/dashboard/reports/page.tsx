@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -83,6 +83,7 @@ function KpiEntryDialog({
         const kpiDoc: Omit<KpiData, 'id'> = {
             ownerId: managerUid,
             childAccountId: account.id,
+            parentClientId: account.parentClientId,
             periodType: 'monthly',
             startDate: startOfMonth(new Date(period)).toISOString(),
             kpiValues: numericKpiValues
@@ -506,9 +507,9 @@ export default function ReportDashboard() {
                 .filter(todo => (report.completedTodoRunIds || []).includes(todo.id))
                 .map(data => {
                     let completedAt = data.completedAt;
-                    if (completedAt instanceof Timestamp) completedAt = completedAt.toDate().toISOString();
+                    if ((completedAt as any) instanceof Timestamp) completedAt = (completedAt as any).toDate().toISOString();
                     let createdAt = data.createdAt;
-                    if (createdAt instanceof Timestamp) createdAt = createdAt.toDate().toISOString();
+                    if ((createdAt as any) instanceof Timestamp) createdAt = (createdAt as any).toDate().toISOString();
                     return { ...data, completedAt, createdAt } as Todo;
                 });
 
@@ -673,7 +674,7 @@ export default function ReportDashboard() {
                 </Card>
             </div>
             
-             <div className="flex justify-between items-center bg-card p-1.5 rounded-xl border border-white/5">
+             <div className="flex justify-between items-center bg-card p-1.5 rounded-xl border border-border">
                 <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
                     <Button variant={activeTab === 'all' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('all')} className="h-8 text-[10px] uppercase font-bold tracking-wider">Alles</Button>
                     <Button variant={activeTab === 'pending' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('pending')} className="h-8 text-[10px] uppercase font-bold tracking-wider">Wachtrij</Button>
@@ -690,7 +691,7 @@ export default function ReportDashboard() {
                 <Accordion type="multiple" defaultValue={Object.keys(accountsByClient)} className="w-full space-y-4">
                     {Object.entries(accountsByClient).map(([clientId, clientData]) => (
                         <AccordionItem value={clientId} key={clientId} className="border-none glass-card rounded-xl overflow-hidden shadow-sm">
-                             <div className="flex items-center px-6 py-4 hover:bg-white/5 transition-colors">
+                             <div className="flex items-center px-6 py-4 hover:bg-secondary transition-colors">
                                 <AccordionTrigger className="flex-grow p-0 hover:no-underline">
                                     <div className="flex items-center gap-4">
                                         <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400">
@@ -700,7 +701,7 @@ export default function ReportDashboard() {
                                     </div>
                                 </AccordionTrigger>
                             </div>
-                            <AccordionContent className="p-0 border-t border-white/5 bg-black/10">
+                            <AccordionContent className="p-0 border-t border-border bg-black/10">
                                 <div className="divide-y divide-white/5">
                                 {clientData.accounts.flatMap(account => {
                                     const accountReports = (activeTab === 'history') 
@@ -735,7 +736,7 @@ export default function ReportDashboard() {
                                         }
 
                                         return (
-                                        <div key={`${account.id}-${rIndex}`} className="p-4 grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_auto] items-center gap-4 hover:bg-white/5 transition-colors">
+                                        <div key={`${account.id}-${rIndex}`} className="p-4 grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_auto] items-center gap-4 hover:bg-secondary transition-colors">
                                             <div className="pl-4">
                                                 <Link href={`/dashboard/accounts/${account.id}?parent=${account.parentClientId}`} className="font-bold text-slate-200 hover:text-blue-400 transition-colors">
                                                     {account.nickname}
@@ -803,7 +804,7 @@ export default function ReportDashboard() {
                                                             size="sm" 
                                                             onClick={() => handleSkipReport(account)} 
                                                             disabled={skippingReportId === account.id || generatingReportId === account.id}
-                                                            className="h-8 px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white hover:bg-white/5"
+                                                            className="h-8 px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white hover:bg-secondary"
                                                         >
                                                             {skippingReportId === account.id ? <Loader2 className="animate-spin size-3" /> : <SkipForward className="mr-2 size-3"/>}
                                                             Skip

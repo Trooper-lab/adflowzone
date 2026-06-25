@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
@@ -48,9 +48,10 @@ function AddTodoForm({ parentClient, childAccounts, onTodoAdded, onCancel }: Omi
             return;
         }
         
-        const todoCollection = collection(firestore, 'users', parentClient.ownerId, 'todos');
+        const todoCollection = collection(firestore, 'todos');
 
         const newTodo: Omit<Todo, 'id'> = {
+            ownerId: parentClient.ownerId,
             userId: parentClient.ownerId,
             parentClientId: parentClient.id,
             parentClientName: parentClient.clientName,
@@ -162,13 +163,13 @@ export function TodosCard({ parentClient, childAccounts, user, onTodoAdded }: To
     const [isAdding, setIsAdding] = useState(false);
     
     const todosQuery = useMemoFirebase(() => {
-        if (!firestore || !parentClient.id || !parentClient.ownerId) return null;
+        if (!firestore || !parentClient.id) return null;
         return query(
-            collection(firestore, 'users', parentClient.ownerId, 'todos'), 
+            collection(firestore, 'todos'), 
             where('parentClientId', '==', parentClient.id),
             where('completed', '==', false)
         );
-    }, [firestore, parentClient.id, parentClient.ownerId, onTodoAdded]); // re-run onTodoAdded
+    }, [firestore, parentClient.id, onTodoAdded]); // re-run onTodoAdded
     
     const { data: todos, loading: todosLoading } = useCollection(todosQuery);
 
@@ -180,7 +181,7 @@ export function TodosCard({ parentClient, childAccounts, user, onTodoAdded }: To
 
     return (
         <Card>
-            <CardHeader className="bg-muted/30">
+            <CardHeader className="bg-secondary">
                 <div className="flex items-center justify-between">
                     <div>
                         <CardTitle className="flex items-center gap-2 text-lg">Action Items</CardTitle>

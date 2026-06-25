@@ -28,10 +28,12 @@ import {
 } from 'lucide-react';
 
 const CAMPAIGN_TYPES = [
-  { id: 'search', label: 'Search' },
+  { id: 'search', label: 'Google Search' },
   { id: 'pmax', label: 'Performance Max' },
-  { id: 'display', label: 'Display' },
-  { id: 'video', label: 'Video / YouTube' },
+  { id: 'meta', label: 'Meta Ads (Facebook & Instagram)' },
+  { id: 'linkedin', label: 'LinkedIn Ads' },
+  { id: 'display', label: 'Google Display' },
+  { id: 'video', label: 'YouTube Video' },
   { id: 'shopping', label: 'Standard Shopping' },
 ];
 
@@ -116,7 +118,7 @@ export function BriefingForm({
       <div className="lg:col-span-8 space-y-8">
         
         {/* 1. Project Identiteit */}
-        <Card className="bg-[#0F172A] border-slate-800 shadow-xl overflow-hidden group">
+        <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden group">
           <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
           <div className="p-6 space-y-6">
             <div className="flex items-center gap-3">
@@ -235,7 +237,7 @@ export function BriefingForm({
         </Card>
 
         {/* 2. Strategie & Focus */}
-        <Card className="bg-[#0F172A] border-slate-800 shadow-xl overflow-hidden">
+        <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden">
           <div className="p-6 space-y-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-500/10 rounded-lg">
@@ -331,7 +333,7 @@ export function BriefingForm({
         </Card>
 
         {/* 3. Doelgroep & Goals */}
-        <Card className="bg-[#0F172A] border-slate-800 shadow-xl overflow-hidden">
+        <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden">
           <div className="p-6 space-y-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-emerald-500/10 rounded-lg">
@@ -382,7 +384,7 @@ export function BriefingForm({
         </Card>
 
         {/* 4. Tactiek & Budget */}
-        <Card className="bg-[#0F172A] border-slate-800 shadow-xl overflow-hidden">
+        <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden">
           <div className="p-6 space-y-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-orange-500/10 rounded-lg">
@@ -530,6 +532,128 @@ export function BriefingForm({
           </div>
         </Card>
 
+        {/* Meta Ads Settings */}
+        {context.campaignTypes?.includes('meta') && (
+          <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-300">
+            <div className="h-1 bg-gradient-to-r from-pink-500 to-rose-500" />
+            <div className="p-6 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-pink-500/10 rounded-lg">
+                  <Sparkles className="size-5 text-pink-400" />
+                </div>
+                <h2 className="text-lg font-bold text-white">Meta Ads Strategie & Creatie</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Visuals Type / Indeling</Label>
+                  <Select 
+                    value={context.metaVisualsType || ''} 
+                    onValueChange={(v) => handleChange('metaVisualsType', v)}
+                  >
+                    <SelectTrigger className="bg-slate-900 border-slate-700 h-12 text-white">
+                      <SelectValue placeholder="Kies visual formaat" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                      <SelectItem value="static">Statische Beelden (Single Image)</SelectItem>
+                      <SelectItem value="video">Video's & Reels (Reels focus)</SelectItem>
+                      <SelectItem value="carousel">Carrousels (Product/Story)</SelectItem>
+                      <SelectItem value="both">Combinatie (Statisch & Video)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-3 p-3 rounded-xl border bg-slate-900 border-slate-800 text-slate-300">
+                  <Checkbox 
+                    id="metaLeadForms" 
+                    checked={context.metaLeadForms || false}
+                    onCheckedChange={(checked) => handleChange('metaLeadForms', !!checked)}
+                  />
+                  <label htmlFor="metaLeadForms" className="text-xs font-bold cursor-pointer flex-1">
+                    Gebruik Meta Instant Lead Forms (in-app formulieren)
+                  </label>
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Meta Creative Hooks / Ad Copy Richting</Label>
+                  <Textarea 
+                    placeholder="Beschrijf specifieke insteken of invalshoeken voor advertentieteksten (bijv. focus op korting, focus op gemak, of angst om te missen)" 
+                    value={context.metaCreativeHooks || ''}
+                    onChange={e => handleChange('metaCreativeHooks', e.target.value)}
+                    className="bg-slate-900 border-slate-700 min-h-[100px] text-white"
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Meta Pixel & Conversie Setup</Label>
+                  <Input 
+                    placeholder="Bijv. Custom Conversies ingesteld voor leadformulier bedankpagina, of standard pixel events" 
+                    value={context.metaPixelSetup || ''}
+                    onChange={e => handleChange('metaPixelSetup', e.target.value)}
+                    className="bg-slate-900 border-slate-700 h-12 text-white"
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* LinkedIn Ads Settings */}
+        {context.campaignTypes?.includes('linkedin') && (
+          <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-300">
+            <div className="h-1 bg-gradient-to-r from-blue-700 to-cyan-500" />
+            <div className="p-6 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-700/10 rounded-lg">
+                  <Target className="size-5 text-blue-400" />
+                </div>
+                <h2 className="text-lg font-bold text-white">LinkedIn B2B Ads Strategie</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">LinkedIn Advertentie Indeling</Label>
+                  <Select 
+                    value={context.linkedinAdFormat || ''} 
+                    onValueChange={(v) => handleChange('linkedinAdFormat', v)}
+                  >
+                    <SelectTrigger className="bg-slate-900 border-slate-700 h-12 text-white">
+                      <SelectValue placeholder="Kies LinkedIn formaat" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                      <SelectItem value="single_image">Single Image Ad</SelectItem>
+                      <SelectItem value="carousel">Carousel Image Ad</SelectItem>
+                      <SelectItem value="video">Video Ad</SelectItem>
+                      <SelectItem value="document">Document Ad (PDF downloads)</SelectItem>
+                      <SelectItem value="message">Conversation / Message Ad</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">B2B Doelgroep Targeting Details</Label>
+                  <Input 
+                    placeholder="Bijv. Senior IT Managers in Logistics (Bedrijfsgrootte: 50-200)" 
+                    value={context.linkedinTargeting || ''}
+                    onChange={e => handleChange('linkedinTargeting', e.target.value)}
+                    className="bg-slate-900 border-slate-700 h-12 text-white"
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-500">LinkedIn Creative Brief / Copy Invalshoek</Label>
+                  <Textarea 
+                    placeholder="B2B copy insteken en specifieke content/whitepaper aanbiedingen..." 
+                    value={context.linkedinCreativeBrief || ''}
+                    onChange={e => handleChange('linkedinCreativeBrief', e.target.value)}
+                    className="bg-slate-900 border-slate-700 min-h-[100px] text-white"
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         <div className="pt-8 flex items-center justify-between gap-6 border-t border-slate-800">
            <div className="flex-1">
               <p className="text-sm text-slate-500">
@@ -550,7 +674,7 @@ export function BriefingForm({
 
       {/* Sidebar / AI Context Area */}
       <div className="lg:col-span-4 space-y-8">
-        <Card className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] border-blue-500/30 shadow-2xl overflow-hidden ring-1 ring-blue-500/20 sticky top-8">
+        <Card className="bg-slate-900/60 border-blue-500/30 backdrop-blur-md shadow-2xl overflow-hidden ring-1 ring-blue-500/20 sticky top-8">
           <div className="p-6 space-y-6">
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">

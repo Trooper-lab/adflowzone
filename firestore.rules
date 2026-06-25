@@ -48,10 +48,15 @@ service cloud.firestore {
         isAdmin() || 
         isEmployee() || 
         resource.data.assignedEmployeeId == request.auth.uid ||
-        (resource.data.get('assignedEmployees', [])).hasAny([request.auth.uid])
+        (resource.data.get('assignedEmployees', [])).hasAny([request.auth.uid]) ||
+        (path[0] == "parentClients" && get(/databases/$(database)/documents/parentClients/$(path[1])).data.clientUserEmail == request.auth.token.email)
       );
       allow create, delete: if isAdmin();
-      allow update: if isAuthenticated() && (isAdmin() || isEmployee());
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        isEmployee() ||
+        (path[0] == "parentClients" && get(/databases/$(database)/documents/parentClients/$(path[1])).data.clientUserEmail == request.auth.token.email)
+      );
     }
 
     // Documents subcollection explicitly matched
@@ -64,16 +69,34 @@ service cloud.firestore {
         );
     }
 
+    // Chat messages subcollection
+    match /parentClients/{parentClientId}/childAccounts/{childAccountId}/chatMessages/{messageId} {
+        allow read, write: if isAuthenticated() && (
+          isAdmin() || 
+          isEmployee() ||
+          get(/databases/$(database)/documents/parentClients/$(parentClientId)/childAccounts/$(childAccountId)).data.assignedEmployeeId == request.auth.uid ||
+          (get(/databases/$(database)/documents/parentClients/$(parentClientId)/childAccounts/$(childAccountId)).data.get('assignedEmployees', [])).hasAny([request.auth.uid])
+        );
+    }
+
     // Parent Clients
     match /parentClients/{parentClientId} {
-      allow read: if isAuthenticated() && (isAdmin() || isEmployee());
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isEmployee() || 
+        resource.data.clientUserEmail == request.auth.token.email
+      );
       allow create, update, delete: if isAdmin();
-
     }
 
     // Checklist Runs
     match /checklistRuns/{runId} {
-      allow read: if isAuthenticated() && (isAdmin() || isEmployee() || isOwner(resource.data.ownerId));
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isEmployee() || 
+        isOwner(resource.data.ownerId) ||
+        get(/databases/$(database)/documents/parentClients/$(resource.data.parentClientId)).data.clientUserEmail == request.auth.token.email
+      );
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (
         isAdmin() ||
@@ -90,17 +113,25 @@ service cloud.firestore {
 
     // Checklist Templates (subcollection of users)
     match /users/{userId}/checklistTemplates/{templateId} {
-      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
     // Collection Group rules for checklistTemplates (required for collectionGroup queries)
     match /{path=**}/checklistTemplates/{templateId} {
-      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
     // KPI Data
     match /kpiData/{kpiDataId} {
-      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isEmployee() || 
+        (resource.data.get('parentClientId', '') != '' && get(/databases/$(database)/documents/parentClients/$(resource.data.parentClientId)).data.clientUserEmail == request.auth.token.email) ||
+        (resource.data.get('parentClientId', '') == '' && isAuthenticated())
+      );
+      allow write: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
     // Campaign Performance
@@ -110,7 +141,17 @@ service cloud.firestore {
 
     // Reports
     match /reports/{reportId} {
-      allow read, write: if isAuthenticated() && (isAdmin() || isEmployee());
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isEmployee() || 
+        get(/databases/$(database)/documents/parentClients/$(resource.data.parentClientId)).data.clientUserEmail == request.auth.token.email
+      );
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        isEmployee() ||
+        (get(/databases/$(database)/documents/parentClients/$(resource.data.parentClientId)).data.clientUserEmail == request.auth.token.email && request.resource.data.status == 'confirmed')
+      );
+      allow create, delete: if isAuthenticated() && (isAdmin() || isEmployee());
     }
 
     // Todos — top-level collection, single source of truth
@@ -119,9 +160,14 @@ service cloud.firestore {
         isAdmin() ||
         isEmployee() ||
         resource.data.ownerId == request.auth.uid ||
-        resource.data.assigneeId == request.auth.uid
+        resource.data.assigneeId == request.auth.uid ||
+        get(/databases/$(database)/documents/parentClients/$(resource.data.parentClientId)).data.clientUserEmail == request.auth.token.email
       );
-      allow create: if isAuthenticated() && (isAdmin() || isEmployee());
+      allow create: if isAuthenticated() && (
+        isAdmin() || 
+        isEmployee() ||
+        get(/databases/$(database)/documents/parentClients/$(request.resource.data.parentClientId)).data.clientUserEmail == request.auth.token.email
+      );
       allow update: if isAuthenticated() && (
         isAdmin() ||
         isEmployee() ||

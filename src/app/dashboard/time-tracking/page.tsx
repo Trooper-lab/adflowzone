@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
@@ -382,7 +382,7 @@ export default function TimeTrackingPage() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="bg-white/5 border border-white/5 p-1 rounded-xl w-fit flex gap-1 mb-8">
+                <TabsList className="bg-secondary border border-border p-1 rounded-xl w-fit flex gap-1 mb-8">
                     <TabsTrigger value="uren" className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                         Urenregistratie
                     </TabsTrigger>
@@ -394,7 +394,7 @@ export default function TimeTrackingPage() {
                 {/* TAB 1: URENREGISTRATIE */}
                 <TabsContent value="uren" className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-500 outline-none">
                     <Card className="glass-card shadow-xl overflow-hidden">
-                        <CardHeader className="bg-white/5 border-b border-white/5">
+                        <CardHeader className="bg-secondary border-b border-border">
                             <CardTitle className="text-xl font-bold font-headline text-slate-100">Recente Registraties</CardTitle>
                             <CardDescription>Log handmatig uren voor de lopende klantcontracten.</CardDescription>
                         </CardHeader>
@@ -427,7 +427,7 @@ export default function TimeTrackingPage() {
                                                             {newEntry.date ? format(newEntry.date, "dd MMM", { locale: nl }) : <span>Datum</span>}
                                                         </Button>
                                                     </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0 bg-slate-900 border-white/5">
+                                                    <PopoverContent className="w-auto p-0 bg-slate-900 border-border">
                                                         <Calendar
                                                             mode="single"
                                                             selected={newEntry.date}
@@ -525,7 +525,7 @@ export default function TimeTrackingPage() {
                                                                             {editForm.date ? format(parseISO(editForm.date as string), "dd MMM", { locale: nl }) : <span>Datum</span>}
                                                                         </Button>
                                                                     </PopoverTrigger>
-                                                                    <PopoverContent className="w-auto p-0 bg-slate-900 border-white/5">
+                                                                    <PopoverContent className="w-auto p-0 bg-slate-900 border-border">
                                                                         <Calendar
                                                                             mode="single"
                                                                             selected={editForm.date ? parseISO(editForm.date as string) : new Date()}
@@ -636,21 +636,21 @@ export default function TimeTrackingPage() {
 
                 {/* TAB 2: TIJD & EFFICIENTIE ANALYTICS */}
                 <TabsContent value="analytics" className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500 outline-none">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.02] p-4 rounded-2xl border border-border">
                         <div className="space-y-0.5">
                             <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                                 <Activity className="text-primary size-5" /> Operationele Analyse
                             </h3>
                             <p className="text-xs text-slate-400">Rapportages en prestatiestatistieken over de geselecteerde maand.</p>
                         </div>
-                        <div className="flex items-center gap-3 bg-white/5 p-1 rounded-xl border border-white/5 shadow-xl">
-                            <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="hover:bg-white/5 h-8 w-8">
+                        <div className="flex items-center gap-3 bg-secondary p-1 rounded-xl border border-border shadow-xl">
+                            <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="hover:bg-secondary h-8 w-8">
                                 <ChevronLeft className="size-4" />
                             </Button>
                             <div className="px-4 py-1 text-xs font-bold uppercase tracking-widest text-slate-200 min-w-[140px] text-center font-mono">
                                 {format(currentMonth, 'MMMM yyyy', { locale: nl })}
                             </div>
-                            <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="hover:bg-white/5 h-8 w-8">
+                            <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="hover:bg-secondary h-8 w-8">
                                 <ChevronRight className="size-4" />
                             </Button>
                         </div>
@@ -767,7 +767,7 @@ export default function TimeTrackingPage() {
                                                     <div key={i} className="flex items-center justify-between group">
                                                         <div className="min-w-0 flex-grow">
                                                             <p className="text-sm font-bold text-slate-200 truncate group-hover:text-primary transition-colors">{client.name}</p>
-                                                            <div className="h-1.5 w-full bg-white/5 rounded-full mt-1.5 overflow-hidden border border-white/5">
+                                                            <div className="h-1.5 w-full bg-secondary rounded-full mt-1.5 overflow-hidden border border-border">
                                                                 <div 
                                                                     className="h-full bg-green-500/50" 
                                                                     style={{ width: `${(client.hours / (clientData[0]?.hours || 1)) * 100}%` }} 
@@ -802,7 +802,7 @@ export default function TimeTrackingPage() {
                             </div>
 
                             <Card className="glass-card shadow-xl overflow-hidden">
-                                <CardHeader className="bg-white/5 border-b border-white/5">
+                                <CardHeader className="bg-secondary border-b border-border">
                                     <CardTitle className="text-xl font-bold font-headline flex items-center gap-2 text-slate-100">
                                         <ListChecks className="text-primary size-5" />
                                         Recente Activiteit
@@ -812,7 +812,7 @@ export default function TimeTrackingPage() {
                                 <CardContent className="p-0">
                                     <Table>
                                         <TableHeader className="bg-slate-900/50">
-                                            <TableRow className="border-white/5 hover:bg-transparent">
+                                            <TableRow className="border-border hover:bg-transparent">
                                                 <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4 px-6">Activiteit & Datum</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4">Account & Klant</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4">Status</TableHead>
@@ -821,7 +821,7 @@ export default function TimeTrackingPage() {
                                         </TableHeader>
                                         <TableBody>
                                             {stats.runs.slice(0, 15).map((run) => (
-                                                <TableRow key={run.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                                                <TableRow key={run.id} className="border-border hover:bg-secondary transition-colors group">
                                                     <TableCell className="py-4 px-6">
                                                         <div className="flex flex-col">
                                                             <span className="font-bold text-slate-200 group-hover:text-primary transition-colors">
@@ -868,7 +868,7 @@ export default function TimeTrackingPage() {
                                     </Table>
                                     {stats.runs.length === 0 && (
                                         <div className="p-20 text-center flex flex-col items-center gap-4">
-                                            <div className="p-4 rounded-full bg-white/5">
+                                            <div className="p-4 rounded-full bg-secondary">
                                                 <Activity className="size-12 text-slate-700" />
                                             </div>
                                             <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Nog geen activiteiten gelogd deze maand.</p>
@@ -882,7 +882,7 @@ export default function TimeTrackingPage() {
             </Tabs>
 
             <AlertDialog open={!!deleteEntryId} onOpenChange={(open) => !open && setDeleteEntryId(null)}>
-                <AlertDialogContent className="glass-card-elevated border-white/5 bg-[#1C243A] text-white">
+                <AlertDialogContent className="glass-card-elevated border-border bg-[#1C243A] text-white">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-white">Uren verwijderen?</AlertDialogTitle>
                         <AlertDialogDescription className="text-slate-300 font-medium">
@@ -890,7 +890,7 @@ export default function TimeTrackingPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">Annuleren</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-secondary border-border text-slate-300 hover:bg-accent hover:text-white">Annuleren</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-500 text-white">Verwijderen</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

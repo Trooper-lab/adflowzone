@@ -75,7 +75,7 @@ export function SendBriefingTab({ briefing }: SendBriefingTabProps) {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Link & Status Panel */}
       <div className="lg:col-span-4 space-y-6">
-        <Card className="bg-[#1C243A] border-slate-700 shadow-xl overflow-hidden">
+        <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2 text-lg">
@@ -110,12 +110,12 @@ export function SendBriefingTab({ briefing }: SendBriefingTabProps) {
 
       {/* Email Composer */}
       <div className="lg:col-span-8">
-        <Card className="bg-[#0F172A] border-slate-800 shadow-xl overflow-hidden">
+        <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
           <CardHeader className="flex flex-row items-center justify-between pb-6">
             <div>
               <CardTitle className="text-white flex items-center gap-2 text-lg">
-                <Mail className="size-5 text-blue-400" /> Verstuur via AdFlowZone
+                <Mail className="size-5 text-blue-400" /> Verstuur via GO
               </CardTitle>
               <CardDescription className="text-slate-400">
                 Stuur het voorstel direct vanuit het platform.

@@ -40,20 +40,20 @@ const CAMPAIGN_TYPES = [
 
 function AdPreview({ headlines, descriptions, website }: { headlines: string[], descriptions: string[], website: string }) {
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 text-sm w-full max-w-sm">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="bg-slate-100 rounded-full size-6 flex items-center justify-center">
-            <Globe className="size-3 text-slate-500" />
+    <div className="bg-slate-950 rounded-2xl p-6 shadow-xl shadow-black/40 border border-slate-800/80 text-sm w-full max-w-md print:bg-white print:border-slate-200 print:shadow-none">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-[10px] font-black text-slate-200 print:bg-slate-50 print:border-slate-200 print:text-slate-900">
+            G
         </div>
-        <div className="text-[10px] text-slate-500 flex flex-col">
-            <span className="font-bold text-slate-700">{website.replace(/^https?:\/\//, '')}</span>
-            <span className="opacity-70">Gesponsord</span>
+        <div className="text-[10px] text-slate-400 flex flex-col">
+            <span className="font-bold text-slate-300 print:text-slate-750">{website.replace(/^https?:\/\//, '')}</span>
+            <span className="opacity-70 print:text-slate-500">Gesponsord</span>
         </div>
       </div>
-      <div className="text-blue-700 font-medium text-[16px] leading-tight mb-1 line-clamp-2">
+      <div className="text-blue-400 font-bold text-[16px] hover:underline cursor-pointer leading-tight mb-2 tracking-tight line-clamp-2 print:text-blue-700">
         {(headlines[0] || 'Hoofdkop van de Advertentie') + (headlines[1] ? ' | ' + headlines[1] : '') + (headlines[2] ? ' | ' + headlines[2] : '')}
       </div>
-      <div className="text-slate-600 text-xs leading-snug line-clamp-2">
+      <div className="text-slate-400 text-xs leading-relaxed font-medium line-clamp-2 print:text-slate-700">
         {descriptions[0] || 'Dit is een voorbeeld van hoe uw advertentie beschrijving eruit zal zien op Google Search.'}
       </div>
     </div>
@@ -505,7 +505,7 @@ export default function CampaignBriefingEditor() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-32 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between sticky top-0 z-20 bg-[#0F172A]/95 backdrop-blur-md py-4 border-b border-slate-800 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between sticky top-0 z-20 bg-[#0b0f19]/60 backdrop-blur-md py-4 border-b border-slate-800 gap-4">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/campaign-briefings">
             <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white shrink-0">
@@ -595,7 +595,7 @@ export default function CampaignBriefingEditor() {
             }}
           />
           {generatingStructure && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center flex-col gap-6 grain-animated">
+            <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center flex-col gap-6 grain-animated">
               <Loader2 className="size-16 animate-spin text-blue-500" />
               <h2 className="text-2xl font-black text-white">AI bouwt de campagne structuur...</h2>
               <p className="text-slate-400 text-center max-w-md">Dit kan even duren. De AI is nu de beste structuur aan het bepalen op basis van je keywords en strategie.</p>
@@ -669,7 +669,7 @@ export default function CampaignBriefingEditor() {
 
             {briefing.campaigns.length === 0 && !generatingStructure && (
               <div className="text-center py-20 bg-slate-900/20 rounded-3xl border-2 border-dashed border-slate-800">
-                <div className="bg-slate-800/50 size-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <div className="bg-secondary size-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
                     <WandSparkles className="size-8 text-slate-600" />
                 </div>
                 <h4 className="text-xl font-bold text-white mb-2">Nog geen campagnes</h4>
@@ -681,7 +681,7 @@ export default function CampaignBriefingEditor() {
             <div className="grid grid-cols-1 gap-8">
               {briefing.campaigns.map((campaign, cIdx) => (
                 <Card key={campaign.id} className="glass-card overflow-hidden shadow-xl">
-                  <CardHeader className="bg-slate-900/80 border-b border-white/5 p-6">
+                  <CardHeader className="bg-slate-900/80 border-b border-border p-6">
                     <div className="flex justify-between items-start gap-6">
                       <div className="flex-1 space-y-4">
                         <div className="flex items-center gap-4">
@@ -932,7 +932,7 @@ export default function CampaignBriefingEditor() {
                                     </div>
                                 </div>
 
-                                <Separator className="bg-slate-800/50" />
+                                <Separator className="bg-secondary" />
 
                                 {/* ROW 2: Descriptions */}
                                 <div className="space-y-4">
@@ -1145,7 +1145,7 @@ export default function CampaignBriefingEditor() {
                             return {...prev, campaigns: nc};
                         })}
                       >
-                        <div className="bg-slate-800/50 p-3 rounded-full group-hover:bg-slate-700">
+                        <div className="bg-secondary p-3 rounded-full group-hover:bg-slate-700">
                             <Plus className="size-6" />
                         </div>
                         <span className="font-black uppercase tracking-widest text-xs text-slate-200">Handmatig toevoegen</span>
@@ -1171,7 +1171,7 @@ export default function CampaignBriefingEditor() {
                     }]
                 }))}
               >
-                <div className="bg-slate-800/50 p-3 rounded-full group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-all">
+                <div className="bg-secondary p-3 rounded-full group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-all">
                     <Plus className="size-8" />
                 </div>
                 <span className="font-bold uppercase tracking-widest text-xs">Nieuwe Campagne Toevoegen</span>

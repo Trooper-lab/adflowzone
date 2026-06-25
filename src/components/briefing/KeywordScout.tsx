@@ -245,7 +245,7 @@ export function KeywordScout({ context, onChange, onNext }: KeywordScoutProps) {
   return (
     <div className="space-y-8">
       {/* Seed Keywords Section */}
-      <Card className="bg-[#0F172A] border-slate-800 shadow-xl overflow-hidden p-6">
+      <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-500/10 rounded-lg">
@@ -331,7 +331,7 @@ export function KeywordScout({ context, onChange, onNext }: KeywordScoutProps) {
       {/* Results & Selection Section */}
       {keywords.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <Card className="lg:col-span-8 bg-[#0F172A] border-slate-800 shadow-xl overflow-hidden p-6 flex flex-col max-h-[600px]">
+          <Card className="lg:col-span-8 bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden p-6 flex flex-col max-h-[600px]">
             <div className="flex items-center justify-between mb-4 shrink-0">
               <h2 className="text-lg font-bold text-white">2. Keyword Selection</h2>
               <div className="flex items-center gap-4">
@@ -381,7 +381,7 @@ export function KeywordScout({ context, onChange, onNext }: KeywordScoutProps) {
           </Card>
 
           {/* Negative Keywords Sidebar */}
-          <Card className="lg:col-span-4 bg-[#0F172A] border-slate-800 shadow-xl overflow-hidden p-6 flex flex-col max-h-[600px]">
+          <Card className="lg:col-span-4 bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden p-6 flex flex-col max-h-[600px]">
              <div className="flex items-center justify-between mb-4 shrink-0">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="size-5 text-red-400" />
@@ -436,7 +436,7 @@ export function KeywordScout({ context, onChange, onNext }: KeywordScoutProps) {
 
       {/* Categorization Section */}
       {keywords.length > 0 && (
-        <Card className="bg-[#0F172A] border-slate-800 shadow-xl overflow-hidden p-6 mt-8">
+        <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md shadow-xl overflow-hidden p-6 mt-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-bold text-white">4. Keyword Categorisatie (Ad Groups)</h2>

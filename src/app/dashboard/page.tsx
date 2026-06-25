@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
@@ -43,7 +43,8 @@ import {
     Calendar,
     Trash2,
     UserPlus,
-    ExternalLink
+    ExternalLink,
+    TrendingUp
 } from 'lucide-react';
 import type { ParentClient, ChildAccount, ConnectedChecklist, ChecklistRun, ChecklistTemplate, AppUser, Project, Todo } from '@/lib/types';
 import Link from 'next/link';
@@ -56,6 +57,7 @@ import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
+import ManagementDashboard from '@/components/dashboard/ManagementDashboard';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -109,7 +111,7 @@ function EmptyState() {
             </p>
         </div>
       </div>
-       <Button asChild variant="outline" className="mt-4 hover:bg-white/5 transition-all">
+       <Button asChild variant="outline" className="mt-4 hover:bg-secondary transition-all">
             <Link href="/dashboard/accounts">Bekijk Portfolio</Link>
         </Button>
     </Card>
@@ -140,13 +142,13 @@ const ClientListView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], o
         <div className="space-y-6 animate-in fade-in duration-700">
             {grouped.map(([clientName, clientTasks]) => (
                 <Card key={clientName} className="glass-card overflow-hidden shadow-xl">
-                    <CardHeader className="bg-white/5 border-b border-white/5 py-3 px-6">
+                    <CardHeader className="bg-secondary border-b border-border py-3 px-6">
                         <CardTitle className="text-sm font-black uppercase tracking-widest text-blue-400 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Users className="size-4" />
                                 {clientName}
                             </div>
-                            <Badge variant="outline" className="text-[10px] font-bold border-slate-700 text-slate-500 bg-white/5">
+                            <Badge variant="outline" className="text-[10px] font-bold border-slate-700 text-slate-500 bg-secondary">
                                 {clientTasks.length} {clientTasks.length === 1 ? 'taak' : 'taken'}
                             </Badge>
                         </CardTitle>
@@ -154,7 +156,7 @@ const ClientListView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], o
                     <CardContent className="p-0">
                         <div className="divide-y divide-white/5">
                             {clientTasks.map(task => (
-                                <div key={task.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors group">
+                                <div key={task.id} className="p-4 flex items-center justify-between hover:bg-secondary transition-colors group">
                                     <div className="flex items-center gap-4 min-w-0">
                                         <StatusIcon status={task.status} />
                                         <div className="min-w-0">
@@ -220,16 +222,16 @@ const CalendarView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], onS
                     {format(currentMonth, 'MMMM yyyy', { locale: nl })}
                 </h2>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-8 w-8 bg-card border-white/5">
+                    <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-8 w-8 bg-card border-border">
                         <ChevronLeft className="size-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-8 w-8 bg-card border-white/5">
+                    <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-8 w-8 bg-card border-border">
                         <ChevronRight className="size-4" />
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
+            <div className="grid grid-cols-7 gap-px bg-secondary border border-border rounded-xl overflow-hidden shadow-2xl">
                 {['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'].map(day => (
                     <div key={day} className="bg-card p-3 text-center font-label-caps text-muted-foreground">
                         {day}
@@ -246,7 +248,7 @@ const CalendarView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], onS
                         <div 
                             key={i} 
                             className={cn(
-                                "min-h-[140px] bg-card/60 p-2 flex flex-col gap-1.5 transition-colors hover:bg-card/80",
+                                "min-h-[140px] bg-card p-2 flex flex-col gap-1.5 transition-colors hover:bg-card",
                                 !isCurrentMonth && "opacity-30 bg-[#161d2e]",
                                 isTodayDay && "ring-1 ring-inset ring-blue-500/50 bg-blue-500/[0.02]"
                             )}
@@ -296,7 +298,7 @@ const CalendarView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], onS
                                             </button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-64 p-0 glass-card-elevated shadow-2xl" align="start" side="right">
-                                            <div className="p-3 border-b border-white/5 bg-white/5">
+                                            <div className="p-3 border-b border-border bg-secondary">
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                                                     Taken op {format(day, 'd MMMM', { locale: nl })}
                                                 </p>
@@ -313,7 +315,7 @@ const CalendarView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[], onS
                                                                     ? "bg-red-500/10 border-red-500/20 text-red-400" 
                                                                     : task.status === 'in_progress'
                                                                     ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"
-                                                                    : "bg-white/5 border-white/5 text-slate-200 hover:bg-white/10"
+                                                                    : "bg-secondary border-border text-slate-200 hover:bg-accent"
                                                             )}
                                                         >
                                                             <StatusIcon status={task.status} />
@@ -353,7 +355,7 @@ const PriorityFlowView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[],
                 <h2 className="text-sm font-bold text-slate-500 uppercase tracking-[0.3em]">Volgende Prioriteit</h2>
             </div>
 
-            <Card className="glass-card border-2 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden relative group animate-in fade-in zoom-in-95 duration-700 hover:border-primary/30 transition-all">
+            <Card className="glass-card border-2 border-border shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden relative group animate-in fade-in zoom-in-95 duration-700 hover:border-primary/30 transition-all">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500 group-hover:w-2 transition-all duration-300" />
                 <CardContent className="p-10">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
@@ -364,7 +366,7 @@ const PriorityFlowView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[],
                             </div>
                             
                             <div className="flex flex-wrap items-center gap-4">
-                                <Badge variant="secondary" className="bg-white/5 text-slate-300 border-none px-3 py-1.5 capitalize font-medium">
+                                <Badge variant="secondary" className="bg-secondary text-slate-300 border-none px-3 py-1.5 capitalize font-medium">
                                     {nextTask.frequency}
                                 </Badge>
                                 <div className="flex items-center gap-2.5 text-sm font-bold tracking-tight">
@@ -402,7 +404,7 @@ const PriorityFlowView = ({ tasks, onStart, isAdmin }: { tasks: DashboardTask[],
                         </Button>
                     </div>
                 </CardContent>
-                <div className="bg-black/20 px-10 py-5 flex justify-between items-center border-t border-white/5">
+                <div className="bg-black/20 px-10 py-5 flex justify-between items-center border-t border-border">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                         <List className="size-3" /> Nog <span className="text-blue-400 font-black">{remainingToday}</span> taken op de planning voor vandaag
                     </p>
@@ -422,7 +424,7 @@ export default function DashboardPage() {
   const [activeTask, setActiveTask] = useState<DashboardTask | null>(null);
   const [isChecklistRunnerOpen, setIsChecklistRunnerOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [viewMode, setViewMode] = useState<'priorityFlow' | 'calendar' | 'clientList'>('priorityFlow');
+  const [viewMode, setViewMode] = useState<'priorityFlow' | 'calendar' | 'clientList' | 'management'>('priorityFlow');
 
   const { toast } = useToast();
 
@@ -431,6 +433,8 @@ export default function DashboardPage() {
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [teamMembers, setTeamMembers] = useState<AppUser[]>([]);
   const [clients, setClients] = useState<ParentClient[]>([]);
+  const [accounts, setAccounts] = useState<ChildAccount[]>([]);
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [briefingText, setBriefingText] = useState('');
   const [commentText, setCommentText] = useState('');
   const [isSavingDetails, setIsSavingDetails] = useState(false);
@@ -443,6 +447,11 @@ export default function DashboardPage() {
     return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es' || user?.email?.toLowerCase() === 'admin@onlyforward.nl';
   }, [appUser, user?.email]);
 
+  const managerUid = useMemo(() => {
+    if (!user) return null;
+    return isAdmin ? user.uid : (appUser as AppUser)?.managerId || null;
+  }, [isAdmin, user, appUser]);
+
   // Fetch team members & clients
   useEffect(() => {
     if (!firestore || !user) return;
@@ -451,11 +460,10 @@ export default function DashboardPage() {
         const teamSnap = await getDocs(collection(firestore, 'users'));
         setTeamMembers(teamSnap.docs.map(d => ({ uid: d.id, ...d.data() } as AppUser)));
 
-        const ownerId = isAdmin ? user.uid : (appUser as any)?.managerId;
-        if (ownerId || isAdmin) {
+        if (managerUid || isAdmin) {
           const clientsQuery = isAdmin 
             ? collection(firestore, 'parentClients') 
-            : query(collection(firestore, 'parentClients'), where('ownerId', '==', ownerId));
+            : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
           const clientsSnap = await getDocs(clientsQuery);
           setClients(clientsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient)));
         }
@@ -464,7 +472,7 @@ export default function DashboardPage() {
       }
     };
     fetchTeamAndClients();
-  }, [firestore, user, isAdmin, appUser]);
+  }, [firestore, user, isAdmin, managerUid]);
 
   const checklistsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -504,7 +512,6 @@ export default function DashboardPage() {
     const fetchAllData = async () => {
         const allTasks: DashboardTask[] = [];
         const templatesMap = new Map((checklistTemplates as ChecklistTemplate[]).map(t => [t.id, t]));
-        const managerUid = isAdmin ? user.uid : (appUser as AppUser)?.managerId;
 
         if (!managerUid) {
             setLoading(false);
@@ -549,6 +556,7 @@ export default function DashboardPage() {
             );
             const childAccountSnapshots = await Promise.all(childAccountPromises);
             const allChildAccounts = childAccountSnapshots.flatMap(snapshot => snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChildAccount)));
+            setAccounts(allChildAccounts);
             
             const visibleChildAccounts = allChildAccounts.filter(account => {
                 if (account.isPaused) return false;
@@ -558,7 +566,7 @@ export default function DashboardPage() {
                 return account.assignedEmployeeId === user.uid;
             });
 
-            // 3. Fetch In Progress Runs, Projects & open Todos safely
+            // 3. Fetch In Progress Runs, Projects & all Todos safely
             const runsQuery = isAdmin 
                 ? query(collection(firestore, 'checklistRuns'), where('status', '==', 'in_progress'))
                 : query(collection(firestore, 'checklistRuns'), where('ownerId', '==', user.uid), where('status', '==', 'in_progress'));
@@ -568,8 +576,8 @@ export default function DashboardPage() {
                 : query(collection(firestore, 'projects'), where('ownerId', '==', user.uid));
                 
             const todosQuery = isAdmin
-                ? query(collection(firestore, 'todos'), where('completed', '==', false))
-                : query(collection(firestore, 'todos'), where('ownerId', '==', managerUid), where('completed', '==', false));
+                ? collection(firestore, 'todos')
+                : query(collection(firestore, 'todos'), where('ownerId', '==', managerUid));
 
             const [runsSnapshot, projectsSnapshot, todosSnapshot] = await Promise.all([
                 getDocs(runsQuery),
@@ -582,8 +590,9 @@ export default function DashboardPage() {
 
             const inProgressRuns = (runsSnapshot.docs || []).map((d: any) => ({ id: d.id, ...d.data() } as ChecklistRun));
             const projects = (projectsSnapshot.docs || []).map((d: any) => ({ id: d.id, ...d.data() } as Project));
-            const openTodos = (todosSnapshot.docs || []).map((d: any) => ({ id: d.id, ...d.data() } as Todo));
+            const allTodos = (todosSnapshot.docs || []).map((d: any) => ({ id: d.id, ...d.data() } as Todo));
             
+            setTodos(allTodos);
             setActiveProjects(projects.filter((p: any) => p.status === 'active'));
 
             visibleChildAccounts.forEach((account) => {
@@ -650,7 +659,7 @@ export default function DashboardPage() {
             });
 
             // Process and add open todos/tasks
-            openTodos.forEach((todo) => {
+            allTodos.filter((todo: Todo) => !todo.completed).forEach((todo: Todo) => {
                 const dueDate = todo.dueDate ? parseISO(todo.dueDate) : new Date(todo.createdAt);
                 
                 const status: DashboardTask['status'] = todo.status === 'in_progress'
@@ -696,7 +705,7 @@ export default function DashboardPage() {
     };
 
     fetchAllData();
-  }, [firestore, user, refreshTrigger, checklistTemplates, appUser, isAdmin]);
+  }, [firestore, user, refreshTrigger, checklistTemplates, appUser, isAdmin, managerUid]);
 
   // Invoicing hour sync
   const syncHoursToTimeEntry = async (todo: Todo, hours: number) => {
@@ -771,9 +780,9 @@ export default function DashboardPage() {
     const todoRef = doc(firestore, 'todos', todo.id);
     try {
       const updateData = {
-        assigneeId: assignee?.uid || null,
-        assigneeName: assignee?.displayName || assignee?.email || null,
-        assigneePhotoUrl: assignee?.photoURL || null
+        assigneeId: assignee?.uid || undefined,
+        assigneeName: assignee?.displayName || assignee?.email || undefined,
+        assigneePhotoUrl: assignee?.photoURL || undefined
       };
       await updateDoc(todoRef, updateData);
       setActiveTodo(prev => prev ? { ...prev, ...updateData } : null);
@@ -788,7 +797,7 @@ export default function DashboardPage() {
     if (!firestore || !managerUid) return;
     const todoRef = doc(firestore, 'todos', todo.id);
     try {
-      await updateDoc(todoRef, { dueDate: date ? date.toISOString() : null });
+      await updateDoc(todoRef, { dueDate: date ? date.toISOString() : undefined });
       setActiveTodo(prev => prev ? { ...prev, dueDate: date ? date.toISOString() : undefined } : null);
       toast({ title: 'Uitvoerdatum bijgewerkt!' });
       setRefreshTrigger(p => p + 1);
@@ -903,7 +912,7 @@ export default function DashboardPage() {
       id: Math.random().toString(36).substring(2, 9),
       userId: user?.uid || '',
       userName: appUser?.displayName || user?.displayName || user?.email || 'Onbekend',
-      userPhotoUrl: user?.photoURL || null,
+      userPhotoUrl: user?.photoURL || undefined,
       text: commentText.trim(),
       createdAt: new Date().toISOString()
     };
@@ -954,12 +963,12 @@ export default function DashboardPage() {
             <h1 className="text-4xl md:text-5xl font-bold font-headline tracking-tight text-slate-100">Mijn FlowZone</h1>
             <p className="text-muted-foreground mt-2 font-medium">Focus op de optimalisaties van vandaag.</p>
         </div>
-        <div className="flex items-center gap-1 bg-card/60 p-1.5 rounded-xl self-start border border-white/5 shadow-xl animate-in fade-in slide-in-from-right-4 duration-700 overflow-x-auto no-scrollbar max-w-full backdrop-blur-md">
+        <div className="flex items-center gap-1 bg-card p-1.5 rounded-xl self-start border border-border shadow-xl animate-in fade-in slide-in-from-right-4 duration-700 overflow-x-auto no-scrollbar max-w-full">
             <Button 
                 variant={viewMode === 'priorityFlow' ? 'secondary' : 'ghost'} 
                 size="sm"
                 onClick={() => setViewMode('priorityFlow')} 
-                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'priorityFlow' && "bg-white/10 text-white shadow-inner")}
+                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'priorityFlow' && "bg-accent text-white shadow-inner")}
             >
                 <Rocket className="mr-2 size-4" /> Focus
             </Button>
@@ -967,18 +976,20 @@ export default function DashboardPage() {
                 variant={viewMode === 'clientList' ? 'secondary' : 'ghost'} 
                 size="sm"
                 onClick={() => setViewMode('clientList')} 
-                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'clientList' && "bg-white/10 text-white shadow-inner")}
+                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'clientList' && "bg-accent text-white shadow-inner")}
             >
                 <LayoutGrid className="mr-2 size-4" /> Klanten
             </Button>
-            <Button 
-                variant={viewMode === 'calendar' ? 'secondary' : 'ghost'} 
-                size="sm"
-                onClick={() => setViewMode('calendar')} 
-                className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'calendar' && "bg-white/10 text-white shadow-inner")}
-            >
-                <CalendarDays className="mr-2 size-4" /> Kalender
-            </Button>
+            {isAdmin && (
+              <Button 
+                  variant={viewMode === 'management' ? 'secondary' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setViewMode('management')} 
+                  className={cn("h-9 px-4 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all flex-shrink-0", viewMode === 'management' && "bg-accent text-white shadow-inner")}
+              >
+                  <TrendingUp className="mr-2 size-4" /> Management
+              </Button>
+            )}
         </div>
       </div>
 
@@ -995,13 +1006,13 @@ export default function DashboardPage() {
            </Card>
        )}
 
-      {!loading && !error && scheduledTasks.length === 0 && (
+      {!loading && !error && scheduledTasks.length === 0 && viewMode !== 'management' && (
         <EmptyState />
       )}
 
-      {!loading && !error && (
+      {!loading && !error && (scheduledTasks.length > 0 || viewMode === 'management') && (
           <>
-            {activeProjects.length > 0 && (
+            {activeProjects.length > 0 && viewMode !== 'management' && (
                 <div className="space-y-4">
                     <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 px-1 flex items-center gap-2">
                         <Target className="size-3 text-blue-400" /> Lopende Projecten
@@ -1033,6 +1044,7 @@ export default function DashboardPage() {
                 {viewMode === 'priorityFlow' && <PriorityFlowView tasks={scheduledTasks} onStart={handleStartChecklist} isAdmin={isAdmin} />}
                 {viewMode === 'clientList' && <ClientListView tasks={scheduledTasks} onStart={handleStartChecklist} isAdmin={isAdmin} />}
                 {viewMode === 'calendar' && <CalendarView tasks={scheduledTasks} onStart={handleStartChecklist} isAdmin={isAdmin} />}
+                {viewMode === 'management' && <ManagementDashboard accounts={accounts} clients={clients} todos={todos} teamMembers={teamMembers} />}
             </div>
           </>
       )}
@@ -1047,10 +1059,10 @@ export default function DashboardPage() {
       />
 
       <Sheet open={isTaskDetailOpen} onOpenChange={setIsTaskDetailOpen}>
-        <SheetContent className="w-full sm:max-w-2xl bg-[#171f33]/95 backdrop-blur-xl border-white/5 text-slate-100 p-6 flex flex-col h-full shadow-2xl">
+        <SheetContent className="w-full sm:max-w-2xl bg-[#171f33]/95 border-border text-slate-100 p-6 flex flex-col h-full shadow-2xl">
           {activeTodo && (
             <>
-              <SheetHeader className="pb-4 border-b border-white/5 shrink-0">
+              <SheetHeader className="pb-4 border-b border-border shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-black">
                     <span>{activeTodo.parentClientName}</span>
@@ -1066,7 +1078,7 @@ export default function DashboardPage() {
               <div className="flex-grow overflow-y-auto space-y-6 py-6 -mx-6 px-6">
                 
                 {/* Meta details (Assignee, Status, Date, Worked Hours) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-white/[0.02] border border-border text-xs">
                   {/* Status */}
                   <div className="space-y-1">
                     <span className="text-[9px] font-black uppercase text-slate-500">Status</span>
@@ -1208,7 +1220,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Comments thread */}
-                <div className="space-y-4 pt-4 border-t border-white/5">
+                <div className="space-y-4 pt-4 border-t border-border">
                   <Label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Reacties</Label>
                   
                   {/* Comments list */}
@@ -1218,7 +1230,7 @@ export default function DashboardPage() {
                     ) : (
                       <div className="space-y-3">
                         {activeTodo.comments.map((comment) => (
-                          <div key={comment.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2 text-xs">
+                          <div key={comment.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-border space-y-2 text-xs">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
                                 <Avatar className="size-4.5 border border-slate-800">
@@ -1245,7 +1257,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Comment composer */}
-              <SheetFooter className="pt-4 border-t border-white/5 shrink-0 flex-col sm:flex-col items-stretch gap-3">
+              <SheetFooter className="pt-4 border-t border-border shrink-0 flex-col sm:flex-col items-stretch gap-3">
                 <div className="space-y-2">
                   <Textarea 
                     placeholder="Plaats een reactie (kopieer links hierin)..."

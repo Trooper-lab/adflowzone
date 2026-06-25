@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -510,7 +510,7 @@ export default function AiChecklistPage() {
                     <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">2. Plak Output & Genereer</h2>
 
                     <Card className="glass-card shadow-xl overflow-hidden">
-                        <CardHeader className="bg-white/5 border-b border-white/5">
+                        <CardHeader className="bg-secondary border-b border-border">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Sparkles className="size-5 text-purple-400" />
                                 JSON Output Plakken

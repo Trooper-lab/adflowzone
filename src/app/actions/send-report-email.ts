@@ -135,7 +135,7 @@ export async function sendReportByEmail(
         const htmlBody = generateEmailHtml(report, client, account, performanceData, completedChecklists, completedTodos, insights, nextSteps);
         
         await resend.emails.send({
-            from: 'AdFlow Zone <flowzone@trooper.es>',
+            from: 'GO - Global Overview <flowzone@trooper.es>',
             to: [client.clientContactEmail],
             subject: `Maandrapport voor ${account.nickname} - ${format(parseISO(report.period + '-02'), 'MMMM yyyy', { locale: nl })}`,
             html: htmlBody,

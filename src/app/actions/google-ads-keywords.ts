@@ -62,7 +62,7 @@ export async function fetchKeywordIdeas(seeds: string[], url?: string, language:
       throw new Error('You must provide either seed keywords or a URL to fetch keyword ideas.');
     }
 
-    const keywordIdeasResponse = await customer.keywordPlanIdeas.generateKeywordIdeas(requestOptions);
+    const keywordIdeasResponse = await customer.keywordPlanIdeas.generateKeywordIdeas(requestOptions) as any;
     
     const results: KeywordIdea[] = [];
     

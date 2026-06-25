@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
@@ -116,7 +116,7 @@ export default function KpiStandardTable({ childAccount, onSave, isSaving, onRef
                 const isInteger = (kpi: string) => ['clicks', 'impressions', 'conversions'].includes(kpi);
 
                 return (
-                    <div key={monthKey} className="grid grid-cols-[120px_1fr_80px] items-center gap-4 p-2 rounded-lg hover:bg-slate-800/50">
+                    <div key={monthKey} className="grid grid-cols-[120px_1fr_80px] items-center gap-4 p-2 rounded-lg hover:bg-secondary">
                         <div className="font-medium text-muted-foreground flex items-center gap-2">
                            {isToday(monthDate) && <div className="size-2 rounded-full bg-blue-500" />}
                            {format(monthDate, 'MMM yyyy')}

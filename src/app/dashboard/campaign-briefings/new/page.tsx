@@ -135,7 +135,7 @@ export default function NewBriefingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] py-12 px-4 selection:bg-blue-500/30">
+    <div className="max-w-[1400px] mx-auto space-y-12 pb-20 animate-in fade-in duration-700">
       <div className="max-w-7xl mx-auto space-y-10">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">

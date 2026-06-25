@@ -13,7 +13,7 @@ const extractBriefingContextFlow = ai.defineFlow(
   {
     name: 'extractBriefingContextFlow',
     inputSchema: ExtractBriefingContextInputSchema,
-    outputSchema: BriefingContextSchema.partial(),
+    outputSchema: BriefingContextSchema,
   },
   async (input) => {
     const { output } = await ai.generate({
@@ -67,9 +67,10 @@ const extractBriefingContextFlow = ai.defineFlow(
       },
     });
 
-    const result = output ?? {};
+    const result: Partial<BriefingContext> = output ?? {};
     
-    return {
+    const finalContext: BriefingContext = {
+        ...result,
         clientName: result.clientName || input.currentContext?.clientName || '',
         website: result.website || input.currentContext?.website || '',
         industry: result.industry || input.currentContext?.industry || '',
@@ -77,9 +78,9 @@ const extractBriefingContextFlow = ai.defineFlow(
         targetAudience: result.targetAudience || input.currentContext?.targetAudience || '',
         language: result.language || input.currentContext?.language || 'dutch',
         tone: result.tone || input.currentContext?.tone || 'Professional',
-        rawNotes: input.rawNotes,
-        ...result // Spread the rest of the optional fields
-    } as BriefingContext;
+        rawNotes: input.rawNotes || '',
+    };
+    return finalContext;
   }
 );
 

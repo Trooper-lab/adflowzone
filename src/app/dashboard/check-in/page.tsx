@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore } from '@/firebase';
@@ -301,7 +301,7 @@ export default function CheckInPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Notes Feed */}
                         <Card className="glass-card flex flex-col h-[600px]">
-                            <CardHeader className="border-b border-white/5">
+                            <CardHeader className="border-b border-border">
                                 <CardTitle className="flex items-center gap-2">
                                     <MessageSquare className="text-green-400 size-5" />
                                     Recente Observaties
@@ -315,7 +315,7 @@ export default function CheckInPage() {
                                     ) : (
                                         <div className="divide-y divide-white/5">
                                             {recentNotes.map((note, i) => (
-                                                <div key={i} className="p-4 space-y-2 hover:bg-white/5 transition-colors">
+                                                <div key={i} className="p-4 space-y-2 hover:bg-secondary transition-colors">
                                                     <div className="flex justify-between items-start">
                                                         <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-500 border-slate-700">{format(note.date, 'dd MMM')}</Badge>
                                                         <span className="text-[10px] text-muted-foreground italic">{note.runName}</span>
@@ -332,7 +332,7 @@ export default function CheckInPage() {
 
                         {/* Todos Feed */}
                         <Card className="glass-card flex flex-col h-[600px]">
-                            <CardHeader className="border-b border-white/5">
+                            <CardHeader className="border-b border-border">
                                 <CardTitle className="flex items-center gap-2">
                                     <CheckCircle2 className="text-purple-400 size-5" />
                                     Voltooide Taken
@@ -351,7 +351,7 @@ export default function CheckInPage() {
                                                     ? completedAt.toDate() 
                                                     : (typeof completedAt === 'string' ? parseISO(completedAt) : new Date(completedAt));
                                                 return (
-                                                    <div key={i} className="p-4 flex items-start gap-4 hover:bg-white/5 transition-colors">
+                                                    <div key={i} className="p-4 flex items-start gap-4 hover:bg-secondary transition-colors">
                                                         <div className="mt-1 flex-shrink-0">
                                                             <CheckCircle2 className="size-4 text-green-500" />
                                                         </div>

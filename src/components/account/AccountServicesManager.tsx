@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -141,8 +141,8 @@ export default function AccountServicesManager({ account, accountDocRef, isAdmin
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 gap-6">
-                        <Card className="bg-[#0A0D17] border-white/5 shadow-2xl">
-                            <CardHeader className="border-b border-white/5 pb-4 flex flex-row items-center justify-between">
+                        <Card className="bg-[#0A0D17] border-border shadow-2xl">
+                            <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
                                 <div>
                                     <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
                                         <Package className="size-5 text-emerald-400" /> Gekoppelde Pakketten
@@ -198,8 +198,8 @@ export default function AccountServicesManager({ account, accountDocRef, isAdmin
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-[#0A0D17] border-white/5 shadow-2xl">
-                            <CardHeader className="border-b border-white/5 pb-4 flex flex-row items-center justify-between">
+                        <Card className="bg-[#0A0D17] border-border shadow-2xl">
+                            <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
                                 <div>
                                     <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
                                         <Briefcase className="size-5 text-blue-400" /> Gekoppelde Diensten

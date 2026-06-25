@@ -27,6 +27,13 @@ function LoadingState() {
 
 type EnrichedChecklistRun = ChecklistRun & { name: string; };
 
+function getCompletedMs(run: any) {
+  if (!run.completedAt) return 0;
+  if (run.completedAt instanceof Timestamp) return run.completedAt.toDate().getTime();
+  const date = typeof run.completedAt === 'string' ? parseISO(run.completedAt) : new Date(run.completedAt);
+  return date.getTime();
+}
+
 export default function ClientChecklistsPage() {
   const { clientId } = useParams();
   const firestore = useFirestore();
@@ -84,10 +91,10 @@ export default function ClientChecklistsPage() {
         const allRuns = runsSnap.docs.map(d => {
             const data = d.data() as ChecklistRun;
             return {
-                id: d.id,
                 ...data,
+                id: d.id,
                 name: templatesMap.get(data.checklistId) || 'Unknown Checklist'
-            } as EnrichedChecklistRun
+            } as EnrichedChecklistRun;
         });
         setRuns(allRuns);
 
@@ -164,7 +171,7 @@ export default function ClientChecklistsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredAndGroupedRuns[account.id].sort((a,b) => (b.completedAt as any) - (a.completedAt as any)).map(run => {
+                                    {filteredAndGroupedRuns[account.id].sort((a,b) => getCompletedMs(b) - getCompletedMs(a)).map(run => {
                                         const commentCount = run.tasks.filter(task => task.notes && task.notes.trim() !== '').length;
                                         return (
                                             <TableRow key={run.id}>

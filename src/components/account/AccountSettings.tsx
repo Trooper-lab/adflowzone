@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -746,7 +746,7 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
                 </div>
 
                 <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-                    <AlertDialogContent className="glass-card-elevated border-white/5 bg-[#1C243A] text-white">
+                    <AlertDialogContent className="glass-card-elevated border-border bg-[#1C243A] text-white">
                         <AlertDialogHeader>
                             <AlertDialogTitle className="text-white">Account overzetten?</AlertDialogTitle>
                             <AlertDialogDescription className="text-slate-300 font-medium">
@@ -754,7 +754,7 @@ export default function AccountSettings({ account, accountDocRef, isAdmin }: Acc
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel className="bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white" onClick={() => setPendingData(null)}>Annuleren</AlertDialogCancel>
+                            <AlertDialogCancel className="bg-secondary border-border text-slate-300 hover:bg-accent hover:text-white" onClick={() => setPendingData(null)}>Annuleren</AlertDialogCancel>
                             <AlertDialogAction onClick={handleConfirmTransfer} className="bg-blue-600 hover:bg-blue-500 text-white">Overzetten</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
@@ -256,7 +256,7 @@ export default function UserManagementPage() {
                                         <div className="flex items-center gap-4">
                                             <div className={cn(
                                                 "p-3 rounded-xl border",
-                                                registeredUser ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-slate-800/50 text-slate-500 border-slate-700"
+                                                registeredUser ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-secondary text-slate-500 border-slate-700"
                                             )}>
                                                 <Globe className="size-5" />
                                             </div>

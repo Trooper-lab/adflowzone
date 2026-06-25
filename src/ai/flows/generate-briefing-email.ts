@@ -5,7 +5,7 @@ import { ai } from '@/ai/genkit';
 export const generateBriefingEmailText = async (context: any, portalLink: string) => {
     const { text } = await ai.generate({
         prompt: `
-            Je bent een Google Ads specialist (werkend voor AdFlowZone).
+            Je bent een Google Ads en multi-channel specialist (werkend voor Only Forward - GO).
             Schrijf een e-mail gericht aan jouw opdrachtgever (de marketing agency of freelancer).
             De eindklant (het daadwerkelijke account) heet: ${context.clientName}.
             

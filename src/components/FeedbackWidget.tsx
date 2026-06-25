@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
@@ -104,12 +104,12 @@ export function FeedbackWidget() {
         <div className="fixed inset-0 z-50 flex items-end justify-end p-4 sm:p-6">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60"
             onClick={handleClose}
           />
 
           {/* Glassmorphic modal */}
-          <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/80 p-6 shadow-2xl backdrop-blur-xl">
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-slate-900/80 p-6 shadow-2xl">
             {/* Header */}
             <div className="mb-5 flex items-start justify-between">
               <div>
@@ -119,14 +119,14 @@ export function FeedbackWidget() {
               <button
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-slate-100 disabled:opacity-50"
+                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-accent hover:text-slate-100 disabled:opacity-50"
               >
                 <X className="size-4" />
               </button>
             </div>
 
             {/* Current page URL */}
-            <div className="mb-4 rounded-lg border border-white/5 bg-white/5 px-3 py-2">
+            <div className="mb-4 rounded-lg border border-border bg-secondary px-3 py-2">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Huidige pagina</p>
               <p className="mt-0.5 truncate text-xs text-slate-300">
                 {typeof window !== 'undefined' ? window.location.pathname : ''}
@@ -140,7 +140,7 @@ export function FeedbackWidget() {
               onChange={(e) => setComment(e.target.value)}
               rows={4}
               disabled={isSubmitting}
-              className="mb-4 resize-none border-white/10 bg-white/5 text-sm text-slate-100 placeholder:text-slate-500 focus-visible:ring-primary/50 disabled:opacity-60"
+              className="mb-4 resize-none border-border bg-secondary text-sm text-slate-100 placeholder:text-slate-500 focus-visible:ring-primary/50 disabled:opacity-60"
             />
 
             {/* Screenshot upload */}
@@ -154,7 +154,7 @@ export function FeedbackWidget() {
                 className="hidden"
               />
               {imagePreview ? (
-                <div className="relative overflow-hidden rounded-lg border border-white/10">
+                <div className="relative overflow-hidden rounded-lg border border-border">
                   <img
                     src={imagePreview}
                     alt="Screenshot preview"
@@ -172,7 +172,7 @@ export function FeedbackWidget() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isSubmitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/20 px-4 py-3 text-xs text-slate-400 transition-colors hover:border-white/40 hover:text-slate-300 disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border px-4 py-3 text-xs text-slate-400 transition-colors hover:border-border hover:text-slate-300 disabled:opacity-50"
                 >
                   <Upload className="size-3.5" />
                   Screenshot bijvoegen (optioneel, max 2MB)

@@ -13,12 +13,12 @@ export function KeywordResearchBlock({ context }: KeywordResearchBlockProps) {
 
   if (!selectedKeywords?.length && !keywordThemes?.length) {
     return (
-      <Card className="rounded-sm border border-slate-200 shadow-sm bg-white overflow-hidden">
+      <Card className="rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md shadow-xl overflow-hidden print:bg-white print:border-slate-200">
         <div className="p-20 text-center">
-          <div className="bg-slate-50 size-16 rounded-sm flex items-center justify-center mx-auto mb-6 border border-slate-100">
+          <div className="bg-slate-950/20 size-16 rounded-xl flex items-center justify-center mx-auto mb-6 border border-slate-800 print:bg-slate-50 print:border-slate-200">
             <Search className="size-8 text-slate-500" />
           </div>
-          <div className="text-slate-700 text-sm font-black uppercase tracking-widest">Geen zoekwoordgegevens beschikbaar.</div>
+          <div className="text-slate-400 text-sm font-black uppercase tracking-widest print:text-slate-700">Geen zoekwoordgegevens beschikbaar.</div>
         </div>
       </Card>
     );
@@ -28,20 +28,20 @@ export function KeywordResearchBlock({ context }: KeywordResearchBlockProps) {
     <div className="space-y-8">
       {/* Themes Section */}
       {keywordThemes && keywordThemes.length > 0 && (
-        <Card className="rounded-sm border border-slate-200 shadow-sm bg-white overflow-hidden">
-          <div className="bg-white px-10 py-5 border-b border-slate-100 flex items-center gap-3">
-            <div className="p-2 bg-white rounded-sm shadow-sm border border-slate-200">
-              <Hash className="size-4 text-[#1A3C94]" />
+        <Card className="rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md shadow-xl overflow-hidden print:bg-white print:border-slate-200">
+          <div className="bg-slate-950/20 px-10 py-5 border-b border-slate-800 flex items-center gap-3 print:bg-slate-50 print:border-slate-200">
+            <div className="p-2 bg-slate-900 border border-slate-800 rounded-lg shadow-sm print:bg-white print:border-slate-200">
+              <Hash className="size-4 text-primary print:text-slate-800" />
             </div>
-            <span className="text-sm font-black text-slate-900 uppercase tracking-widest">Geselecteerde Thema's</span>
+            <span className="text-sm font-black text-slate-200 uppercase tracking-widest print:text-slate-900">Geselecteerde Thema's</span>
           </div>
           <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-6">
             {keywordThemes.map((theme) => (
-              <div key={theme.id} className="bg-slate-50 border border-slate-100 p-6 rounded-sm">
-                <h4 className="text-sm font-black text-slate-900 mb-4">{theme.name}</h4>
+              <div key={theme.id} className="bg-slate-950/20 border border-slate-800/80 p-6 rounded-xl print:bg-slate-50 print:border-slate-200">
+                <h4 className="text-sm font-black text-slate-200 mb-4 print:text-slate-900">{theme.name}</h4>
                 <div className="flex flex-wrap gap-2">
                   {theme.keywords.map((kw, i) => (
-                    <Badge key={i} variant="outline" className="bg-white text-[#1A3C94] border-[#1A3C94]/20 font-bold rounded-sm">
+                    <Badge key={i} variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold rounded-lg print:bg-white print:text-blue-900 print:border-blue-200">
                       {kw}
                     </Badge>
                   ))}
@@ -54,56 +54,56 @@ export function KeywordResearchBlock({ context }: KeywordResearchBlockProps) {
 
       {/* Keywords Table */}
       {selectedKeywords && selectedKeywords.length > 0 && (
-        <Card className="rounded-sm border border-slate-200 shadow-sm bg-white overflow-hidden">
-          <div className="bg-white px-10 py-5 border-b border-slate-100 flex items-center justify-between">
+        <Card className="rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md shadow-xl overflow-hidden print:bg-white print:border-slate-200">
+          <div className="bg-slate-950/20 px-10 py-5 border-b border-slate-800 flex items-center justify-between print:bg-slate-50 print:border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-white rounded-sm shadow-sm border border-slate-200">
-                <Search className="size-4 text-[#1A3C94]" />
+              <div className="p-2 bg-slate-900 border border-slate-800 rounded-lg shadow-sm print:bg-white print:border-slate-200">
+                <Search className="size-4 text-primary print:text-slate-800" />
               </div>
-              <span className="text-sm font-black text-slate-900 uppercase tracking-widest">Belangrijkste Zoekwoorden</span>
+              <span className="text-sm font-black text-slate-200 uppercase tracking-widest print:text-slate-900">Belangrijkste Zoekwoorden</span>
             </div>
-            <Badge variant="outline" className="rounded-sm px-4 py-1 bg-white font-black text-slate-900 border-slate-200 shadow-sm">
+            <Badge variant="outline" className="rounded-xl px-4 py-1 bg-slate-900 text-slate-200 border-slate-800 shadow-sm print:bg-white print:text-slate-900 print:border-slate-200">
               {selectedKeywords.length} Geselecteerd
             </Badge>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/30">
-                  <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-700">Zoekwoord</th>
-                  <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-700 text-right">Volume</th>
-                  <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-700 text-center">Concurrentie</th>
-                  <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-700 text-right">CPC (Laag)</th>
-                  <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-700 text-right">CPC (Hoog)</th>
+                <tr className="border-b border-slate-800 bg-slate-950/40 print:border-slate-200 print:bg-slate-50">
+                  <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-500 print:text-slate-600">Zoekwoord</th>
+                  <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-500 print:text-slate-600 text-right">Volume</th>
+                  <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-500 print:text-slate-600 text-center">Concurrentie</th>
+                  <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-500 print:text-slate-600 text-right">CPC (Laag)</th>
+                  <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-500 print:text-slate-600 text-right">CPC (Hoog)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-800/60 print:divide-slate-200">
                 {selectedKeywords.map((kw, i) => (
-                  <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-10 py-5 font-bold text-slate-900 text-sm">{kw.text}</td>
+                  <tr key={i} className="hover:bg-slate-950/10 transition-colors print:hover:bg-slate-50">
+                    <td className="px-10 py-5 font-bold text-slate-200 text-sm print:text-slate-900">{kw.text}</td>
                     <td className="px-10 py-5 text-right">
-                      <div className="inline-flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-sm border border-slate-100">
-                        <TrendingUp className="size-3 text-[#1A3C94]" />
-                        <span className="font-bold text-slate-700">{kw.avgMonthlySearches?.toLocaleString('nl-NL') || '-'}</span>
+                      <div className="inline-flex items-center gap-2 bg-slate-950/40 px-3 py-1 rounded-lg border border-slate-800 print:bg-slate-100 print:border-slate-200">
+                        <TrendingUp className="size-3 text-primary print:text-slate-700" />
+                        <span className="font-bold text-slate-300 print:text-slate-800">{kw.avgMonthlySearches?.toLocaleString('nl-NL') || '-'}</span>
                       </div>
                     </td>
                     <td className="px-10 py-5 text-center">
                       <Badge 
                         variant="secondary" 
-                        className={`font-black text-[10px] tracking-wider uppercase border-0 rounded-sm ${
-                          kw.competition === 'HIGH' ? 'bg-rose-50 text-rose-700' :
-                          kw.competition === 'MEDIUM' ? 'bg-amber-50 text-amber-700' :
-                          kw.competition === 'LOW' ? 'bg-emerald-50 text-emerald-700' :
-                          'bg-slate-50 text-slate-700'
+                        className={`font-black text-[10px] tracking-wider uppercase border-0 rounded-lg ${
+                          kw.competition === 'HIGH' ? 'bg-rose-500/10 text-rose-400 print:bg-rose-50 print:text-rose-700' :
+                          kw.competition === 'MEDIUM' ? 'bg-amber-500/10 text-amber-400 print:bg-amber-50 print:text-amber-700' :
+                          kw.competition === 'LOW' ? 'bg-emerald-500/10 text-emerald-400 print:bg-emerald-50 print:text-emerald-700' :
+                          'bg-slate-800 text-slate-400 print:bg-slate-50 print:text-slate-700'
                         }`}
                       >
                         {kw.competition || 'ONBEKEND'}
                       </Badge>
                     </td>
-                    <td className="px-10 py-5 text-right font-medium text-slate-600">
+                    <td className="px-10 py-5 text-right font-medium text-slate-400 print:text-slate-650">
                       {kw.lowCpc ? `€${(kw.lowCpc / 1000000).toFixed(2).replace('.', ',')}` : '-'}
                     </td>
-                    <td className="px-10 py-5 text-right font-medium text-slate-600">
+                    <td className="px-10 py-5 text-right font-medium text-slate-400 print:text-slate-650">
                       {kw.highCpc ? `€${(kw.highCpc / 1000000).toFixed(2).replace('.', ',')}` : '-'}
                     </td>
                   </tr>

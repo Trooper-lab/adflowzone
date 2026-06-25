@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useMemo, useState, useEffect, useRef } from 'react';
@@ -31,7 +31,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 function LoadingState() {
   return (
-    <div className="flex items-center justify-center py-20 min-h-screen bg-muted/20">
+    <div className="flex items-center justify-center py-20 min-h-screen bg-card">
       <Loader2 className="size-8 animate-spin text-muted-foreground" />
       <span className="ml-4">Rapportgegevens laden...</span>
     </div>
@@ -116,7 +116,19 @@ const ReportPage = () => {
   const [notepadContent, setNotepadContent] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   
-  const userRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const reportRef = useMemoFirebase(() => {
+    if (!reportId || !firestore) return null;
+    return doc(firestore as any, 'reports', reportId as string);
+  }, [firestore, reportId]);
+  const { data: report, loading: reportLoading, error: reportError, refetch: refetchReport } = useDoc(reportRef) as { data: MonthlyReport | null, loading: boolean, error: any, refetch: () => void };
+
+  const parentClientRef = useMemoFirebase(() => (report && firestore) ? doc(firestore as any, 'parentClients', report.parentClientId) : null, [report, firestore]);
+  const { data: parentClient, loading: parentLoading } = useDoc(parentClientRef) as { data: ParentClient | null, loading: boolean };
+
+  const childAccountRef = useMemoFirebase(() => (report && firestore) ? doc(firestore as any, 'parentClients', report.parentClientId, 'childAccounts', report.childAccountId) : null, [report, firestore]);
+  const { data: childAccount, loading: accountLoading } = useDoc(childAccountRef) as { data: ChildAccount | null, loading: boolean };
+
+  const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore as any, 'users', user.uid) : null, [firestore, user]);
   const { data: appUser } = useDoc(userRef) as { data: AppUser | null };
   const isAdmin = appUser?.role === 'admin' || !appUser?.role;
   const managerUid = useMemo(() => {
@@ -124,21 +136,7 @@ const ReportPage = () => {
       return parentClient?.ownerId || user?.uid || null;
     }
     return appUser?.managerId || null;
-  }, [isAdmin, user, appUser, parentClient]);
-
-  const reportRef = useMemoFirebase(() => {
-    if (!reportId || !firestore) return null;
-    return doc(firestore as any, 'reports', reportId as string);
-  }, [firestore, reportId]);
-  const { data: report, loading: reportLoading, error: reportError, refetch: refetchReport } = useDoc(reportRef) as { data: MonthlyReport | null, loading: boolean, error: any, refetch: () => void };
-
-  const childAccountRef = useMemoFirebase(() => (report && firestore) ? doc(firestore as any, 'parentClients', report.parentClientId, 'childAccounts', report.childAccountId) : null, [report, firestore]);
-  const { data: childAccount, loading: accountLoading } = useDoc(childAccountRef) as { data: ChildAccount | null, loading: boolean };
-
-  const parentClientRef = useMemoFirebase(() => (report && firestore) ? doc(firestore as any, 'parentClients', report.parentClientId) : null, [report, firestore]);
-  const { data: parentClient, loading: parentLoading } = useDoc(parentClientRef) as { data: ParentClient | null, loading: boolean };
-
-  const checklistsQuery = useMemoFirebase(() => {
+  }, [isAdmin, user, appUser, parentClient]);  const checklistsQuery = useMemoFirebase(() => {
     if (!firestore || !managerUid) return null;
     return query(collection(firestore, 'users', managerUid, 'checklistTemplates'));
   }, [firestore, managerUid]);
@@ -604,7 +602,7 @@ const ReportPage = () => {
 
   return (
     <div className="bg-background min-h-screen">
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b print:hidden">
+      <div className="sticky top-0 z-10 bg-background border-b print:hidden">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
                  <div>
@@ -751,7 +749,7 @@ const ReportPage = () => {
                         <Card>
                             <CardContent className="p-0 overflow-x-auto">
                                 <Table>
-                                    <TableHeader className="bg-muted/50">
+                                    <TableHeader className="bg-secondary">
                                         <TableRow>
                                             <TableHead>Campagne</TableHead>
                                             <TableHead className="text-right">Kosten</TableHead>

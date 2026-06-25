@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
@@ -83,7 +83,7 @@ function SectionCard({
 }) {
   return (
     <div className="rounded-xl glass-card overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-3.5 border-b border-white/5 bg-white/[0.03]">
+      <div className="flex items-center justify-between px-6 py-3.5 border-b border-border bg-white/[0.03]">
         <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">
           {title}
         </p>
@@ -220,7 +220,7 @@ export default function ClientDetailPage() {
               variant="outline"
               size="sm"
               asChild
-              className="border-white/5 bg-white/5 hover:bg-white/10 text-slate-300"
+              className="border-border bg-secondary hover:bg-accent text-slate-300"
             >
               <Link href={`/dashboard/clients/${clientId}/edit`}>
                 <Pencil className="mr-2 size-3.5" /> Bewerken
@@ -343,7 +343,7 @@ export default function ClientDetailPage() {
             ) : (
               /* Empty state */
               <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-                <div className="p-3 rounded-full bg-white/5 mb-3">
+                <div className="p-3 rounded-full bg-secondary mb-3">
                   <Target className="size-8 text-slate-600" />
                 </div>
                 <p className="text-sm text-slate-400 mb-4">
@@ -410,7 +410,7 @@ export default function ClientDetailPage() {
               )}
 
               {client.internalNotes && (
-                <div className="pt-4 border-t border-white/5">
+                <div className="pt-4 border-t border-border">
                   <div className="flex items-center gap-1.5 mb-2">
                     <StickyNote className="size-3.5 text-slate-500" />
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -430,7 +430,7 @@ export default function ClientDetailPage() {
             variant="outline"
             size="sm"
             asChild
-            className="w-full border-white/5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+            className="w-full border-border bg-secondary hover:bg-accent text-slate-400 hover:text-white"
           >
             <Link href="/dashboard/accounts">
               <Wallet className="mr-2 size-3.5" />

@@ -1,10 +1,10 @@
-
+﻿
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, doc, getDoc, setDoc } from 'firebase/firestore';
 import { LoginForm } from '@/components/auth/login-form';
 import { LogoIcon } from '@/components/icons';
 import type { AppUser } from '@/lib/types';
@@ -45,25 +45,19 @@ export default function LoginPage() {
         const userDocRef = doc(firestore, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
         
+        let role = null;
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data() as AppUser;
-          const role = userData.role?.toLowerCase();
+          role = userData.role?.toLowerCase();
           console.log("LOGIN_STEP: User profile found with role:", role);
           
           if (role === 'admin' || role === 'employee') {
             router.push('/dashboard');
             return;
           }
-          
-          if (role === 'pending') {
-            router.push('/onboarding/waiting');
-            return;
-          }
-        } else {
-          console.log("LOGIN_STEP: No user profile found in 'users' collection for UID:", user.uid);
         }
 
-        // 2. Check for client access via email match
+        // 2. Check for client access via email match (do this BEFORE blocking pending role)
         if (user.email) {
             const emailLower = user.email.toLowerCase();
             const clientQuery = query(
@@ -83,8 +77,32 @@ export default function LoginPage() {
             }
         }
 
-        // 3. Fallback for new users without a document yet
+        // 3. If they have role 'pending', redirect to waiting onboarding screen
+        if (role === 'pending') {
+          router.push('/onboarding/waiting');
+          return;
+        }
+
+        // 4. Fallback for new users without a document yet
         console.log("LOGIN_STEP: Fallback to onboarding/waiting");
+        if (user.email) {
+          const emailLower = user.email.toLowerCase();
+          const defaultRole = emailLower.endsWith('@onlyforward.nl') ? 'employee' : 'pending';
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || '',
+            photoURL: user.photoURL || '',
+            role: defaultRole,
+            createdAt: new Date().toISOString(),
+          }, { merge: true });
+          
+          if (defaultRole === 'employee') {
+            router.push('/dashboard');
+            return;
+          }
+        }
+        
         router.push('/onboarding/waiting');
         
       } catch (error) {
@@ -103,20 +121,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex flex-col items-center">
-          <LogoIcon className="mb-4 h-12 w-12 text-primary" />
-          <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">
-            AdFlow Zone
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0F19] text-slate-100 p-4 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
+      
+      <div className="w-full max-w-md z-10 space-y-6">
+        <div className="flex flex-col items-center text-center space-y-2">
+          <div className="size-16 bg-slate-900/60 border border-border rounded-2xl flex items-center justify-center shadow-2xl mb-2">
+            <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 font-headline">GO</span>
+          </div>
+          <h1 className="font-headline text-3xl font-black tracking-tight text-white">
+            Global Overview
           </h1>
-          <p className="mt-2 text-muted-foreground">
-            Log in op je portaal.
+          <p className="text-sm text-slate-400 font-medium">
+            Log in op het GO command center van <span className="text-white font-semibold">Only Forward</span>
           </p>
         </div>
+        
         <LoginForm />
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          Een gestroomlijnde werkplek voor ad management professionals.
+        
+        <p className="text-center text-xs text-slate-500 font-medium tracking-wide">
+          Uitsluitend toegankelijk met een geautoriseerd Google account.
         </p>
       </div>
     </div>

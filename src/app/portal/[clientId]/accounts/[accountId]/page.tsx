@@ -1,4 +1,4 @@
-
+﻿
 
 'use client';
 
@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { doc, collection, query, where, getDoc, addDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import type { ChildAccount, ParentClient, ConnectedChecklist, ChecklistTemplate, Todo, KpiData, ChecklistRun } from '@/lib/types';
-import { format, isPast, isToday, parseISO, getDay, setDay, addWeeks, setDate, addMonths, subDays } from 'date-fns';
+import { format, isPast, isToday, parseISO, getDay, setDay, addWeeks, setDate, addMonths, subDays, addDays } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -193,7 +193,7 @@ function TodosSection({ parentClient, childAccount }: { parentClient: ParentClie
 
     return (
         <Card>
-            <CardHeader className="bg-muted/30">
+            <CardHeader className="bg-secondary">
                 <div className="flex items-center justify-between">
                     <CardTitle>Action Items</CardTitle>
                     <Button variant="ghost" size="icon" onClick={() => setIsAdding(p => !p)}>

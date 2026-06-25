@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
@@ -87,7 +87,7 @@ export default function PlatformFeedbackPage() {
       </div>
 
       {feedbacks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 py-20 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-secondary py-20 text-center">
           <MessageSquare className="mb-3 size-10 text-slate-600" />
           <p className="text-sm text-slate-400">Nog geen feedback ontvangen.</p>
         </div>
@@ -96,7 +96,7 @@ export default function PlatformFeedbackPage() {
           {feedbacks.map((fb) => {
             const date = fb.createdAt ? new Date(fb.createdAt.seconds * 1000) : null;
             return (
-              <Card key={fb.id} className="flex flex-col border-white/10 bg-card">
+              <Card key={fb.id} className="flex flex-col border-border bg-card">
                 <CardContent className="flex flex-1 flex-col gap-3 pt-5">
                   {/* Comment */}
                   <p className="text-sm leading-relaxed text-slate-200">{fb.comment}</p>
@@ -105,7 +105,7 @@ export default function PlatformFeedbackPage() {
                   {fb.imageBase64 && (
                     <button
                       onClick={() => setExpandedImage(fb.imageBase64)}
-                      className="mt-1 overflow-hidden rounded-lg border border-white/10 transition-colors hover:border-white/30"
+                      className="mt-1 overflow-hidden rounded-lg border border-border transition-colors hover:border-border"
                     >
                       <img
                         src={fb.imageBase64}
@@ -116,7 +116,7 @@ export default function PlatformFeedbackPage() {
                   )}
 
                   {/* Meta info */}
-                  <div className="mt-auto space-y-1.5 border-t border-white/10 pt-3">
+                  <div className="mt-auto space-y-1.5 border-t border-border pt-3">
                     <div className="flex items-center gap-2 text-xs text-slate-400">
                       <User className="size-3 shrink-0" />
                       <span className="truncate">{fb.userEmail}</span>
@@ -150,7 +150,7 @@ export default function PlatformFeedbackPage() {
       {/* Lightbox */}
       {expandedImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => setExpandedImage(null)}
         >
           <img

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { query, collection, where, orderBy, limit, getDocs, startAfter, doc, getDoc } from 'firebase/firestore';
@@ -176,7 +176,7 @@ export default function ChecklistHistory({ account, managerUid }: ChecklistHisto
                         )}>
                             {run.status === 'complete' ? 'Voltooid' : 'In uitvoering'}
                         </Badge>
-                        <Button variant="ghost" size="sm" onClick={() => setViewingRunId(run.id)} className="text-slate-400 hover:text-white hover:bg-white/5">
+                        <Button variant="ghost" size="sm" onClick={() => setViewingRunId(run.id)} className="text-slate-400 hover:text-white hover:bg-secondary">
                             <View className="mr-2 size-4" />
                             Details
                         </Button>

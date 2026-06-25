@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { doc, getDoc, addDoc, updateDoc, deleteDoc, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -178,6 +178,9 @@ export default function AccountTodos({ parentClient, childAccount, childAccountR
     const handleAddTodo = () => {
         if (!firestore || !user || !newTodoContent.trim()) return;
         
+        const now = new Date();
+        const todoCollection = collection(firestore, 'todos');
+        
         const newTodo: Omit<Todo, 'id'> = {
             ownerId: managerId,
             parentClientId: parentClient.id,
@@ -191,7 +194,7 @@ export default function AccountTodos({ parentClient, childAccount, childAccountR
             dueDate: (newTodoDueDate || now).toISOString()
         };
         
-        addDoc(collection(firestore, 'todos'), newTodo)
+        addDoc(todoCollection, newTodo)
             .then((docRef) => {
                 if (childAccountRef) {
                     updateDoc(childAccountRef, {
@@ -275,7 +278,7 @@ export default function AccountTodos({ parentClient, childAccount, childAccountR
                              <h4 className="font-semibold text-sm">Pending</h4>
                             {pendingTodos.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No pending todos.</p>}
                             {pendingTodos.map((todo: any) => (
-                                <div key={todo.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-slate-800/50 group">
+                                <div key={todo.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-secondary group">
                                     <Checkbox 
                                         id={`todo-${todo.id}`} 
                                         checked={false}
@@ -345,7 +348,7 @@ export default function AccountTodos({ parentClient, childAccount, childAccountR
                                 <Separator />
                                 <h4 className="font-semibold text-sm">Recently Completed</h4>
                                 {completedTodos.map((todo) => (
-                                     <div key={todo.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-slate-800/50 group">
+                                     <div key={todo.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-secondary group">
                                         <Checkbox 
                                             id={`todo-${todo.id}`} 
                                             checked={true}

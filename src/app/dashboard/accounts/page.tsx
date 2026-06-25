@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -39,8 +39,8 @@ type ClientGroup = {
 
 function EmptyState({ isAdmin }: { isAdmin: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-5 rounded-xl border border-dashed border-white/5 py-20 text-center">
-      <div className="p-4 rounded-full bg-white/5">
+    <div className="flex flex-col items-center justify-center gap-5 rounded-xl border border-dashed border-border py-20 text-center">
+      <div className="p-4 rounded-full bg-secondary">
         <Library className="size-10 text-slate-600" />
       </div>
       <div className="space-y-1">
@@ -67,11 +67,11 @@ function LoadingSkeleton() {
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 rounded-xl bg-card/50 border border-white/5 animate-pulse" />
+          <div key={i} className="h-24 rounded-xl bg-secondary border border-border animate-pulse" />
         ))}
       </div>
       {[1, 2].map((i) => (
-        <div key={i} className="h-16 rounded-xl bg-card/50 border border-white/5 animate-pulse" />
+        <div key={i} className="h-16 rounded-xl bg-secondary border border-border animate-pulse" />
       ))}
     </div>
   );
@@ -107,7 +107,7 @@ function InlineNumberInput({ value, onSave, className, prefix = '', disabled = f
            if (e.key === 'Enter') handleSave();
         }}
         disabled={saving || disabled}
-        className={cn("h-7 text-right px-2 py-0 text-xs bg-black/20 border-white/5 hover:border-white/10 focus-visible:ring-1 focus-visible:ring-blue-500 font-mono", prefix && "pl-5", disabled && "opacity-50 cursor-not-allowed")}
+        className={cn("h-7 text-right px-2 py-0 text-xs bg-black/20 border-border hover:border-border focus-visible:ring-1 focus-visible:ring-blue-500 font-mono", prefix && "pl-5", disabled && "opacity-50 cursor-not-allowed")}
       />
     </div>
   );
@@ -348,7 +348,7 @@ export default function PortfolioPage() {
                 <AccordionItem
                   key={group.parentClient.id}
                   value={group.parentClient.id}
-                  className="rounded-xl border border-white/5 bg-card overflow-hidden shadow-sm border-none"
+                  className="rounded-xl border border-border bg-card overflow-hidden shadow-sm border-none"
                 >
                   {/* ── Accordion header ── */}
                   <div className="px-5 hover:bg-white/[0.03] transition-colors">
@@ -428,7 +428,7 @@ export default function PortfolioPage() {
                   </div>
 
                   {/* ── Accordion body ── */}
-                  <AccordionContent className="border-t border-white/5 bg-black/10">
+                  <AccordionContent className="border-t border-border bg-black/10">
                     <div className="px-5 pt-3 pb-5">
                       {/* Column headers */}
                       <div className={cn(
@@ -450,7 +450,7 @@ export default function PortfolioPage() {
                           <div
                             key={account.id}
                             className={cn(
-                              'grid items-center px-3 py-3 rounded-lg border border-white/5 bg-card/40 group',
+                              'grid items-center px-3 py-3 rounded-lg border border-border bg-card group',
                               'hover:bg-blue-500/5 hover:border-blue-500/20 transition-all',
                               isAdmin
                                 ? 'grid-cols-[1fr_130px_80px_100px_200px]'
@@ -480,7 +480,7 @@ export default function PortfolioPage() {
                                     )
                                   }
                                 >
-                                  <SelectTrigger className="h-7 w-[120px] text-[10px] bg-white/5 border-white/10 hover:bg-white/10">
+                                  <SelectTrigger className="h-7 w-[120px] text-[10px] bg-secondary border-border hover:bg-accent">
                                     <SelectValue placeholder="Toewijzen" />
                                   </SelectTrigger>
                                   <SelectContent className="glass-card-elevated text-slate-200">
@@ -501,7 +501,7 @@ export default function PortfolioPage() {
                                 'text-[9px] font-bold h-5 px-1.5 border-none',
                                 (account.connectedChecklists?.length || 0) > 0
                                   ? 'bg-green-500/10 text-green-400'
-                                  : 'bg-slate-800/80 text-slate-600',
+                                  : 'bg-secondary text-slate-600',
                               )}>
                                 <ListChecks className="size-2.5 mr-1" />
                                 {account.connectedChecklists?.length || 0}
@@ -543,7 +543,7 @@ export default function PortfolioPage() {
                       </div>
 
                       {/* Footer actions */}
-                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
                         <div className="flex gap-1">
                           {isAdmin && (
                             <Button
@@ -568,7 +568,7 @@ export default function PortfolioPage() {
                         </div>
                         <Button
                           variant="outline" size="sm" asChild
-                          className="text-[10px] font-bold uppercase tracking-widest h-7 border-white/10 hover:bg-primary hover:border-primary hover:text-white transition-all"
+                          className="text-[10px] font-bold uppercase tracking-widest h-7 border-border hover:bg-primary hover:border-primary hover:text-white transition-all"
                         >
                           <Link href={`/dashboard/clients/${group.parentClient.id}`}>
                             Volledig dossier

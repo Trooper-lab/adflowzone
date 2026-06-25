@@ -20,7 +20,7 @@ export async function sendBriefingEmail(
         `;
         
         await resend.emails.send({
-            from: 'AdFlow Zone <flowzone@trooper.es>',
+            from: 'GO - Global Overview <flowzone@trooper.es>',
             to: [toEmail],
             subject: subject,
             html: htmlBody,

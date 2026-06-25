@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMemo } from 'react';
 import type { ChildAccount, KpiData } from '@/lib/types';
@@ -70,7 +70,7 @@ export function KpiPerformanceTableForReport({ childAccount, kpiData, reportDate
                     }
 
                     return (
-                        <TableRow key={monthKey} className={format(monthDate, 'yyyy-MM') === format(reportDate, 'yyyy-MM') ? 'bg-muted/50' : ''}>
+                        <TableRow key={monthKey} className={format(monthDate, 'yyyy-MM') === format(reportDate, 'yyyy-MM') ? 'bg-secondary' : ''}>
                             <TableCell className="font-medium text-muted-foreground">{format(monthDate, 'MMM yyyy')}</TableCell>
                             {childAccount.kpisToTrack.map(kpi => (
                                 <TableCell key={kpi}>{calculateValue(kpi, monthData)}</TableCell>

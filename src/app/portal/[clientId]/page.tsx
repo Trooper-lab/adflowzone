@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -166,7 +166,7 @@ export default function ClientPortalPage() {
                 <Card className="overflow-hidden">
                 {finalizedReports.length > 0 ? (
                     <div>
-                        <div className="grid grid-cols-4 items-center p-4 bg-muted/30">
+                        <div className="grid grid-cols-4 items-center p-4 bg-secondary">
                             <p className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Period</p>
                             <p className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Account</p>
                             <p className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Generated</p>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc } from '@/firebase';
@@ -107,7 +107,7 @@ export default function CampaignBriefingsPage() {
           ))}
         </div>
       ) : briefings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 bg-slate-900/20 rounded-3xl border-2 border-dashed border-white/5 text-center">
+        <div className="flex flex-col items-center justify-center h-64 bg-slate-900/20 rounded-3xl border-2 border-dashed border-border text-center">
             <Briefcase className="size-12 text-slate-600 mb-4" />
             <h3 className="text-xl font-bold text-slate-300">Geen briefings gevonden</h3>
             <p className="text-slate-500 mt-2">Maak je eerste AI-gestuurde briefing aan.</p>
@@ -123,7 +123,7 @@ export default function CampaignBriefingsPage() {
           {briefings.map(briefing => (
             <Link href={`/dashboard/campaign-briefings/${briefing.id}`} key={briefing.id} className="block group">
               <Card className="glass-card shadow-xl group-hover:border-blue-500/50 transition-all h-full flex flex-col">
-                <CardHeader className="pb-3 border-b border-white/5">
+                <CardHeader className="pb-3 border-b border-border">
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant={briefing.status === 'approved' ? 'default' : 'secondary'} className={briefing.status === 'approved' ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-orange-500/20 text-orange-400 hover:bg-orange-500/30"}>
                         {briefing.status === 'approved' ? 'Goedgekeurd' : 'Concept'}
@@ -146,7 +146,7 @@ export default function CampaignBriefingsPage() {
                     <span>{briefing.campaigns.length} Campagnes</span>
                   </div>
                 </CardContent>
-                <CardFooter className="border-t border-white/5 pt-4 flex justify-between items-center bg-slate-900/50 rounded-b-xl">
+                <CardFooter className="border-t border-border pt-4 flex justify-between items-center bg-slate-900/50 rounded-b-xl">
                   {briefing.shareToken ? (
                       <CopyLinkButton briefingId={briefing.id} />
                   ) : <div/>}

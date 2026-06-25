@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore } from '@/firebase';
@@ -276,21 +276,21 @@ export default function ServicesManagementPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Naam</label>
-                                        <Input value={serviceForm.name} onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })} placeholder="bijv. Google Ads Beheer" className="bg-black/20 border-white/5" />
+                                        <Input value={serviceForm.name} onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })} placeholder="bijv. Google Ads Beheer" className="bg-black/20 border-border" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Standaard Uren (per maand)</label>
-                                        <Input type="number" value={serviceForm.baseHours} onChange={e => setServiceForm({ ...serviceForm, baseHours: e.target.value })} placeholder="bijv. 4" className="bg-black/20 border-white/5" />
+                                        <Input type="number" value={serviceForm.baseHours} onChange={e => setServiceForm({ ...serviceForm, baseHours: e.target.value })} placeholder="bijv. 4" className="bg-black/20 border-border" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Setup Kosten / Onboarding (€)</label>
-                                        <Input type="number" value={serviceForm.onboardingFee} onChange={e => setServiceForm({ ...serviceForm, onboardingFee: e.target.value })} placeholder="bijv. 250" className="bg-black/20 border-white/5" />
+                                        <Input type="number" value={serviceForm.onboardingFee} onChange={e => setServiceForm({ ...serviceForm, onboardingFee: e.target.value })} placeholder="bijv. 250" className="bg-black/20 border-border" />
                                     </div>
                                 </div>
                                 
                                 <div className="space-y-2 mt-4">
                                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Omschrijving (optioneel)</label>
-                                    <Textarea value={serviceForm.description} onChange={e => setServiceForm({ ...serviceForm, description: e.target.value })} placeholder="Korte interne beschrijving..." className="bg-black/20 border-white/5 min-h-[60px]" />
+                                    <Textarea value={serviceForm.description} onChange={e => setServiceForm({ ...serviceForm, description: e.target.value })} placeholder="Korte interne beschrijving..." className="bg-black/20 border-border min-h-[60px]" />
                                 </div>
 
                                 <div className="space-y-2 mt-4">
@@ -299,12 +299,12 @@ export default function ServicesManagementPage() {
                                         value={serviceForm.deliverables} 
                                         onChange={e => setServiceForm({ ...serviceForm, deliverables: e.target.value })} 
                                         placeholder={`Maandelijkse rapportage\nWekelijkse optimalisatie\nA/B testing ad copy`} 
-                                        className="bg-black/20 border-white/5 min-h-[100px]" 
+                                        className="bg-black/20 border-border min-h-[100px]" 
                                     />
                                     <p className="text-xs text-muted-foreground">Deze lijst helpt de klant te begrijpen wat de dienst precies inhoudt.</p>
                                 </div>
                             </CardContent>
-                            <CardFooter className="flex justify-end gap-3 border-t border-white/5 pt-6">
+                            <CardFooter className="flex justify-end gap-3 border-t border-border pt-6">
                                 <Button variant="ghost" onClick={cancelServiceEdit}>Annuleren</Button>
                                 <Button onClick={handleSaveService} className="bg-blue-600 hover:bg-blue-700 text-white">
                                     <CheckCircle2 className="size-4 mr-2" /> Opslaan
@@ -334,7 +334,7 @@ export default function ServicesManagementPage() {
                                     {service.description && <p className="text-sm text-slate-400">{service.description}</p>}
                                     {service.onboardingFee ? <p className="text-xs font-medium text-slate-300">Setupkosten: €{service.onboardingFee}</p> : null}
                                     {service.deliverables && service.deliverables.length > 0 && (
-                                        <div className="bg-black/20 p-3 rounded-md border border-white/5">
+                                        <div className="bg-black/20 p-3 rounded-md border border-border">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Deliverables</p>
                                             <ul className="text-sm text-slate-300 space-y-1 pl-4 list-disc marker:text-blue-500">
                                                 {service.deliverables.slice(0, 3).map((d, i) => <li key={i}>{d}</li>)}
@@ -368,19 +368,19 @@ export default function ServicesManagementPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Pakketnaam</label>
-                                        <Input value={packageForm.name} onChange={e => setPackageForm({ ...packageForm, name: e.target.value })} placeholder="bijv. Growth Package" className="bg-black/20 border-white/5" />
+                                        <Input value={packageForm.name} onChange={e => setPackageForm({ ...packageForm, name: e.target.value })} placeholder="bijv. Growth Package" className="bg-black/20 border-border" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Pakketkorting per maand (€)</label>
-                                        <Input type="number" value={packageForm.packageDiscount} onChange={e => setPackageForm({ ...packageForm, packageDiscount: e.target.value })} placeholder="bijv. 50" className="bg-black/20 border-white/5" />
+                                        <Input type="number" value={packageForm.packageDiscount} onChange={e => setPackageForm({ ...packageForm, packageDiscount: e.target.value })} placeholder="bijv. 50" className="bg-black/20 border-border" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Omschrijving (optioneel)</label>
-                                    <Textarea value={packageForm.description} onChange={e => setPackageForm({ ...packageForm, description: e.target.value })} placeholder="Voor wie is dit pakket bedoeld?" className="bg-black/20 border-white/5 min-h-[60px]" />
+                                    <Textarea value={packageForm.description} onChange={e => setPackageForm({ ...packageForm, description: e.target.value })} placeholder="Voor wie is dit pakket bedoeld?" className="bg-black/20 border-border min-h-[60px]" />
                                 </div>
 
-                                <div className="border border-white/5 rounded-lg p-4 bg-black/10">
+                                <div className="border border-border rounded-lg p-4 bg-black/10">
                                     <h3 className="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2"><ListPlus className="size-4" /> Selecteer Diensten voor dit Pakket</h3>
                                     {services.length === 0 ? (
                                         <p className="text-sm text-slate-500 italic">Er zijn nog geen diensten gedefinieerd. Maak eerst diensten aan.</p>
@@ -408,7 +408,7 @@ export default function ServicesManagementPage() {
                                                                 <span className="text-xs text-slate-400">Pakket uren:</span>
                                                                 <Input 
                                                                     type="number" 
-                                                                    className="w-20 h-8 text-sm bg-black/50 border-white/5" 
+                                                                    className="w-20 h-8 text-sm bg-black/50 border-border" 
                                                                     value={pkgSvc?.hours || ''}
                                                                     onChange={(e) => updatePackageServiceHours(service.id, Number(e.target.value))}
                                                                 />
@@ -421,7 +421,7 @@ export default function ServicesManagementPage() {
                                     )}
                                 </div>
                             </CardContent>
-                            <CardFooter className="flex justify-end gap-3 border-t border-white/5 pt-6">
+                            <CardFooter className="flex justify-end gap-3 border-t border-border pt-6">
                                 <Button variant="ghost" onClick={cancelPackageEdit}>Annuleren</Button>
                                 <Button onClick={handleSavePackage} className="bg-blue-600 hover:bg-blue-700 text-white">
                                     <CheckCircle2 className="size-4 mr-2" /> Opslaan
@@ -456,11 +456,11 @@ export default function ServicesManagementPage() {
                                             <p className="text-xs font-bold text-emerald-400">Pakketkorting: -€{pkg.packageDiscount} / mnd</p>
                                         ) : null}
                                         
-                                        <div className="bg-black/20 p-3 rounded-md border border-white/5">
+                                        <div className="bg-black/20 p-3 rounded-md border border-border">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Inbegrepen in pakket</p>
                                             <ul className="text-sm text-slate-300 space-y-1">
                                                 {pkg.services?.map((s, i) => (
-                                                    <li key={i} className="flex justify-between items-center border-b border-white/5 pb-1 last:border-0 last:pb-0">
+                                                    <li key={i} className="flex justify-between items-center border-b border-border pb-1 last:border-0 last:pb-0">
                                                         <span>{s.serviceName}</span>
                                                         <span className="text-slate-500 text-xs">{s.hours}u</span>
                                                     </li>
@@ -476,7 +476,7 @@ export default function ServicesManagementPage() {
             </Tabs>
 
             <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-                <AlertDialogContent className="glass-card-elevated border-white/5 bg-[#1C243A] text-white">
+                <AlertDialogContent className="glass-card-elevated border-border bg-[#1C243A] text-white">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-white">
                             {deleteTarget?.type === 'service' ? 'Dienst verwijderen?' : 'Pakket verwijderen?'}
@@ -488,7 +488,7 @@ export default function ServicesManagementPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">Annuleren</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-secondary border-border text-slate-300 hover:bg-accent hover:text-white">Annuleren</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-500 text-white">Verwijderen</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

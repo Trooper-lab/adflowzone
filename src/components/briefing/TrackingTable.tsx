@@ -8,17 +8,17 @@ interface TrackingTableProps {
 
 export function TrackingTable({ tracking }: TrackingTableProps) {
   return (
-    <div className="divide-y divide-slate-100">
+    <div className="divide-y divide-slate-800 print:divide-slate-200">
       {tracking.map((item, i) => (
-        <div key={i} className="p-8 flex items-center justify-between group hover:bg-slate-50/50 transition-colors">
+        <div key={i} className="p-8 flex items-center justify-between group hover:bg-slate-950/10 transition-colors print:hover:bg-slate-50">
           <div className="flex items-center gap-6">
-            <div className={`w-12 h-12 rounded-sm flex items-center justify-center bg-[#1A3C94]/10 text-[#1A3C94] border border-[#1A3C94]/20 shadow-sm group-hover:scale-110 transition-transform`}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm group-hover:scale-110 transition-transform print:bg-emerald-50 print:text-emerald-700 print:border-emerald-100`}>
               <CheckCircle2 className="size-6" />
             </div>
             <div>
-              <div className="text-base font-black text-slate-900 mb-1">{item.goal}</div>
+              <div className="text-base font-black text-slate-200 mb-1 print:text-slate-900">{item.goal}</div>
               <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="bg-slate-100 text-slate-800 border-0 font-black text-[10px] uppercase tracking-[0.15em] px-3 py-1 rounded-sm">
+                <Badge variant="secondary" className="bg-slate-900 text-slate-400 border border-slate-800/80 font-black text-[10px] uppercase tracking-[0.15em] px-3 py-1 rounded-lg print:bg-slate-50 print:text-slate-700 print:border-slate-200">
                   Method: {item.method}
                 </Badge>
               </div>
@@ -27,10 +27,10 @@ export function TrackingTable({ tracking }: TrackingTableProps) {
           <div className="text-right">
             <Badge 
               variant="outline" 
-              className={`font-black text-[11px] tracking-widest px-4 py-1.5 rounded-sm border-2 ${
-                item.priority === 'high' ? 'bg-red-50 text-red-600 border-red-100/50' :
-                item.priority === 'medium' ? 'bg-amber-50 text-amber-600 border-amber-100/50' :
-                'bg-blue-100 text-blue-600 border-blue-100/50'
+              className={`font-black text-[11px] tracking-widest px-4 py-1.5 rounded-lg border ${
+                item.priority === 'high' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 print:bg-rose-50 print:text-rose-700 print:border-rose-200' :
+                item.priority === 'medium' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 print:bg-amber-50 print:text-amber-700 print:border-amber-200' :
+                'bg-blue-500/10 text-blue-400 border-blue-500/20 print:bg-blue-50 print:text-blue-700 print:border-blue-200'
               }`}
             >
               {item.priority.toUpperCase()} PRIORITY

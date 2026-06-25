@@ -117,6 +117,10 @@ export type ParentClient = {
     primary?: string;
     secondary?: string;
   };
+  brandFonts?: {
+    headings?: string;
+    body?: string;
+  };
   internalNotes?: string;
   hourlyRate?: number;
 };
@@ -185,6 +189,10 @@ export type ChildAccount = {
   metaAdsBudget?: number;
   metaAdsKpis?: string[];
   metaAdsContext?: string;
+  managementFee?: {
+    amount?: number;
+    currency?: string;
+  };
 };
 
 export type ChecklistRunTask = {
@@ -212,6 +220,7 @@ export type KpiData = {
     id: string;
     ownerId: string;
     childAccountId: string;
+    parentClientId?: string;
     periodType: 'monthly';
     startDate: string; // ISO string
     kpiValues: Record<string, number>;
@@ -399,6 +408,17 @@ export const BriefingContextSchema = z.object({
   selectedKeywords: z.array(KeywordIdeaSchema).optional(),
   fetchedKeywordIdeas: z.array(KeywordIdeaSchema).optional(),
   keywordThemes: z.array(CategorizedThemeSchema).optional(),
+  
+  // Meta Ads Specifics
+  metaLeadForms: z.boolean().optional(),
+  metaVisualsType: z.string().optional(),
+  metaCreativeHooks: z.string().optional(),
+  metaPixelSetup: z.string().optional(),
+  
+  // LinkedIn Ads Specifics
+  linkedinTargeting: z.string().optional(),
+  linkedinCreativeBrief: z.string().optional(),
+  linkedinAdFormat: z.string().optional(),
 });
 export type BriefingContext = z.infer<typeof BriefingContextSchema>;
 
@@ -573,6 +593,8 @@ export type CampaignBriefing = {
   adGroups: AdGroupBriefing[];
   negativeKeywords?: string[]; // Campaign-level negatives
   adGroupSuggestions?: { title: string; description: string }[];
+  targetLocations?: string;
+  targetLanguages?: string;
 };
 
 export type Briefing = {

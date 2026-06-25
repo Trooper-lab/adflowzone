@@ -1,0 +1,35 @@
+# apphosting.yaml
+# Configuration file for Firebase App Hosting
+
+buildConfig:
+  nodeVersion: "20"
+
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyAlLWxMMTr7OaNVsxFuIVrmx58a2wSX_KA"
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "onlyforward-go.firebaseapp.com"
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "onlyforward-go"
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "onlyforward-go.firebasestorage.app"
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "1011063321556"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:1011063321556:web:475baa65a4cb68b7c75c41"
+  - variable: GOOGLE_ADS_CLIENT_ID
+    value: "742109699837-gu5qv25ese1k5gkar4fqoktvgv7jc39h.apps.googleusercontent.com"
+  - variable: GOOGLE_ADS_MCC_CUSTOMER_ID
+    value: "800-762-9762"
+
+secrets:
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+  - variable: RESEND_API_KEY
+    secret: RESEND_API_KEY
+  - variable: GOOGLE_ADS_CLIENT_SECRET
+    secret: GOOGLE_ADS_CLIENT_SECRET
+  - variable: GOOGLE_ADS_DEVELOPER_TOKEN
+    secret: GOOGLE_ADS_DEVELOPER_TOKEN
+  - variable: GOOGLE_ADS_REFRESH_TOKEN
+    secret: GOOGLE_ADS_REFRESH_TOKEN

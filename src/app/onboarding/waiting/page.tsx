@@ -6,7 +6,6 @@ import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogoIcon } from '@/components/icons';
 import { LogOut, Clock, Loader2 } from 'lucide-react';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
@@ -58,7 +57,7 @@ export default function WaitingPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-4 text-slate-100">
       <div className="w-full max-w-md text-center space-y-8 animate-in fade-in zoom-in duration-700">
         <div className="flex flex-col items-center">
-          <LogoIcon className="h-16 w-16 text-blue-500 mb-6" />
+          <img src="/go-logo.png" className="h-16 w-16 mb-6 object-contain" alt="GO Logo" />
           <h1 className="text-4xl font-bold font-headline tracking-tight">Even geduld...</h1>
         </div>
 
@@ -72,7 +71,7 @@ export default function WaitingPage() {
           <div className="space-y-2">
             <p className="text-lg font-medium">Je account is aangemaakt!</p>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Een beheerder van AdFlow Zone moet je nog een rol toewijzen (Admin of Medewerker) voordat je toegang krijgt tot het dashboard.
+              Een beheerder van GO moet je nog een rol toewijzen (Admin of Medewerker) voordat je toegang krijgt tot het dashboard.
             </p>
           </div>
 
@@ -83,7 +82,7 @@ export default function WaitingPage() {
             <Button 
               variant="outline" 
               onClick={handleLogout}
-              className="w-full border-slate-700 hover:bg-white/5 hover:text-white"
+              className="w-full border-slate-700 hover:bg-secondary hover:text-white"
             >
               <LogOut className="mr-2 size-4" />
               Uitloggen & Wisselen

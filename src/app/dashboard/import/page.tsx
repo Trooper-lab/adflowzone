@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -149,9 +149,9 @@ export default function DataImportPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const { data: appUser } = useDoc<AppUser>(
-        useMemo(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore])
-    );
+    const { data: appUser } = useDoc(
+        useMemo(() => (user && firestore ? doc(firestore as any, 'users', user.uid) : null), [user, firestore])
+    ) as { data: AppUser | null };
     const isAdmin = useMemo(() => {
         if (!appUser) return false;
         const role = appUser.role?.toLowerCase();
@@ -397,6 +397,7 @@ export default function DataImportPage() {
                 const kpiDoc: Omit<KpiData, 'id'> = {
                     ownerId: user.uid,
                     childAccountId: item.account.id,
+                    parentClientId: item.account.parentClientId,
                     periodType: 'monthly',
                     startDate: item.startDate,
                     kpiValues: item.kpiValues
@@ -759,7 +760,7 @@ export default function DataImportPage() {
 
                 <TabsContent value="monday" className="mt-0">
                     <Card className="glass-card shadow-xl overflow-hidden">
-                        <CardHeader className="bg-white/5 border-b border-white/5">
+                        <CardHeader className="bg-secondary border-b border-border">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Database className="size-5 text-blue-400" />
                                 Monday.com Uren Importeren
@@ -793,8 +794,8 @@ export default function DataImportPage() {
                                     </div>
                                     
                                     {resolvedMappings.length > 0 && (
-                                        <div className="border border-white/10 rounded-lg overflow-hidden bg-[#0A0D17] shadow-2xl mt-4">
-                                            <div className="bg-gradient-to-r from-blue-500/10 to-transparent px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                                        <div className="border border-border rounded-lg overflow-hidden bg-[#0A0D17] shadow-2xl mt-4">
+                                            <div className="bg-gradient-to-r from-blue-500/10 to-transparent px-5 py-4 border-b border-border flex items-center justify-between">
                                                 <span className="text-sm font-black uppercase tracking-widest text-slate-200 flex items-center gap-2">
                                                     <LayoutGrid className="size-4 text-blue-400" />
                                                     Gevonden Klanten ({resolvedMappings.length})
@@ -804,17 +805,17 @@ export default function DataImportPage() {
                                                 <table className="w-full text-sm text-left border-separate border-spacing-y-2">
                                                     <thead className="bg-[#0A0D17] text-slate-500 uppercase sticky top-0 z-10 text-[10px] tracking-widest font-bold">
                                                         <tr>
-                                                            <th className="px-4 py-3 border-b border-white/5 bg-[#0A0D17]">Monday.com Naam</th>
-                                                            <th className="px-4 py-3 border-b border-white/5 bg-[#0A0D17]">Rijen</th>
-                                                            <th className="px-4 py-3 border-b border-white/5 bg-[#0A0D17]">Match in AdFlowZone</th>
+                                                            <th className="px-4 py-3 border-b border-border bg-[#0A0D17]">Monday.com Naam</th>
+                                                            <th className="px-4 py-3 border-b border-border bg-[#0A0D17]">Rijen</th>
+                                                            <th className="px-4 py-3 border-b border-border bg-[#0A0D17]">Match in AdFlowZone</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="text-slate-300">
                                                         {resolvedMappings.map((mapping, idx) => (
                                                             <tr key={idx} className="group">
-                                                                <td className="px-4 py-3 font-medium bg-white/[0.02] rounded-l-lg border-y border-l border-white/5 group-hover:bg-white/[0.04] transition-colors">{mapping.rawName}</td>
-                                                                <td className="px-4 py-3 text-slate-500 font-mono bg-white/[0.02] border-y border-white/5 group-hover:bg-white/[0.04] transition-colors text-xs">{mapping.count}</td>
-                                                                <td className="px-4 py-2 bg-white/[0.02] rounded-r-lg border-y border-r border-white/5 group-hover:bg-white/[0.04] transition-colors">
+                                                                <td className="px-4 py-3 font-medium bg-white/[0.02] rounded-l-lg border-y border-l border-border group-hover:bg-white/[0.04] transition-colors">{mapping.rawName}</td>
+                                                                <td className="px-4 py-3 text-slate-500 font-mono bg-white/[0.02] border-y border-border group-hover:bg-white/[0.04] transition-colors text-xs">{mapping.count}</td>
+                                                                <td className="px-4 py-2 bg-white/[0.02] rounded-r-lg border-y border-r border-border group-hover:bg-white/[0.04] transition-colors">
                                                                     <div className="flex items-center justify-between gap-4">
                                                                         <div className="flex-1">
                                                                             <Select 
@@ -830,7 +831,7 @@ export default function DataImportPage() {
                                                                             >
                                                                                 <SelectTrigger 
                                                                                     className={cn(
-                                                                                        "w-full bg-black/40 border-white/10 rounded-md px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-blue-500/50 outline-none transition-all cursor-pointer h-8",
+                                                                                        "w-full bg-black/40 border-border rounded-md px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-blue-500/50 outline-none transition-all cursor-pointer h-8",
                                                                                         mapping.type === 'unknown' ? "border-red-500/50 text-red-300" : 
                                                                                         mapping.type === 'manual' ? "border-blue-500/50 text-blue-300" :
                                                                                         "border-green-500/20 text-green-300"
@@ -838,7 +839,7 @@ export default function DataImportPage() {
                                                                                 >
                                                                                     <SelectValue placeholder="Selecteer account" />
                                                                                 </SelectTrigger>
-                                                                                <SelectContent className="bg-[#0A0D17] border-white/10 max-h-[300px]">
+                                                                                <SelectContent className="bg-[#0A0D17] border-border max-h-[300px]">
                                                                                     <SelectItem value="CREATE_NEW" className="text-blue-400 font-bold bg-[#1C243A] mb-1">✨ + Nieuwe Klant Aanmaken</SelectItem>
                                                                                     
                                                                                     {mapping.type === 'unknown' && <SelectItem value="UNKNOWN" disabled className="text-red-400">Onbekende Klant ⚠️</SelectItem>}
@@ -883,7 +884,7 @@ export default function DataImportPage() {
 
                 <TabsContent value="api-sync" className="mt-0">
                     <Card className="glass-card shadow-xl overflow-hidden">
-                        <CardHeader className="bg-white/5 border-b border-white/5">
+                        <CardHeader className="bg-secondary border-b border-border">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <CardTitle className="text-lg flex items-center gap-2">
@@ -905,7 +906,7 @@ export default function DataImportPage() {
                         <CardContent className="p-0">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm text-slate-300">
-                                    <thead className="text-[10px] uppercase bg-white/5 text-slate-500 tracking-wider">
+                                    <thead className="text-[10px] uppercase bg-secondary text-slate-500 tracking-wider">
                                         <tr>
                                             <th className="px-4 py-3 font-semibold w-12 text-center">
                                                 <Checkbox 
@@ -931,7 +932,7 @@ export default function DataImportPage() {
                                                     <div className="font-bold text-slate-200">{account.nickname}</div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <Badge className="font-mono text-[10px] bg-white/5 text-slate-400 border border-white/5">
+                                                    <Badge className="font-mono text-[10px] bg-secondary text-slate-400 border border-border">
                                                         {account.googleAdsClientId}
                                                     </Badge>
                                                 </td>
@@ -1052,7 +1053,7 @@ export default function DataImportPage() {
                     <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">2. Verwerk Data</h2>
                     
                     <Card className="glass-card shadow-xl overflow-hidden">
-                        <CardHeader className="bg-white/5 border-b border-white/5">
+                        <CardHeader className="bg-secondary border-b border-border">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <RefreshCw className="size-5 text-green-400" />
                                 Plak Output
@@ -1162,7 +1163,7 @@ export default function DataImportPage() {
             </Tabs>
 
             <Dialog open={isCreateClientDialogOpen} onOpenChange={setIsCreateClientDialogOpen}>
-                <DialogContent className="bg-[#0A0D17] border-white/10 text-white">
+                <DialogContent className="bg-[#0A0D17] border-border text-white">
                     <DialogHeader>
                         <DialogTitle>Nieuwe Klant Aanmaken</DialogTitle>
                         <DialogDescription className="text-slate-400">
@@ -1176,10 +1177,10 @@ export default function DataImportPage() {
                                 value={selectedParentForNewClient}
                                 onValueChange={setSelectedParentForNewClient}
                             >
-                                <SelectTrigger className="w-full bg-black/40 border-white/10 rounded-md px-3 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500/50 outline-none h-10">
+                                <SelectTrigger className="w-full bg-black/40 border-border rounded-md px-3 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500/50 outline-none h-10">
                                     <SelectValue placeholder="Selecteer parent..." />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#0A0D17] border-white/10 max-h-[300px]">
+                                <SelectContent className="bg-[#0A0D17] border-border max-h-[300px]">
                                     {parents.map(p => (
                                         <SelectItem key={p.id} value={p.id} className="text-slate-200 focus:bg-white/[0.05]">
                                             {p.clientName}

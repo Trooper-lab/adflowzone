@@ -27,37 +27,37 @@ export function CampaignBlock({ campaign, index, expanded, website }: CampaignBl
   const isPMax = campaign.type === 'pmax';
 
   return (
-    <div className="group overflow-hidden rounded-sm border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
+    <div className="group overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40 backdrop-blur-md shadow-lg hover:shadow-xl hover:border-slate-700/50 transition-all print:bg-white print:text-black print:border print:border-slate-200">
       {/* CAMP HEADER */}
       <div 
-        className={`px-8 py-7 flex items-center justify-between flex-wrap gap-6 border-b border-slate-50 cursor-pointer select-none transition-colors ${isOpen ? 'bg-slate-50/50' : 'bg-white hover:bg-slate-50/30'}`}
+        className={`px-8 py-7 flex items-center justify-between flex-wrap gap-6 border-b border-slate-800 cursor-pointer select-none transition-colors ${isOpen ? 'bg-slate-950/20' : 'hover:bg-slate-950/10'} print:bg-slate-50 print:border-slate-200`}
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex items-center gap-5">
-          <div className={`w-14 h-14 rounded-sm flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-105 bg-[#1A3C94]/10 text-[#1A3C94] border border-[#1A3C94]/20`}>
+          <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-105 ${isPMax ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'} print:bg-slate-100 print:text-slate-700 print:border-slate-200`}>
             {isPMax ? '⚡' : '🔍'}
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Campaign {String(index).padStart(2, '0')}</span>
-              <Badge variant="secondary" className={`text-[9px] font-black uppercase tracking-wider border-0 px-2 py-0.5 bg-[#1A3C94]/10 text-[#1A3C94]`}>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 print:text-slate-700">Campaign {String(index).padStart(2, '0')}</span>
+              <Badge variant="secondary" className={`text-[9px] font-black uppercase tracking-wider border-0 px-2 py-0.5 ${isPMax ? 'bg-purple-500/10 text-purple-400' : 'bg-emerald-500/10 text-emerald-400'} print:bg-slate-100 print:text-slate-700`}>
                 {campaign.type}
               </Badge>
             </div>
-            <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-none">{campaign.name}</h3>
+            <h3 className="font-black text-2xl text-slate-100 tracking-tight leading-none print:text-slate-900">{campaign.name}</h3>
           </div>
         </div>
         <div className="flex items-center gap-8">
             <div className="text-right hidden sm:block">
-                <div className="text-[9px] font-black text-slate-900 uppercase tracking-widest mb-1">Doelstelling</div>
-                <div className="text-sm font-black text-slate-900">{campaign.objective}</div>
+                <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 print:text-slate-400">Doelstelling</div>
+                <div className="text-sm font-black text-slate-200 print:text-slate-900">{campaign.objective}</div>
             </div>
-            <div className="bg-[#161615] text-white px-6 py-3 rounded-sm shadow-sm flex items-center gap-4">
+            <div className="bg-slate-950/60 border border-slate-800/80 text-white px-6 py-3 rounded-xl shadow-sm flex items-center gap-4 print:bg-slate-100 print:border-slate-200 print:text-slate-950">
                 <div>
-                  <div className="text-[9px] font-black text-slate-800 uppercase tracking-widest mb-0.5">Dagbudget</div>
+                  <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5 print:text-slate-600">Dagbudget</div>
                   <div className="text-lg font-black">{campaign.suggestedBudget}</div>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center print:bg-white print:border-slate-200 print:text-slate-900">
                   {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </div>
             </div>
@@ -67,14 +67,14 @@ export function CampaignBlock({ campaign, index, expanded, website }: CampaignBl
       {isOpen && (
         <>
           {/* STRATEGIC OVERVIEW */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-50 border-b border-slate-50">
+      <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-800 border-b border-slate-800 print:divide-slate-200 print:border-slate-200">
         <div className="lg:col-span-2 p-8 space-y-6">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Target className="w-3.5 h-3.5 text-[#1A3C94]" />
-                <span className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Strategische Rationale</span>
+                <Target className="w-3.5 h-3.5 text-primary print:text-slate-700" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] print:text-slate-600">Strategische Rationale</span>
               </div>
-              <p className="text-sm font-medium text-slate-800 leading-relaxed">
+              <p className="text-sm font-medium text-slate-300 leading-relaxed print:text-slate-800">
                 {campaign.rationale}
               </p>
             </div>
@@ -82,52 +82,52 @@ export function CampaignBlock({ campaign, index, expanded, website }: CampaignBl
             <div className="grid grid-cols-2 gap-8 pt-2">
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                        <Globe className="w-3.5 h-3.5 text-[#1A3C94]" />
-                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Targeting</span>
+                        <Globe className="w-3.5 h-3.5 text-primary print:text-slate-700" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] print:text-slate-600">Targeting</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline" className="bg-slate-50 text-slate-800 border-slate-200 font-bold text-[10px]">📍 {campaign.targetLocations || 'Nederland'}</Badge>
-                        <Badge variant="outline" className="bg-slate-50 text-slate-800 border-slate-200 font-bold text-[10px]">🌐 {campaign.targetLanguages || 'Nederlands'}</Badge>
+                        <Badge variant="outline" className="bg-slate-950/20 text-slate-300 border-slate-800 font-bold text-[10px] rounded-lg print:bg-slate-50 print:text-slate-800 print:border-slate-200">📍 {campaign.targetLocations || 'Nederland'}</Badge>
+                        <Badge variant="outline" className="bg-slate-950/20 text-slate-300 border-slate-800 font-bold text-[10px] rounded-lg print:bg-slate-50 print:text-slate-800 print:border-slate-200">🌐 {campaign.targetLanguages || 'Nederlands'}</Badge>
                     </div>
                 </div>
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                        <Coins className="w-3.5 h-3.5 text-[#1A3C94]" />
-                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Biedstrategie</span>
+                        <Coins className="w-3.5 h-3.5 text-primary print:text-slate-700" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] print:text-slate-600">Biedstrategie</span>
                     </div>
-                    <div className="text-sm font-black text-slate-900">Maximize Conversions (tCPA)</div>
+                    <div className="text-sm font-black text-slate-200 print:text-slate-900">Maximize Conversions (tCPA)</div>
                 </div>
             </div>
         </div>
         
-        <div className="p-8 bg-slate-50/30 flex flex-col justify-center">
+        <div className="p-8 bg-slate-950/10 flex flex-col justify-center print:bg-slate-50">
             <div className="space-y-4">
                 <div className="text-center">
-                    <div className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] mb-4">Budget Verdeling</div>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 print:text-slate-600">Budget Verdeling</div>
                     <div className="relative w-24 h-24 mx-auto">
                         <svg className="w-full h-full" viewBox="0 0 36 36">
-                            <path className="text-slate-100" strokeWidth="3" stroke="currentColor" fill="transparent" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            <path className="text-[#1A3C94]" strokeWidth="3" strokeDasharray="35, 100" strokeLinecap="round" stroke="currentColor" fill="transparent" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path className="text-slate-800 print:text-slate-200" strokeWidth="3" stroke="currentColor" fill="transparent" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path className="text-primary" strokeWidth="3" strokeDasharray="35, 100" strokeLinecap="round" stroke="currentColor" fill="transparent" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-xl font-black text-slate-900">35%</span>
+                            <span className="text-xl font-black text-slate-100 print:text-slate-900">35%</span>
                         </div>
                     </div>
                 </div>
-                <p className="text-[10px] text-center font-bold text-slate-900 uppercase tracking-widest mt-2">Van Totaal Budget</p>
+                <p className="text-[10px] text-center font-bold text-slate-500 uppercase tracking-widest mt-2">Van Totaal Budget</p>
             </div>
         </div>
       </div>
 
       {/* AD GROUPS */}
-      <div className="bg-white">
-        <div className="px-8 py-4 bg-slate-50/30 border-y border-slate-50 flex items-center justify-between">
+      <div className="bg-transparent">
+        <div className="px-8 py-4 bg-slate-950/20 border-b border-slate-800 flex items-center justify-between print:bg-slate-50 print:border-slate-200">
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Advertentiegroepen & Assets</span>
+            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest print:text-slate-800">Advertentiegroepen & Assets</span>
             <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-6 text-[9px] font-black uppercase tracking-widest text-slate-900 hover:text-slate-900 px-2 border border-slate-200 bg-white"
+                className="h-6 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-slate-800 px-2 border border-slate-800 bg-slate-900 print:border-slate-200 print:bg-white print:text-slate-900"
                 onClick={(e) => {
                   e.stopPropagation();
                   setAllAdGroupsExpanded(!allAdGroupsExpanded);
@@ -137,9 +137,9 @@ export function CampaignBlock({ campaign, index, expanded, website }: CampaignBl
                 {allAdGroupsExpanded ? 'Alles Inklappen' : 'Alles Uitklappen'}
               </Button>
           </div>
-          <span className="text-[10px] font-bold text-slate-900">{campaign.adGroups.length} items</span>
+          <span className="text-[10px] font-bold text-slate-400 print:text-slate-600">{campaign.adGroups.length} items</span>
         </div>
-        <div className="grid grid-cols-1 gap-6 p-8 bg-slate-50/30">
+        <div className="grid grid-cols-1 gap-6 p-8 bg-transparent">
           {campaign.adGroups.map((ag, agIndex) => (
             <AdGroupPreview 
               key={ag.id} 
@@ -155,14 +155,14 @@ export function CampaignBlock({ campaign, index, expanded, website }: CampaignBl
 
       {/* NEGATIVE KEYWORDS */}
       {campaign.negativeKeywords && campaign.negativeKeywords.length > 0 && (
-        <div className="bg-rose-50/30 p-8 border-t border-rose-100">
-          <h4 className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <div className="bg-rose-950/10 p-8 border-t border-rose-900/30 print:bg-rose-50/20 print:border-rose-100">
+          <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-4 flex items-center gap-2 print:text-rose-600">
             <AlertCircle className="w-3.5 h-3.5" />
             Uitsluitingszoekwoorden
           </h4>
           <div className="flex flex-wrap gap-2">
             {campaign.negativeKeywords.map((kw, i) => (
-              <span key={i} className="px-3 py-1.5 bg-white border border-rose-100 rounded-sm text-[11px] font-bold text-rose-700 shadow-sm">
+              <span key={i} className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-[11px] font-bold text-rose-300 shadow-sm print:bg-white print:border-rose-100 print:text-rose-700">
                 {kw}
               </span>
             ))}

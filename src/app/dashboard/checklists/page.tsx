@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -228,9 +228,9 @@ function AssignAccountsDialog({ checklist, accounts, open, onOpenChange }: { che
                                     const details = connections[account.id];
 
                                     return (
-                                        <Accordion key={account.id} type="single" collapsible disabled={!isConnected} className="rounded-md overflow-hidden bg-white/5 border border-white/5">
+                                        <Accordion key={account.id} type="single" collapsible disabled={!isConnected} className="rounded-md overflow-hidden bg-secondary border border-border">
                                            <AccordionItem value="item-1" className="border-b-0">
-                                            <div className="flex items-center space-x-3 px-4 py-2 hover:bg-white/5 transition-colors">
+                                            <div className="flex items-center space-x-3 px-4 py-2 hover:bg-secondary transition-colors">
                                                     <Checkbox
                                                         id={`acc-${account.id}`}
                                                         checked={isConnected}
@@ -452,7 +452,7 @@ function ChecklistCard({ checklist, onRemove, allAccounts }: { checklist: Checkl
               </div>
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent">
                           <MoreHorizontal className="h-4 w-4" />
                       </Button>
                   </DropdownMenuTrigger>
@@ -686,12 +686,12 @@ function LoadingState() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2">
-                            <div className="h-4 bg-white/5 rounded w-3/4" />
-                            <div className="h-4 bg-white/5 rounded w-1/2" />
+                            <div className="h-4 bg-secondary rounded w-3/4" />
+                            <div className="h-4 bg-secondary rounded w-1/2" />
                         </div>
                     </CardContent>
                      <CardFooter className="bg-black/20 p-3">
-                         <div className="h-5 bg-white/5 rounded w-1/3" />
+                         <div className="h-5 bg-secondary rounded w-1/3" />
                      </CardFooter>
                 </Card>
             ))}
@@ -710,7 +710,7 @@ const ChecklistRunGroup = ({ template, runs, allAccounts, onViewRun, isAdmin }: 
     const connectedAccounts = useMemo(() => allAccounts.filter(a => a.connectedChecklists?.some(c => c.checklistId === template.id)), [allAccounts, template.id]);
 
     return (
-        <AccordionItem value={template.id} className="border-white/5">
+        <AccordionItem value={template.id} className="border-border">
             <AccordionTrigger className="hover:no-underline">
                 <div className="flex items-center justify-between w-full pr-4">
                     <div className='flex items-center gap-4'>
@@ -735,7 +735,7 @@ const ChecklistRunGroup = ({ template, runs, allAccounts, onViewRun, isAdmin }: 
                           {visibleRuns.map(run => {
                               const completedDate = run.completedAt;
                               return (
-                                  <TableRow key={run.id} className="border-slate-800 hover:bg-white/5">
+                                  <TableRow key={run.id} className="border-slate-800 hover:bg-secondary">
                                       <TableCell className="font-medium text-slate-300">
                                           <Link href={`/dashboard/accounts/${run.childAccountId}?parent=${run.parentClientId}`} className="hover:text-blue-400 transition-colors">
                                             {run.accountNickname}

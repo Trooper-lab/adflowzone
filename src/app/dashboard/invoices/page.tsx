@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useUser, useFirestore, useDoc } from '@/firebase';
@@ -50,9 +50,9 @@ export default function InvoicesPage() {
     const [invoiceData, setInvoiceData] = useState<InvoiceData[]>([]);
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
-    const { data: appUser } = useDoc<AppUser>(
-        useMemo(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore])
-    );
+    const { data: appUser } = useDoc(
+        useMemo(() => (user && firestore ? doc(firestore as any, 'users', user.uid) : null), [user, firestore])
+    ) as { data: AppUser | null };
 
     const isAdmin = useMemo(() => {
         if (!appUser) return false;
@@ -437,7 +437,7 @@ function InvoiceRow({ data, currentMonth, copiedId, onCopyData, toast }: any) {
     return (
         <>
             <TableRow 
-                className={cn("cursor-pointer hover:bg-muted/50 transition-colors", expanded && "bg-muted/30")} 
+                className={cn("cursor-pointer hover:bg-secondary transition-colors", expanded && "bg-secondary")} 
                 onClick={() => setExpanded(!expanded)}
             >
                 <TableCell>
@@ -478,9 +478,9 @@ function InvoiceRow({ data, currentMonth, copiedId, onCopyData, toast }: any) {
             {expanded && hasDetails && (
                 <TableRow className="bg-muted/5 hover:bg-muted/5">
                     <TableCell colSpan={6} className="p-4">
-                        <div className="border border-border/50 rounded-lg overflow-hidden shadow-sm bg-background/50">
+                        <div className="border border-border/50 rounded-lg overflow-hidden shadow-sm bg-background">
                             <Table>
-                                <TableHeader className="bg-muted/20">
+                                <TableHeader className="bg-card">
                                     <TableRow>
                                         <TableHead className="w-[100px] text-xs">Type</TableHead>
                                         <TableHead className="text-xs">Omschrijving / Dienst</TableHead>
@@ -494,7 +494,7 @@ function InvoiceRow({ data, currentMonth, copiedId, onCopyData, toast }: any) {
                                     {groupedAccounts.map((group: any) => (
                                         <Fragment key={group.id}>
                                             {/* Group Account Name Header Row */}
-                                            <TableRow className="bg-muted/20 hover:bg-muted/20 border-b border-border/40">
+                                            <TableRow className="bg-card hover:bg-card border-b border-border/40">
                                                 <TableCell colSpan={6} className="py-2.5 px-4">
                                                     <div className="flex items-center justify-between w-full">
                                                         <div className="flex items-center gap-2">
@@ -514,7 +514,7 @@ function InvoiceRow({ data, currentMonth, copiedId, onCopyData, toast }: any) {
 
                                             {/* Fixed Rows */}
                                             {group.fixedItems.map((item: any) => (
-                                                <TableRow key={item.id} className="hover:bg-muted/30">
+                                                <TableRow key={item.id} className="hover:bg-secondary">
                                                     <TableCell className="py-2.5 pl-6">
                                                         <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-wider py-0.5 px-1.5 bg-blue-500/10 text-blue-400 border-blue-500/20">
                                                             Vast
@@ -559,7 +559,7 @@ function InvoiceRow({ data, currentMonth, copiedId, onCopyData, toast }: any) {
 
                                             {/* Variable Rows */}
                                             {group.variableItems.map((item: any) => (
-                                                <TableRow key={item.id} className="hover:bg-muted/30">
+                                                <TableRow key={item.id} className="hover:bg-secondary">
                                                     <TableCell className="py-2.5 pl-6">
                                                         <Badge variant="outline" className="text-[9px] font-black uppercase tracking-wider py-0.5 px-1.5 border-orange-500/30 text-orange-400 bg-orange-500/5">
                                                             Los

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMemo, useState, useEffect } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
@@ -32,7 +32,7 @@ import {
   Activity, ArrowLeft, Briefcase, Clock, Goal,
   History, ListChecks, Loader2, Settings, StickyNote, Trash2,
   TrendingUp, Users, Zap, BarChart2, Package, CheckCircle2,
-  FolderOpen, AlertTriangle, Target, DollarSign
+  FolderOpen, AlertTriangle, Target, DollarSign, MessageSquare
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -51,6 +51,7 @@ import AccountCampaigns from '@/components/account/AccountCampaigns';
 import AccountDocuments from '@/components/account/AccountDocuments';
 import AccountSettings from '@/components/account/AccountSettings';
 import AccountServicesManager from '@/components/account/AccountServicesManager';
+import AccountChat from '@/components/account/AccountChat';
 
 // ─── Static maps ──────────────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ function Section({
 }) {
   return (
     <div className={cn("rounded-xl glass-card overflow-hidden", className)}>
-      <div className="flex items-center justify-between px-6 py-3.5 border-b border-white/5 bg-white/[0.03]">
+      <div className="flex items-center justify-between px-6 py-3.5 border-b border-border bg-white/[0.03]">
         <div className="flex items-center gap-2">
           {Icon && <Icon className={cn('size-4', iconCn ?? 'text-slate-500')} />}
           <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">
@@ -253,7 +254,7 @@ export default function AccountDetailPage() {
       const today = new Date();
       openTodosData.forEach((d: any) => {
           const t = d as Todo;
-          if (t.deadline && parseISO(t.deadline) < today) count++;
+          if (t.dueDate && parseISO(t.dueDate) < today) count++;
       });
       return count;
   }, [openTodosData]);
@@ -316,7 +317,7 @@ export default function AccountDetailPage() {
 
   // Hero KPI fetch
   const heroKpiName = (childAccount as ChildAccount)?.kpisToTrack?.[0] || null;
-  const targetHeroKpi = (childAccount as ChildAccount)?.targetKpiValues?.find(t => t.kpi === heroKpiName)?.value;
+  const targetHeroKpi = (childAccount as ChildAccount)?.targetKpiValues?.find(t => t.kpi === heroKpiName)?.target;
   const [latestHeroKpi, setLatestHeroKpi] = useState<{value: number | string, date: Date} | null>(null);
 
   useEffect(() => {
@@ -501,8 +502,12 @@ export default function AccountDetailPage() {
         } else if (Object.keys(numericKpis).length > 0) {
           const newRef = doc(collection(firestore, 'kpiData'));
           batch.set(newRef, {
-            ownerId: user.uid, childAccountId: childAccount.id,
-            periodType: 'monthly', startDate: monthStart, kpiValues: numericKpis,
+            ownerId: user.uid, 
+            childAccountId: childAccount.id,
+            parentClientId: childAccount.parentClientId,
+            periodType: 'monthly', 
+            startDate: monthStart, 
+            kpiValues: numericKpis,
           });
           newIds.push(newRef.id);
         }
@@ -610,7 +615,7 @@ export default function AccountDetailPage() {
               <h1 className="font-headline text-2xl font-bold text-slate-100 leading-tight">
                 {account.nickname}
               </h1>
-              <Badge className="font-mono text-[10px] border-white/5 bg-white/5 text-slate-400 border">
+              <Badge className="font-mono text-[10px] border-border bg-secondary text-slate-400 border">
                 {account.googleAdsClientId}
               </Badge>
               {account.primaryGoal && (
@@ -656,22 +661,23 @@ export default function AccountDetailPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <TabsList className="bg-card/60 border border-white/5 w-full justify-start overflow-x-auto h-auto p-1 sticky top-0 z-10 backdrop-blur-md">
+        <TabsList className="bg-card border border-border w-full justify-start overflow-x-auto h-auto p-1 sticky top-0 z-10">
           {[
             { value: 'overzicht', icon: Activity, label: 'Overzicht' },
+            { value: 'chat', icon: MessageSquare, label: 'AI Chatbot' },
             { value: 'checklists', icon: ListChecks, label: 'Checklists & Taken' },
             { value: 'campagnes', icon: TrendingUp, label: "Campagnes & KPI's" },
             { value: 'diensten', icon: Package, label: 'Diensten & Pakketten' },
             { value: 'documenten', icon: FolderOpen, label: 'Documenten & Links' },
             { value: 'rapportages', icon: BarChart2, label: 'Rapportages' },
           ].map(t => (
-            <TabsTrigger key={t.value} value={t.value} className="group flex items-center justify-center transition-all data-[state=active]:bg-primary/20 data-[state=active]:text-primary py-2.5 px-4 rounded-md text-slate-400 hover:text-white hover:bg-white/5 data-[state=active]:hover:bg-primary/30">
+            <TabsTrigger key={t.value} value={t.value} className="group flex items-center justify-center transition-all data-[state=active]:bg-primary/20 data-[state=active]:text-primary py-2.5 px-4 rounded-md text-slate-400 hover:text-white hover:bg-secondary data-[state=active]:hover:bg-primary/30">
               <t.icon className="size-4 shrink-0" />
               <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out group-hover:max-w-[200px] group-hover:opacity-100 group-hover:ml-2 group-data-[state=active]:max-w-[200px] group-data-[state=active]:opacity-100 group-data-[state=active]:ml-2 text-sm font-medium">{t.label}</span>
             </TabsTrigger>
           ))}
           {isAdmin && (
-              <TabsTrigger value="instellingen" className="group flex items-center justify-center transition-all data-[state=active]:bg-primary/20 data-[state=active]:text-primary py-2.5 px-4 rounded-md text-slate-400 hover:text-white hover:bg-white/5 data-[state=active]:hover:bg-primary/30 ml-auto">
+              <TabsTrigger value="instellingen" className="group flex items-center justify-center transition-all data-[state=active]:bg-primary/20 data-[state=active]:text-primary py-2.5 px-4 rounded-md text-slate-400 hover:text-white hover:bg-secondary data-[state=active]:hover:bg-primary/30 ml-auto">
                   <Settings className="size-4 shrink-0" />
                   <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out group-hover:max-w-[200px] group-hover:opacity-100 group-hover:ml-2 group-data-[state=active]:max-w-[200px] group-data-[state=active]:opacity-100 group-data-[state=active]:ml-2 text-sm font-medium">Instellingen</span>
               </TabsTrigger>
@@ -735,7 +741,7 @@ export default function AccountDetailPage() {
                         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</span>
                         <span className={cn('text-[10px] font-bold', valCn)}>{value}</span>
                       </div>
-                      <Progress value={bar} className="h-1.5 bg-slate-800/80" />
+                      <Progress value={bar} className="h-1.5 bg-secondary" />
                     </div>
                   ))}
                 </div>
@@ -774,7 +780,7 @@ export default function AccountDetailPage() {
                     {recentTimeEntries.length > 0 ? (
                         <div className="space-y-3">
                             {recentTimeEntries.slice(0, 5).map((entry, i) => (
-                                <div key={i} className="flex justify-between items-start gap-3 py-2 border-b border-white/5 last:border-0 last:pb-0">
+                                <div key={i} className="flex justify-between items-start gap-3 py-2 border-b border-border last:border-0 last:pb-0">
                                     <div className="min-w-0">
                                         <p className="text-sm text-slate-300 font-medium truncate">{entry.title}</p>
                                         <p className="text-[10px] text-slate-500">
@@ -821,7 +827,7 @@ export default function AccountDetailPage() {
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Losse Diensten</p>
                                     <div className="flex flex-wrap gap-2">
                                         {account.connectedServices.map((svc, i) => (
-                                            <Badge key={i} variant="outline" className="bg-black/20 border-white/5 text-slate-300">
+                                            <Badge key={i} variant="outline" className="bg-black/20 border-border text-slate-300">
                                                 {svc.serviceName}
                                             </Badge>
                                         ))}
@@ -836,6 +842,15 @@ export default function AccountDetailPage() {
           </div>
         </TabsContent>
 
+        {/* ── TAB: AI Sparringpartner ── */}
+        <TabsContent value="chat" className="space-y-6 animate-in fade-in duration-500">
+          {effectiveParentId && accountId ? (
+            <AccountChat parentClientId={effectiveParentId as string} accountId={accountId as string} />
+          ) : (
+            <div className="p-8 text-center text-slate-400">AI chat client configuration unavailable.</div>
+          )}
+        </TabsContent>
+
         {/* ── TAB: CHECKLISTS & TAKEN ── */}
         <TabsContent value="checklists" className="space-y-6 animate-in fade-in duration-500">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -847,7 +862,7 @@ export default function AccountDetailPage() {
                   {!checklistsLoading && enrichedConnectedChecklists.length > 0 ? (
                     <div className="grid md:grid-cols-2 gap-4">
                       {enrichedConnectedChecklists.map((checklist: any, index: number) => (
-                        <div key={index} className="rounded-lg border border-white/5 bg-white/[0.02] hover:border-primary/30 hover:bg-primary/5 transition-all p-4">
+                        <div key={index} className="rounded-lg border border-border bg-white/[0.02] hover:border-primary/30 hover:bg-primary/5 transition-all p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div className="space-y-0.5">
                               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{getScheduleText(checklist)}</p>
@@ -863,7 +878,7 @@ export default function AccountDetailPage() {
                                   <AlertDialogDescription>Stopt de automatisering voor {checklist.name}. Geschiedenis blijft bewaard.</AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel className="bg-white/5 border-white/10">Annuleren</AlertDialogCancel>
+                                  <AlertDialogCancel className="bg-secondary border-border">Annuleren</AlertDialogCancel>
                                   <AlertDialogAction onClick={() => handleDisconnectChecklist(checklist)} className="bg-red-600 hover:bg-red-700">Ontkoppelen</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -880,7 +895,7 @@ export default function AccountDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-10 border border-dashed border-white/5 rounded-lg">
+                    <div className="text-center py-10 border border-dashed border-border rounded-lg">
                       <ListChecks className="size-8 mx-auto text-slate-700 mb-2" />
                       <p className="text-sm text-slate-500">Geen actieve checklists gekoppeld.</p>
                       <p className="text-xs text-slate-600 mt-1">Koppel een template om prestaties bij te houden.</p>
@@ -941,7 +956,7 @@ export default function AccountDetailPage() {
 
         {/* ── TAB: DOCUMENTEN & LINKS ── */}
         <TabsContent value="documenten" className="animate-in fade-in duration-500">
-          <AccountDocuments childAccountRef={childAccountRef} />
+          <AccountDocuments childAccountRef={childAccountRef as any} />
         </TabsContent>
 
         {/* ── TAB: INSTELLINGEN (Settings) ── */}

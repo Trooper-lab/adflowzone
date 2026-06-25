@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useFirestore } from '@/firebase';
@@ -98,7 +98,7 @@ export default function AccountCampaigns({
           size="sm" 
           onClick={handleSync}
           disabled={fetching || !childAccount.googleAdsClientId}
-          className="border-[#2A3552] bg-white/5 hover:bg-white/10 text-slate-300"
+          className="border-[#2A3552] bg-secondary hover:bg-accent text-slate-300"
         >
           {fetching ? <Loader2 className="size-3.5 mr-2 animate-spin" /> : <RefreshCw className="size-3.5 mr-2" />}
           Data Ophalen
@@ -115,7 +115,7 @@ export default function AccountCampaigns({
         <div className="rounded-md border border-[#2A3552] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-slate-300">
-              <thead className="text-[10px] uppercase bg-white/5 text-slate-500 tracking-wider">
+              <thead className="text-[10px] uppercase bg-secondary text-slate-500 tracking-wider">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Campagne</th>
                   <th className="px-4 py-3 font-semibold text-right">Kosten</th>
@@ -157,7 +157,7 @@ export default function AccountCampaigns({
                 )}
               </tbody>
               {data.campaigns.length > 0 && (
-                <tfoot className="bg-white/5 border-t border-[#2A3552] font-semibold text-slate-200">
+                <tfoot className="bg-secondary border-t border-[#2A3552] font-semibold text-slate-200">
                   <tr>
                     <td className="px-4 py-3">Totaal</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(data.totals.cost)}</td>

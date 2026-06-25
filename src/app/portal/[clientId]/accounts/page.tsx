@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useMemo } from 'react';
@@ -65,7 +65,7 @@ export default function ClientAccountsPage() {
                 {accounts.map((account) => (
                     <AccordionItem value={account.id} key={account.id} className="border-none">
                          <Card className="overflow-hidden">
-                            <AccordionTrigger className="p-6 text-left hover:no-underline hover:bg-muted/50 [&[data-state=open]>div>div>svg.arrow]:rotate-180">
+                            <AccordionTrigger className="p-6 text-left hover:no-underline hover:bg-secondary [&[data-state=open]>div>div>svg.arrow]:rotate-180">
                                 <div className="flex items-center justify-between w-full">
                                     <h3 className="font-semibold text-lg font-headline">{account.nickname}</h3>
                                     <div className="flex items-center gap-6">
@@ -95,7 +95,7 @@ export default function ClientAccountsPage() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent>
-                                <div className="p-6 pt-0 flex justify-between items-center bg-muted/20">
+                                <div className="p-6 pt-0 flex justify-between items-center bg-card">
                                     <div>
                                         <p className="text-sm text-muted-foreground">Official Name: {account.googleAdsAccountName}</p>
                                         <p className="text-sm text-muted-foreground">Google Ads ID: {account.googleAdsClientId}</p>
