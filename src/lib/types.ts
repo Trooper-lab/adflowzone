@@ -189,6 +189,15 @@ export type ChildAccount = {
   metaAdsBudget?: number;
   metaAdsKpis?: string[];
   metaAdsContext?: string;
+
+  // LinkedIn Ads Specifics
+  linkedinAdsAccountId?: string;
+  linkedinAdsAccountName?: string;
+  linkedinAdsBudget?: number;
+  linkedinAdsKpis?: string[];
+  linkedinAdsContext?: string;
+  
+  status?: 'onboarding' | 'active' | 'paused';
   managementFee?: {
     amount?: number;
     currency?: string;
@@ -412,6 +421,7 @@ export const BriefingContextSchema = z.object({
   // Meta Ads Specifics
   metaLeadForms: z.boolean().optional(),
   metaVisualsType: z.string().optional(),
+  metaVisualsFormats: z.array(z.string()).optional(),
   metaCreativeHooks: z.string().optional(),
   metaPixelSetup: z.string().optional(),
   
@@ -419,6 +429,17 @@ export const BriefingContextSchema = z.object({
   linkedinTargeting: z.string().optional(),
   linkedinCreativeBrief: z.string().optional(),
   linkedinAdFormat: z.string().optional(),
+  linkedinAdFormats: z.array(z.string()).optional(),
+  campaignLandingPages: z.string().optional(),
+  googleBudget: z.string().optional(),
+  metaBudget: z.string().optional(),
+  linkedinBudget: z.string().optional(),
+  metaProspecting: z.boolean().optional(),
+  metaRemarketing: z.boolean().optional(),
+  metaCampaignCount: z.number().optional(),
+  linkedinProspecting: z.boolean().optional(),
+  linkedinRemarketing: z.boolean().optional(),
+  linkedinCampaignCount: z.number().optional(),
 });
 export type BriefingContext = z.infer<typeof BriefingContextSchema>;
 
@@ -426,7 +447,7 @@ export const CampaignStructureOutputSchema = z.object({
   campaigns: z.array(z.object({
     id: z.string(), // Client-side temp ID
     name: z.string(),
-    type: z.enum(['search', 'pmax']),
+    type: z.enum(['search', 'pmax', 'meta', 'linkedin']),
     objective: z.string(),
     suggestedBudget: z.string(),
     rationale: z.string(),
@@ -475,6 +496,9 @@ export const AdGroupOutputSchema = z.object({
     longHeadlines: z.array(z.string()).optional(), // For PMax
     descriptions: z.array(z.string()),
     imagePrompts: z.array(z.string()).optional(), // For PMax
+    primaryTexts: z.array(z.string()).optional(),
+    targetingBrief: z.string().optional(),
+    adFormat: z.string().optional(),
     callToAction: z.string().optional(),
     negativeKeywords: z.array(z.string()).optional(),
     extensions: z.object({
@@ -496,7 +520,7 @@ export const GenerateAdGroupsInputSchema = z.object({
   context: BriefingContextSchema,
   campaign: z.object({
     name: z.string(),
-    type: z.enum(['search', 'pmax']),
+    type: z.enum(['search', 'pmax', 'meta', 'linkedin']),
     objective: z.string(),
   }),
   existingAdGroups: z.array(z.string()).optional(),
@@ -515,7 +539,7 @@ export const GenerateSingleAdGroupInputSchema = z.object({
   context: BriefingContextSchema,
   campaign: z.object({
     name: z.string(),
-    type: z.enum(['search', 'pmax']),
+    type: z.enum(['search', 'pmax', 'meta', 'linkedin']),
     objective: z.string(),
   }),
   adGroupTitle: z.string(),
@@ -538,6 +562,9 @@ export type AdGroupBriefing = {
   longHeadlines?: string[];
   descriptions: string[];
   imagePrompts?: string[];
+  primaryTexts?: string[];
+  targetingBrief?: string;
+  adFormat?: string;
   callToAction?: string;
   negativeKeywords?: string[];
   extensions?: {
@@ -586,11 +613,12 @@ export type TimelineStep = {
 export type CampaignBriefing = {
   id: string;
   name: string;
-  type: 'search' | 'pmax';
+  type: 'search' | 'pmax' | 'meta' | 'linkedin';
   objective: string;
   suggestedBudget: string;
   rationale: string;
   adGroups: AdGroupBriefing[];
+  tasks?: Array<{ id: string; description: string; hours: number; assignedEmployeeId?: string; dueDate?: string }>;
   negativeKeywords?: string[]; // Campaign-level negatives
   adGroupSuggestions?: { title: string; description: string }[];
   targetLocations?: string;
@@ -614,6 +642,7 @@ export type Briefing = {
   timeline?: TimelineStep[];
   status: 'draft' | 'approved';
   shareToken: string;
+  planningGenerated?: boolean;
   createdAt: string;
   updatedAt: string;
 };

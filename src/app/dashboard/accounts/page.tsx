@@ -1,11 +1,12 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Briefcase, ChevronDown, ExternalLink, Library,
   ListChecks, Loader2, Mail, PlusCircle,
-  Target, Users, Wallet,
+  Target, Users, Wallet, ArrowUpDown, MoreHorizontal,
+  Eye, Edit2, Trash2, Shield, Settings, Check
 } from 'lucide-react';
 import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 
@@ -13,7 +14,22 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useUser, useFirestore, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -23,23 +39,17 @@ import type { ParentClient, ChildAccount, AppUser } from '@/lib/types';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type EnrichedAccount = ChildAccount & {
+  parentClient: ParentClient;
   parentName: string;
   assignedEmployeeName?: string;
   derivedHours?: number;
-};
-
-type ClientGroup = {
-  parentClient: ParentClient;
-  accounts: EnrichedAccount[];
-  totalBudget: number;
-  totalFee: number;
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function EmptyState({ isAdmin }: { isAdmin: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-5 rounded-xl border border-dashed border-border py-20 text-center">
+    <div className="flex flex-col items-center justify-center gap-5 rounded-xl border border-dashed border-border py-20 text-center bg-card/20">
       <div className="p-4 rounded-full bg-secondary">
         <Library className="size-10 text-slate-600" />
       </div>
@@ -47,16 +57,23 @@ function EmptyState({ isAdmin }: { isAdmin: boolean }) {
         <h3 className="text-xl font-bold font-headline text-slate-200">Geen accounts gevonden</h3>
         <p className="text-sm text-slate-500 max-w-xs mx-auto">
           {isAdmin
-            ? 'Je portfolio is nog leeg. Voeg een klant toe om te beginnen.'
+            ? 'Je portfolio is nog leeg. Start onboarding om je eerste account toe te voegen.'
             : 'Er zijn nog geen accounts aan je toegewezen.'}
         </p>
       </div>
       {isAdmin && (
-        <Button asChild className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20">
-          <Link href="/dashboard/clients/add">
-            <PlusCircle className="mr-2 size-4" /> Nieuwe Klant
-          </Link>
-        </Button>
+        <div className="flex gap-3">
+          <Button asChild variant="outline" className="border-border">
+            <Link href="/dashboard/clients/add">
+              <PlusCircle className="mr-2 size-4" /> Nieuwe Klant
+            </Link>
+          </Button>
+          <Button asChild className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20">
+            <Link href="/dashboard/accounts/onboard">
+              <PlusCircle className="mr-2 size-4" /> Start Onboarding
+            </Link>
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -65,50 +82,12 @@ function EmptyState({ isAdmin }: { isAdmin: boolean }) {
 function LoadingSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map((i) => (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="h-24 rounded-xl bg-secondary border border-border animate-pulse" />
         ))}
       </div>
-      {[1, 2].map((i) => (
-        <div key={i} className="h-16 rounded-xl bg-secondary border border-border animate-pulse" />
-      ))}
-    </div>
-  );
-}
-
-function InlineNumberInput({ value, onSave, className, prefix = '', disabled = false }: { value: number, onSave: (val: number) => void, className?: string, prefix?: string, disabled?: boolean }) {
-  const [val, setVal] = useState(value?.toString() || '0');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setVal(value?.toString() || '0');
-  }, [value]);
-
-  const handleSave = async () => {
-    const num = Number(val);
-    if (num !== value && !isNaN(num)) {
-      setSaving(true);
-      await onSave(num);
-      setSaving(false);
-    } else {
-      setVal(value?.toString() || '0');
-    }
-  };
-
-  return (
-    <div className={cn("relative flex items-center", className)}>
-      {prefix && <span className="absolute left-2 text-[10px] text-slate-500 font-bold z-10">{prefix}</span>}
-      <Input 
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={(e) => {
-           if (e.key === 'Enter') handleSave();
-        }}
-        disabled={saving || disabled}
-        className={cn("h-7 text-right px-2 py-0 text-xs bg-black/20 border-border hover:border-border focus-visible:ring-1 focus-visible:ring-blue-500 font-mono", prefix && "pl-5", disabled && "opacity-50 cursor-not-allowed")}
-      />
+      <div className="h-64 rounded-xl bg-secondary border border-border animate-pulse" />
     </div>
   );
 }
@@ -121,9 +100,16 @@ export default function PortfolioPage() {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
-  const [groups, setGroups] = useState<ClientGroup[]>([]);
+  const [accounts, setAccounts] = useState<EnrichedAccount[]>([]);
   const [teamMembers, setTeamMembers] = useState<AppUser[]>([]);
   const [totals, setTotals] = useState({ budget: 0, fee: 0, count: 0, clients: 0 });
+
+  // Filter & Sort State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [employeeFilter, setEmployeeFilter] = useState<string>('all');
+  const [sortField, setSortField] = useState<keyof EnrichedAccount | 'parentName'>('parentName');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const userDocRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
@@ -141,6 +127,20 @@ export default function PortfolioPage() {
     );
   }, [appUser, user?.email]);
 
+  const isInternalUser = useMemo(() => {
+    const role = (appUser as AppUser)?.role?.toLowerCase();
+    const email = user?.email?.toLowerCase() || '';
+    return (
+      role === 'admin' ||
+      role === 'employee' ||
+      email === 'billy@pearsonline.nl' ||
+      email === 'billy@trooper.es' ||
+      email.endsWith('@onlyforward.nl') ||
+      email.endsWith('@trooper.es') ||
+      email.endsWith('@pearsonline.nl')
+    );
+  }, [appUser, user?.email]);
+
   // ── Data fetch ────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -149,28 +149,33 @@ export default function PortfolioPage() {
     const fetch = async () => {
       setLoading(true);
       try {
-        const managerUid = isAdmin ? user.uid : (appUser as AppUser).managerId;
-        if (!managerUid && !isAdmin) { setLoading(false); return; }
+        const managerUid = isAdmin ? user.uid : ((appUser as AppUser).managerId || user.uid);
 
-        const clientsQuery = isAdmin 
+        const clientsQuery = isInternalUser 
           ? collection(firestore, 'parentClients') 
           : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
         
         const clientSnap = await getDocs(clientsQuery);
-        const clients = clientSnap.docs.map((d) => ({ id: d.id, ...d.data() } as ParentClient));
-        if (!clients.length) { setLoading(false); return; }
+        const clientsList = clientSnap.docs.map((d) => ({ id: d.id, ...d.data() } as ParentClient));
+        
+        if (!clientsList.length) { 
+          setAccounts([]);
+          setTotals({ budget: 0, fee: 0, count: 0, clients: 0 });
+          setLoading(false); 
+          return; 
+        }
 
         const [accountSnaps, teamSnap, packagesSnap] = await Promise.all([
-          Promise.all(clients.map((c) =>
-            isAdmin
+          Promise.all(clientsList.map((c) =>
+            isInternalUser
               ? getDocs(collection(firestore, 'parentClients', c.id, 'childAccounts'))
               : getDocs(query(
                   collection(firestore, 'parentClients', c.id, 'childAccounts'),
                   where('assignedEmployeeId', '==', user.uid),
                 )),
           )),
-          isAdmin
-            ? getDocs(query(collection(firestore, 'users'), where('managerId', '==', user.uid)))
+          isInternalUser
+            ? getDocs(query(collection(firestore, 'users'), where('managerId', '==', managerUid)))
             : Promise.resolve({ docs: [] as any[] }),
           getDocs(query(collection(firestore, 'servicePackages'), where('ownerId', '==', managerUid)))
         ]);
@@ -178,16 +183,17 @@ export default function PortfolioPage() {
         const allPackages = packagesSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
         const empMap = new Map<string, string>();
-        if (isAdmin) {
+        if (isInternalUser) {
           const members = teamSnap.docs.map((d) => ({ ...d.data(), uid: d.id } as AppUser));
           setTeamMembers(members);
           members.forEach((m) => empMap.set(m.uid, m.displayName || m.email || 'Geen naam'));
         }
 
         let gBudget = 0, gFee = 0, gCount = 0;
+        const allEnrichedAccounts: EnrichedAccount[] = [];
 
-        const built: ClientGroup[] = clients.map((client, i) => {
-          const accounts = accountSnaps[i].docs
+        clientsList.forEach((client, i) => {
+          const accs = accountSnaps[i].docs
             .map((d) => {
               const a = d.data() as ChildAccount;
               
@@ -200,30 +206,34 @@ export default function PortfolioPage() {
                   }
               });
 
-              return {
-                ...a, id: d.id,
+              const enriched: EnrichedAccount = {
+                ...a, 
+                id: d.id,
+                parentClient: client,
                 parentName: client.clientName,
                 assignedEmployeeName: a.assignedEmployeeId
                   ? empMap.get(a.assignedEmployeeId) : undefined,
                 derivedHours: dHours
-              } as EnrichedAccount;
+              };
+
+              return enriched;
             })
             .filter((a) => {
-              if (a.isPaused) return false;
-              return isAdmin || a.assignedEmployeeId === user.uid;
-            })
-            .sort((a, b) => a.nickname.localeCompare(b.nickname));
+              return isInternalUser || a.assignedEmployeeId === user.uid;
+            });
 
-          const tBudget = accounts.reduce((s, a) => s + (a.monthlyClickBudget || 0), 0);
-          const tFee = accounts.reduce((s, a) => s + ((a.derivedHours || 0) * (client.hourlyRate || 0)), 0);
-          gBudget += tBudget; gFee += tFee; gCount += accounts.length;
+          accs.forEach(a => {
+            allEnrichedAccounts.push(a);
+            if (!a.isPaused) {
+              gBudget += a.monthlyClickBudget || 0;
+              gFee += (a.derivedHours || 0) * (client.hourlyRate || 0);
+              gCount++;
+            }
+          });
+        });
 
-          return { parentClient: client, accounts, totalBudget: tBudget, totalFee: tFee };
-        }).filter((g) => g.accounts.length > 0)
-          .sort((a, b) => a.parentClient.clientName.localeCompare(b.parentClient.clientName));
-
-        setGroups(built);
-        setTotals({ budget: gBudget, fee: gFee, count: gCount, clients: built.length });
+        setAccounts(allEnrichedAccounts);
+        setTotals({ budget: gBudget, fee: gFee, count: gCount, clients: clientsList.length });
       } catch (e) {
         console.error('Portfolio fetch error:', e);
       } finally {
@@ -232,7 +242,7 @@ export default function PortfolioPage() {
     };
 
     fetch();
-  }, [firestore, user, appUser, isAdmin]);
+  }, [firestore, user, appUser, isAdmin, isInternalUser]);
 
   // ── Employee assignment ───────────────────────────────────────────────────
 
@@ -243,22 +253,16 @@ export default function PortfolioPage() {
         doc(firestore, 'parentClients', parentClientId, 'childAccounts', accountId),
         { assignedEmployeeId: empId || null },
       );
-      setGroups((prev) =>
-        prev.map((g) => {
-          if (g.parentClient.id !== parentClientId) return g;
+      setAccounts((prev) =>
+        prev.map((a) => {
+          if (a.id !== accountId) return a;
+          const emp = teamMembers.find((m) => m.uid === empId);
           return {
-            ...g,
-            accounts: g.accounts.map((a) => {
-              if (a.id !== accountId) return a;
-              const emp = teamMembers.find((m) => m.uid === empId);
-              return {
-                ...a,
-                assignedEmployeeId: empId || undefined,
-                assignedEmployeeName: emp ? (emp.displayName || emp.email || 'Geen naam') : undefined,
-              };
-            }),
+            ...a,
+            assignedEmployeeId: empId || undefined,
+            assignedEmployeeName: emp ? (emp.displayName || emp.email || 'Geen naam') : undefined,
           };
-        }),
+        })
       );
       toast({
         title: empId ? 'Medewerker toegewezen' : 'Toewijzing verwijderd',
@@ -269,10 +273,98 @@ export default function PortfolioPage() {
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Sorting & Filtering ────────────────────────────────────────────────────
+
+  const handleSort = (field: keyof EnrichedAccount | 'parentName') => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const filteredAndSortedAccounts = useMemo(() => {
+    return accounts
+      .filter((acc) => {
+        // Search term matching (nickname or parent client name)
+        const matchSearch =
+          acc.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          acc.parentName.toLowerCase().includes(searchTerm.toLowerCase());
+
+        // Employee filter
+        const matchEmployee =
+          employeeFilter === 'all' || acc.assignedEmployeeId === employeeFilter;
+
+        // Status filter
+        let matchStatus = true;
+        const currentStatus = acc.status || (acc.isPaused ? 'paused' : 'active');
+        if (statusFilter !== 'all') {
+          matchStatus = currentStatus === statusFilter;
+        }
+
+        return matchSearch && matchEmployee && matchStatus;
+      })
+      .sort((a, b) => {
+        let valA: any = a[sortField as keyof EnrichedAccount];
+        let valB: any = b[sortField as keyof EnrichedAccount];
+
+        // Fallbacks for undefined values
+        if (valA === undefined || valA === null) valA = '';
+        if (valB === undefined || valB === null) valB = '';
+
+        // Handle string comparison case insensitively
+        if (typeof valA === 'string' && typeof valB === 'string') {
+          return sortOrder === 'asc'
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        }
+
+        // Numeric comparison
+        return sortOrder === 'asc'
+          ? (valA > valB ? 1 : -1)
+          : (valA < valB ? 1 : -1);
+      });
+  }, [accounts, searchTerm, statusFilter, employeeFilter, sortField, sortOrder]);
+
+  // ── Render Helpers ──────────────────────────────────────────────────────────
+
+  const getActiveChannels = (acc: ChildAccount) => {
+    const channels: string[] = [];
+    if (acc.googleAdsClientId) channels.push('Google');
+    if (acc.metaAdsAccountId) channels.push('Meta');
+    if (acc.linkedinAdsAccountId) channels.push('LinkedIn');
+    return channels;
+  };
+
+  const getStatusBadge = (acc: EnrichedAccount) => {
+    const status = acc.status || (acc.isPaused ? 'paused' : 'active');
+    
+    switch (status) {
+      case 'onboarding':
+        return (
+          <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/15 text-[10px] uppercase font-bold px-2 py-0.5">
+            Onboarding
+          </Badge>
+        );
+      case 'paused':
+        return (
+          <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/15 text-[10px] uppercase font-bold px-2 py-0.5">
+            Gepauzeerd
+          </Badge>
+        );
+      case 'active':
+      default:
+        return (
+          <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/15 text-[10px] uppercase font-bold px-2 py-0.5">
+            Actief
+          </Badge>
+        );
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-10">
 
       {/* ── Page header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -282,25 +374,36 @@ export default function PortfolioPage() {
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             {isAdmin
-              ? 'Overzicht van al je klanten en hun actieve Google Ads accounts.'
-              : 'Accounts waaraan je bent toegewezen.'}
+              ? 'Beheer alle klant- en platformaccounts, loopbudgetten en lopende onboarding.'
+              : 'Overzicht van de platformaccounts waaraan je bent toegewezen.'}
           </p>
         </div>
         {isAdmin && (
-          <Button
-            asChild
-            className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20 shrink-0"
-          >
-            <Link href="/dashboard/clients/add">
-              <PlusCircle className="mr-2 size-4" /> Nieuwe Klant
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-3 shrink-0">
+            <Button
+              variant="outline"
+              asChild
+              className="border-slate-800 bg-slate-900/50 text-slate-300 hover:bg-slate-800"
+            >
+              <Link href="/dashboard/clients/add">
+                <PlusCircle className="mr-2 size-4" /> Nieuwe Agency/Freelancer
+              </Link>
+            </Button>
+            <Button
+              asChild
+              className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20 shrink-0"
+            >
+              <Link href="/dashboard/accounts/onboard">
+                <PlusCircle className="mr-2 size-4" /> Start Account Onboarding
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
 
       {loading ? (
         <LoadingSkeleton />
-      ) : groups.length === 0 ? (
+      ) : accounts.length === 0 ? (
         <EmptyState isAdmin={isAdmin} />
       ) : (
         <>
@@ -310,276 +413,267 @@ export default function PortfolioPage() {
               label="Actieve Accounts"
               value={totals.count.toString()}
               icon={Target}
-              iconCn="bg-purple-500/10 text-purple-400"
+              iconCn="bg-purple-500/10 text-purple-400 border border-purple-500/20"
             />
             <SummaryCard
-              label="Klanten"
+              label="Klanten / Bureaus"
               value={totals.clients.toString()}
               icon={Users}
-              iconCn="bg-blue-500/10 text-blue-400"
+              iconCn="bg-blue-500/10 text-blue-400 border border-blue-500/20"
             />
             <SummaryCard
-              label="Maandelijks Budget"
+              label="Maandelijks Click Budget"
               value={`€${totals.budget.toLocaleString('nl-NL')}`}
               icon={Wallet}
-              iconCn="bg-green-500/10 text-green-400"
+              iconCn="bg-green-500/10 text-green-400 border border-green-500/20"
             />
             {isAdmin && (
               <SummaryCard
                 label="Management Omzet"
                 value={`€${totals.fee.toLocaleString('nl-NL')}`}
                 icon={Briefcase}
-                iconCn="bg-indigo-500/10 text-indigo-400"
+                iconCn="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
               />
             )}
           </div>
 
-          {/* ── Client groups ── */}
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 px-1 mb-3">
-              Klantendossiers
-            </p>
-            <Accordion
-              type="multiple"
-              defaultValue={groups.map((g) => g.parentClient.id)}
-              className="space-y-3"
-            >
-              {groups.map((group) => (
-                <AccordionItem
-                  key={group.parentClient.id}
-                  value={group.parentClient.id}
-                  className="rounded-xl border border-border bg-card overflow-hidden shadow-sm border-none"
-                >
-                  {/* ── Accordion header ── */}
-                  <div className="px-5 hover:bg-white/[0.03] transition-colors">
-                    <AccordionTrigger className="py-4 hover:no-underline [&[data-state=open]_.chevron]:rotate-180">
-                      <div className="flex items-center justify-between w-full pr-3">
-                        {/* Left: icon + name + meta */}
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 shrink-0">
-                            <Users className="size-4 text-blue-400" />
-                          </div>
-                          <div className="text-left min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-bold text-slate-100 font-headline truncate">
-                                {group.parentClient.clientName}
-                              </span>
-                              <Badge className={cn(
-                                'text-[9px] font-black uppercase px-1.5 h-4 border-none shrink-0',
-                                group.parentClient.clientType === 'agency'
-                                  ? 'bg-indigo-500/10 text-indigo-400'
-                                  : 'bg-orange-500/10 text-orange-400',
-                              )}>
-                                {group.parentClient.clientType}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[10px] text-slate-600 flex items-center gap-1">
-                                <Mail className="size-2.5" />
-                                {group.parentClient.clientContactEmail}
-                              </span>
-                              <span className="text-slate-700 text-[10px]">·</span>
-                              <span className="text-[10px] text-blue-400/70 font-bold">
-                                {group.accounts.length} accounts
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+          {/* ── Filters & Search ── */}
+          <div className="flex flex-col md:flex-row gap-4 bg-slate-900/30 p-4 border border-border rounded-xl">
+            <div className="flex-1">
+              <Input
+                placeholder="Zoek op account of klant..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-secondary/50 border-border text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-500/50"
+              />
+            </div>
+            
+            <div className="w-full md:w-[180px]">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="bg-secondary/50 border-border text-slate-200">
+                  <SelectValue placeholder="Filter op status" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-border text-slate-200">
+                  <SelectItem value="all">Alle Statussen</SelectItem>
+                  <SelectItem value="active">Actief</SelectItem>
+                  <SelectItem value="onboarding">Onboarding</SelectItem>
+                  <SelectItem value="paused">Gepauzeerd</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                        {/* Right: financials + chevron */}
-                        <div className="hidden lg:flex items-center gap-6 shrink-0">
-                          <div className="text-right">
-                            <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wider mb-0.5">Budget</p>
-                            <p className="text-sm font-bold text-green-400">
-                              €{group.totalBudget.toLocaleString('nl-NL')}
-                            </p>
-                          </div>
-                          {isAdmin && (
-                            <>
-                              <div className="text-right" onClick={(e) => e.stopPropagation()}>
-                                <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wider mb-0.5">Uurtarief</p>
-                                <InlineNumberInput 
-                                  value={group.parentClient.hourlyRate || 0} 
-                                  prefix="€"
-                                  className="w-16"
-                                  onSave={async (val) => {
-                                      if (!firestore) return;
-                                      try {
-                                          await updateDoc(doc(firestore, 'parentClients', group.parentClient.id), { hourlyRate: val });
-                                          setGroups(prev => prev.map(g => g.parentClient.id === group.parentClient.id ? { ...g, parentClient: { ...g.parentClient, hourlyRate: val } } : g));
-                                      } catch (e) {
-                                          console.error(e);
-                                      }
-                                  }}
-                                />
-                              </div>
-                              <div className="text-right pl-4">
-                                <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wider mb-0.5">Fee Totaal</p>
-                                <p className="text-sm font-bold text-blue-400">
-                                  €{group.totalFee.toLocaleString('nl-NL')}
-                                </p>
-                              </div>
-                            </>
-                          )}
-                          <ChevronDown className="chevron size-4 text-slate-600 transition-transform duration-200 shrink-0 ml-2" />
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                  </div>
+            {isInternalUser && (
+              <div className="w-full md:w-[200px]">
+                <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                  <SelectTrigger className="bg-secondary/50 border-border text-slate-200">
+                    <SelectValue placeholder="Verantwoordelijke" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-border text-slate-200">
+                    <SelectItem value="all">Alle Medewerkers</SelectItem>
+                    {teamMembers.map((m) => (
+                      <SelectItem key={m.uid} value={m.uid}>
+                        {m.displayName || m.email?.split('@')[0] || 'Onbekend'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
 
-                  {/* ── Accordion body ── */}
-                  <AccordionContent className="border-t border-border bg-black/10">
-                    <div className="px-5 pt-3 pb-5">
-                      {/* Column headers */}
-                      <div className={cn(
-                        'grid px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1',
-                        isAdmin
-                          ? 'grid-cols-[1fr_130px_80px_100px_200px]'
-                          : 'grid-cols-[1fr_80px_110px]',
-                      )}>
-                        <span>Account</span>
-                        {isAdmin && <span>Medewerker</span>}
-                        <span className="text-center">Checklists</span>
-                        <span className="text-right">Budget</span>
-                        {isAdmin && <span className="text-right pr-2">Uren / Fee</span>}
-                      </div>
+          {/* ── Accounts Flat Table ── */}
+          <div className="rounded-xl border border-border bg-card/10 overflow-hidden shadow-xl">
+            <Table>
+              <TableHeader className="bg-secondary/40">
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 py-4 px-6">
+                    <button onClick={() => handleSort('nickname')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                      Account / Bedrijf
+                      <ArrowUpDown className="size-3" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 py-4">
+                    <button onClick={() => handleSort('parentName')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                      Klant / Bureau
+                      <ArrowUpDown className="size-3" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 py-4 text-center">Kanalen</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 py-4 text-center">Status</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 py-4">Verantwoordelijke</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 py-4 text-right">
+                    <button onClick={() => handleSort('derivedHours')} className="flex items-center gap-1.5 hover:text-white ml-auto transition-colors">
+                      Uren
+                      <ArrowUpDown className="size-3" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 py-4 text-right">
+                    <button onClick={() => handleSort('monthlyClickBudget')} className="flex items-center gap-1.5 hover:text-white ml-auto transition-colors">
+                      Click Budget
+                      <ArrowUpDown className="size-3" />
+                    </button>
+                  </TableHead>
+                  {isAdmin && (
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 py-4 text-right">Fee p/m</TableHead>
+                  )}
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 py-4 text-right px-6">Acties</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAndSortedAccounts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={isAdmin ? 9 : 8} className="py-10 text-center text-slate-500">
+                      Geen accounts gevonden die voldoen aan je zoekcriteria.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredAndSortedAccounts.map((account) => {
+                    const activeChannels = getActiveChannels(account);
+                    const estimatedFee = (account.derivedHours || 0) * (account.parentClient.hourlyRate || 0);
 
-                      {/* Account rows */}
-                      <div className="space-y-1">
-                        {group.accounts.map((account) => (
-                          <div
-                            key={account.id}
-                            className={cn(
-                              'grid items-center px-3 py-3 rounded-lg border border-border bg-card group',
-                              'hover:bg-blue-500/5 hover:border-blue-500/20 transition-all',
-                              isAdmin
-                                ? 'grid-cols-[1fr_130px_80px_100px_200px]'
-                                : 'grid-cols-[1fr_80px_110px]',
-                            )}
-                          >
-                            {/* Name + ID */}
-                            <Link href={`/dashboard/accounts/${account.id}?parent=${account.parentClientId}`} className="flex flex-col min-w-0">
-                              <span className="text-sm font-semibold text-slate-200 hover:text-blue-400 hover:underline transition-colors truncate">
-                                {account.nickname}
-                              </span>
-                              <span className="text-[10px] font-mono text-slate-600 uppercase tracking-tighter">
-                                {account.googleAdsClientId}
-                              </span>
+                    return (
+                      <TableRow key={account.id} className="border-border hover:bg-white/[0.02] transition-colors group">
+                        {/* Nickname & Client ID */}
+                        <TableCell className="py-4 px-6">
+                          <div className="flex flex-col">
+                            <Link
+                              href={`/dashboard/accounts/${account.id}?parent=${account.parentClientId}`}
+                              className="font-bold text-slate-100 group-hover:text-blue-400 transition-colors"
+                            >
+                              {account.nickname}
                             </Link>
+                            <span className="text-[9px] font-mono text-slate-600 uppercase mt-0.5">
+                              {account.googleAdsClientId || 'Geen Google Ads'}
+                            </span>
+                          </div>
+                        </TableCell>
 
-                            {/* Employee picker */}
-                            {isAdmin && (
-                              <div onClick={(e) => e.stopPropagation()} className="flex items-center">
-                                <Select
-                                  value={account.assignedEmployeeId || 'unassigned'}
-                                  onValueChange={(v) =>
-                                    handleAssign(
-                                      account.parentClientId,
-                                      account.id,
-                                      v === 'unassigned' ? '' : v,
-                                    )
-                                  }
+                        {/* Parent Client Name */}
+                        <TableCell className="py-4">
+                          <Link
+                            href={`/dashboard/clients/${account.parentClientId}`}
+                            className="text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                          >
+                            {account.parentName}
+                          </Link>
+                        </TableCell>
+
+                        {/* Channels */}
+                        <TableCell className="py-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {activeChannels.length > 0 ? (
+                              activeChannels.map((chan) => (
+                                <Badge
+                                  key={chan}
+                                  className={cn(
+                                    'text-[9px] font-bold px-1.5 h-4 border-none uppercase',
+                                    chan === 'Google' && 'bg-blue-500/10 text-blue-400',
+                                    chan === 'Meta' && 'bg-indigo-500/10 text-indigo-400',
+                                    chan === 'LinkedIn' && 'bg-cyan-500/10 text-cyan-400'
+                                  )}
                                 >
-                                  <SelectTrigger className="h-7 w-[120px] text-[10px] bg-secondary border-border hover:bg-accent">
-                                    <SelectValue placeholder="Toewijzen" />
-                                  </SelectTrigger>
-                                  <SelectContent className="glass-card-elevated text-slate-200">
-                                    <SelectItem value="unassigned" className="text-[10px]">Geen</SelectItem>
-                                    {teamMembers.map((m) => (
-                                      <SelectItem key={m.uid} value={m.uid} className="text-[10px]">
-                                        {m.displayName || m.email?.split('@')[0] || 'Onbekend'}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            )}
-
-                            {/* Checklist count */}
-                            <div className="flex justify-center">
-                              <Badge className={cn(
-                                'text-[9px] font-bold h-5 px-1.5 border-none',
-                                (account.connectedChecklists?.length || 0) > 0
-                                  ? 'bg-green-500/10 text-green-400'
-                                  : 'bg-secondary text-slate-600',
-                              )}>
-                                <ListChecks className="size-2.5 mr-1" />
-                                {account.connectedChecklists?.length || 0}
-                              </Badge>
-                            </div>
-
-                            {/* Budget */}
-                            <div className="text-right">
-                              <span className="text-sm font-semibold text-slate-300">
-                                €{account.monthlyClickBudget?.toLocaleString('nl-NL') || '0'}
-                              </span>
-                            </div>
-
-                            {/* Fee */}
-                            {isAdmin && (
-                              <div className="text-right flex items-center justify-end gap-3" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex flex-col items-end">
-                                    <span className="text-[8px] text-slate-500 uppercase tracking-widest font-black mb-1 flex items-center gap-1">
-                                        Vaste uren
-                                        {account.connectedServices && account.connectedServices.length > 0 && <Briefcase className="size-2 text-blue-400" />}
-                                    </span>
-                                    <span className="text-sm font-semibold text-slate-300">
-                                      {account.derivedHours || 0}
-                                    </span>
-                                </div>
-                                <div className="w-[1px] h-6 bg-slate-700/50" />
-                                <div className="flex flex-col items-end min-w-[50px] justify-center pt-2">
-                                    <span className="text-[8px] text-slate-500 uppercase tracking-widest font-black mb-1">
-                                        Fee p/m
-                                    </span>
-                                    <span className="text-sm font-bold text-blue-400">
-                                      €{((account.derivedHours || 0) * (group.parentClient.hourlyRate || 0)).toLocaleString('nl-NL')}
-                                    </span>
-                                </div>
-                              </div>
+                                  {chan.slice(0, 1)}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-xs text-slate-600">-</span>
                             )}
                           </div>
-                        ))}
-                      </div>
+                        </TableCell>
 
-                      {/* Footer actions */}
-                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
-                        <div className="flex gap-1">
-                          {isAdmin && (
-                            <Button
-                              variant="ghost" size="sm" asChild
-                              className="text-[10px] font-bold uppercase tracking-widest h-7 text-slate-600 hover:text-slate-200"
-                            >
-                              <Link href={`/dashboard/clients/${group.parentClient.id}/edit`}>
-                                Klant bewerken
-                              </Link>
-                            </Button>
+                        {/* Status Badge */}
+                        <TableCell className="py-4 text-center">
+                          {getStatusBadge(account)}
+                        </TableCell>
+
+                        {/* Assigned Employee Selector */}
+                        <TableCell className="py-4">
+                          {isAdmin ? (
+                            <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+                              <Select
+                                value={account.assignedEmployeeId || 'unassigned'}
+                                onValueChange={(v) =>
+                                  handleAssign(
+                                    account.parentClientId,
+                                    account.id,
+                                    v === 'unassigned' ? '' : v,
+                                  )
+                                }
+                              >
+                                <SelectTrigger className="h-7 w-[120px] text-[10px] bg-secondary/50 border-border hover:bg-accent text-slate-200">
+                                  <SelectValue placeholder="Toewijzen" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-900 border-border text-slate-200">
+                                  <SelectItem value="unassigned" className="text-[10px]">Geen</SelectItem>
+                                  {teamMembers.map((m) => (
+                                    <SelectItem key={m.uid} value={m.uid} className="text-[10px]">
+                                      {m.displayName || m.email?.split('@')[0] || 'Onbekend'}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-slate-400">
+                              {account.assignedEmployeeName || 'Niemand'}
+                            </span>
                           )}
-                          {group.parentClient.clientWebsite && (
-                            <Button
-                              variant="ghost" size="sm" asChild
-                              className="text-[10px] font-bold uppercase tracking-widest h-7 text-slate-600 hover:text-slate-200"
-                            >
-                              <a href={group.parentClient.clientWebsite} target="_blank" rel="noreferrer">
-                                Website <ExternalLink className="ml-1 size-2.5" />
-                              </a>
-                            </Button>
-                          )}
-                        </div>
-                        <Button
-                          variant="outline" size="sm" asChild
-                          className="text-[10px] font-bold uppercase tracking-widest h-7 border-border hover:bg-primary hover:border-primary hover:text-white transition-all"
-                        >
-                          <Link href={`/dashboard/clients/${group.parentClient.id}`}>
-                            Volledig dossier
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+                        </TableCell>
+
+                        {/* Derived Hours */}
+                        <TableCell className="py-4 text-right font-mono text-slate-300">
+                          {account.derivedHours || 0} uur
+                        </TableCell>
+
+                        {/* Budget */}
+                        <TableCell className="py-4 text-right font-semibold font-mono text-green-400">
+                          €{(account.monthlyClickBudget || 0).toLocaleString('nl-NL')}
+                        </TableCell>
+
+                        {/* Estimated Fee */}
+                        {isAdmin && (
+                          <TableCell className="py-4 text-right font-semibold font-mono text-blue-400">
+                            €{estimatedFee.toLocaleString('nl-NL')}
+                          </TableCell>
+                        )}
+
+                        {/* Dropdown Menu actions */}
+                        <TableCell className="py-4 text-right px-6">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-accent">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-slate-900 border-border text-slate-200">
+                              <DropdownMenuLabel>Beheer Account</DropdownMenuLabel>
+                              <DropdownMenuItem asChild className="focus:bg-accent focus:text-foreground cursor-pointer">
+                                <Link href={`/dashboard/accounts/${account.id}?parent=${account.parentClientId}`}>
+                                  <Eye className="mr-2 size-4" /> Dossier Openen
+                                </Link>
+                              </DropdownMenuItem>
+                              {isAdmin && (
+                                <DropdownMenuItem asChild className="focus:bg-accent focus:text-foreground cursor-pointer">
+                                  <Link href={`/dashboard/accounts/${account.id}/edit?parent=${account.parentClientId}`}>
+                                    <Edit2 className="mr-2 size-4" /> Account Bewerken
+                                  </Link>
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator className="bg-secondary" />
+                              <DropdownMenuItem asChild className="focus:bg-accent focus:text-foreground cursor-pointer">
+                                <Link href={`/dashboard/clients/${account.parentClientId}`}>
+                                  <Users className="mr-2 size-4" /> Klantdossier
+                                </Link>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           </div>
         </>
       )}

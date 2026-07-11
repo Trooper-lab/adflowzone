@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -78,6 +78,19 @@ export default function AdCopyGeneratorPage() {
            user?.email === 'billy@trooper.es' ||
            user?.email?.toLowerCase() === 'admin@onlyforward.nl';
   }, [appUser, user?.email]);
+
+  const isInternalUser = useMemo(() => {
+    const role = (appUser as any)?.role?.toLowerCase();
+    const email = user?.email?.toLowerCase() || '';
+    return role === 'admin' || 
+           role === 'employee' || 
+           email === 'billy@pearsonline.nl' || 
+           email === 'billy@trooper.es' || 
+           email.endsWith('@onlyforward.nl') ||
+           email.endsWith('@trooper.es') ||
+           email.endsWith('@pearsonline.nl');
+  }, [appUser, user?.email]);
+
   const [loading, setLoading] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchAdCopyOutput | null>(null);
   const [pmaxResult, setPmaxResult] = useState<PMaxAdCopyOutput | null>(null);
@@ -88,22 +101,24 @@ export default function AdCopyGeneratorPage() {
   const [accountsLoading, setAccountsLoading] = useState(true);
 
   useEffect(() => {
-    if (!firestore || !user || (!appUser && !isAdmin)) return;
+    if (!firestore || !user || (!appUser && !isInternalUser)) return;
 
     const fetchAllAccounts = async () => {
         setAccountsLoading(true);
         try {
-            const managerUid = isAdmin ? user.uid : (appUser as any)?.managerId;
+            const managerUid = isAdmin ? user.uid : ((appUser as any)?.managerId || user.uid);
             if (!managerUid) return;
 
-            const clientsQuery = query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
+            const clientsQuery = isInternalUser
+                ? collection(firestore, 'parentClients')
+                : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
             const clientsSnapshot = await getDocs(clientsQuery);
             const parentClients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ParentClient));
             
             const parentClientMap = new Map(parentClients.map(c => [c.id, c.clientName]));
 
             const childAccountPromises = parentClients.map(client =>
-                isAdmin 
+                isInternalUser 
                     ? getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
                     : getDocs(query(collection(firestore, 'parentClients', client.id, 'childAccounts'), where('assignedEmployeeId', '==', user.uid)))
             );

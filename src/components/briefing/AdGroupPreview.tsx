@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 interface AdGroupPreviewProps {
   adGroup: AdGroupBriefing;
   index: number;
-  campaignType: 'search' | 'pmax';
+  campaignType: 'search' | 'pmax' | 'meta' | 'linkedin';
   expanded?: boolean;
   website?: string;
 }
@@ -15,6 +15,8 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded, website
   const [isOpen, setIsOpen] = useState(expanded ?? false);
   const [copiedIndex, setCopiedIndex] = useState<{type: string, index: number} | null>(null);
   const isPMax = campaignType === 'pmax';
+  const isMeta = campaignType === 'meta';
+  const isLinkedin = campaignType === 'linkedin';
 
   const copyToClipboard = (text: string, type: string, idx: number) => {
     navigator.clipboard.writeText(text);
@@ -101,26 +103,90 @@ export function AdGroupPreview({ adGroup, index, campaignType, expanded, website
             </div>
 
             {/* Preview */}
-            <div className="p-8 bg-slate-950/10 print:bg-slate-50/50">
+            <div className="p-8 bg-slate-950/10 print:bg-slate-50/50 flex flex-col justify-start">
               <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-300 mb-6 pb-2 border-b border-slate-800 print:text-slate-800 print:border-slate-200">
                 <span>👁️ Advertentie Preview</span>
               </div>
-              <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-6 shadow-xl shadow-black/40 max-w-md print:bg-white print:border-slate-200 print:shadow-none">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-[10px] font-black text-slate-200 print:bg-slate-50 print:border-slate-200 print:text-slate-900">G</div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[10px] font-bold text-slate-400 print:text-slate-500">Gesponsord</span>
-                      <span className="text-[10px] text-slate-300 font-medium print:text-slate-700">{adGroup.landingPage || website || 'www.website.nl'}</span>
+              <div className="flex justify-center w-full">
+                {isMeta ? (
+                  <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 shadow-xl text-left w-full max-w-sm flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-indigo-900 border border-indigo-750 flex items-center justify-center text-[10px] font-black text-white">f</div>
+                      <div className="text-[10px] flex flex-col">
+                        <span className="font-bold text-slate-200">Meta Ads Business</span>
+                        <span className="text-slate-500 text-[8px] mt-0.5">Gesponsord</span>
+                      </div>
+                    </div>
+                    <p className="text-slate-300 text-xs leading-relaxed line-clamp-3">
+                      {adGroup.primaryTexts?.[0] || 'Dit is de primaire ad copy.'}
+                    </p>
+                    <div className="bg-slate-900 aspect-video rounded-lg border border-slate-850 flex flex-col items-center justify-center p-4">
+                      <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold mb-1">Meta Visual</span>
+                      <p className="text-[9px] text-slate-600 text-center italic line-clamp-2 px-4">
+                        {adGroup.imagePrompts?.[0] || 'Visualisation prompt.'}
+                      </p>
+                    </div>
+                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 flex justify-between items-center gap-3">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[9px] uppercase tracking-wider text-slate-500">{(website || 'www.website.nl').replace(/^https?:\/\//, '')}</span>
+                        <span className="font-bold text-slate-200 text-xs truncate mt-0.5">{adGroup.headlines[0] || 'Headline'}</span>
+                        <span className="text-[10px] text-slate-550 truncate mt-0.5">{adGroup.descriptions[0] || 'Description'}</span>
+                      </div>
+                      <Button variant="secondary" size="sm" className="h-8 text-[10px] uppercase font-bold shrink-0 bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-800">
+                        {adGroup.callToAction || 'Learn More'}
+                      </Button>
                     </div>
                   </div>
-                </div>
-                <div className="text-lg font-bold text-blue-400 hover:underline cursor-pointer leading-tight mb-2 tracking-tight line-clamp-2 print:text-blue-700">
-                  {adGroup.headlines[0]} – {adGroup.headlines[1]}
-                </div>
-                <div className="text-[12px] text-slate-400 leading-relaxed font-medium line-clamp-2 print:text-slate-700">
-                  {adGroup.descriptions[0]} {adGroup.descriptions[1]}
-                </div>
+                ) : isLinkedin ? (
+                  <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 shadow-xl text-left w-full max-w-sm flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-900/50 border border-blue-700/50 flex items-center justify-center text-[10px] font-black text-blue-400">in</div>
+                      <div className="text-[10px] flex flex-col">
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold text-slate-200">LinkedIn Business</span>
+                          <span className="text-slate-500 text-[9px]">· 1e</span>
+                        </div>
+                        <span className="text-slate-500 text-[8px] mt-0.5">Gesponsord</span>
+                      </div>
+                    </div>
+                    <p className="text-slate-300 text-xs leading-relaxed line-clamp-3">
+                      {adGroup.primaryTexts?.[0] || 'LinkedIn ad copy.'}
+                    </p>
+                    <div className="bg-slate-900 aspect-video rounded-lg border border-slate-850 flex flex-col items-center justify-center p-4">
+                      <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold mb-1">LinkedIn Visual</span>
+                      <p className="text-[9px] text-slate-650 text-center italic line-clamp-2 px-4">
+                        {adGroup.imagePrompts?.[0] || 'Visual prompt.'}
+                      </p>
+                    </div>
+                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 flex justify-between items-center gap-3">
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-slate-200 text-xs truncate">{adGroup.headlines[0] || 'Headline'}</span>
+                        <span className="text-[9px] text-slate-500 truncate mt-0.5">{(website || 'www.website.nl').replace(/^https?:\/\//, '')}</span>
+                      </div>
+                      <Button variant="secondary" size="sm" className="h-8 text-[10px] uppercase font-bold shrink-0 bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-800">
+                        {adGroup.callToAction || 'Learn More'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-6 shadow-xl shadow-black/40 w-full max-w-md print:bg-white print:border-slate-200 print:shadow-none">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-[10px] font-black text-slate-200 print:bg-slate-50 print:border-slate-200 print:text-slate-900">G</div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[10px] font-bold text-slate-400 print:text-slate-500">Gesponsord</span>
+                          <span className="text-[10px] text-slate-300 font-medium print:text-slate-700">{adGroup.landingPage || website || 'www.website.nl'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-lg font-bold text-blue-400 hover:underline cursor-pointer leading-tight mb-2 tracking-tight line-clamp-2 print:text-blue-700 text-left">
+                      {adGroup.headlines[0]} – {adGroup.headlines[1]}
+                    </div>
+                    <div className="text-[12px] text-slate-400 leading-relaxed font-medium line-clamp-2 print:text-slate-700 text-left">
+                      {adGroup.descriptions[0]} {adGroup.descriptions[1]}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

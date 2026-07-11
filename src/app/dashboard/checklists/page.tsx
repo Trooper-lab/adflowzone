@@ -1,4 +1,4 @@
-﻿
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -788,6 +788,18 @@ export default function ChecklistsPage() {
     return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es' || user?.email?.toLowerCase() === 'admin@onlyforward.nl';
   }, [appUser, user?.email]);
 
+  const isInternalUser = useMemo(() => {
+    const role = (appUser as AppUser)?.role?.toLowerCase();
+    const email = user?.email?.toLowerCase() || '';
+    return role === 'admin' || 
+           role === 'employee' || 
+           email === 'billy@pearsonline.nl' || 
+           email === 'billy@trooper.es' || 
+           email.endsWith('@onlyforward.nl') ||
+           email.endsWith('@trooper.es') ||
+           email.endsWith('@pearsonline.nl');
+  }, [appUser, user?.email]);
+
   const [loading, setLoading] = useState(true);
   const [checklists, setChecklists] = useState<ChecklistTemplate[]>([]);
   const [allAccounts, setAllAccounts] = useState<ChildAccountWithParentName[]>([]);
@@ -801,14 +813,14 @@ export default function ChecklistsPage() {
 
     const fetchAllData = async () => {
         try {
-            const managerUid = isAdmin ? user.uid : (appUser as AppUser)?.managerId;
+            const managerUid = isAdmin ? user.uid : ((appUser as AppUser)?.managerId || user.uid);
             if (!managerUid) {
                 setLoading(false);
                 return;
             }
 
             // Fetch checklist templates
-            const checklistsQuery = isAdmin
+            const checklistsQuery = isInternalUser
                 ? query(collectionGroup(firestore, 'checklistTemplates'))
                 : query(collection(firestore, 'users', managerUid, 'checklistTemplates'));
             const checklistSnapshot = await getDocs(checklistsQuery);
@@ -817,7 +829,7 @@ export default function ChecklistsPage() {
             setChecklists(checklistData);
 
             // Fetch parent clients
-            const clientsQuery = isAdmin 
+            const clientsQuery = isInternalUser 
                 ? collection(firestore, 'parentClients')
                 : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
             const clientsSnapshot = await getDocs(clientsQuery);
@@ -826,7 +838,7 @@ export default function ChecklistsPage() {
 
             // Fetch all child accounts
             const childAccountPromises = parentClients.map(client =>
-                isAdmin 
+                isInternalUser 
                     ? getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
                     : getDocs(query(collection(firestore, 'parentClients', client.id, 'childAccounts'), where('assignedEmployeeId', '==', user.uid)))
             );
@@ -841,7 +853,7 @@ export default function ChecklistsPage() {
                         parentName: parentClientMap.get(data.parentClientId) || 'Onbekende Klant',
                     };
                 })
-            ).filter(acc => isAdmin || acc.assignedEmployeeId === user.uid);
+            ).filter(acc => isInternalUser || acc.assignedEmployeeId === user.uid);
             
             const accountMap = new Map(allChildAccounts.map(a => [a.id, a.nickname]));
             setAllAccounts(allChildAccounts);
@@ -850,7 +862,7 @@ export default function ChecklistsPage() {
             setChecklists(checklistData);
             
             // Fetch checklist runs
-            const runsQuery = isAdmin 
+            const runsQuery = isInternalUser 
                 ? collection(firestore, 'checklistRuns')
                 : query(collection(firestore, 'checklistRuns'), where('managerId', '==', managerUid));
             const runsSnapshot = await getDocs(runsQuery);

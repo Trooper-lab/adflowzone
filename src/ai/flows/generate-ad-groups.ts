@@ -88,6 +88,24 @@ const generateSingleAdGroupFlow = ai.defineFlow(
              - 5 descriptions (max 90 chars).
              - 3-5 creative image prompts.
              - **AUDIENCE SIGNALS**: Custom intent, in-market, customer match ideas, and demographics.
+           - If 'meta':
+             - KEYWORDS: leave empty.
+             - TARGETING BRIEF (targetingBrief): specify Facebook/Instagram targeting details (e.g. Interests: Small Business Owners, Age: 25-54, Location: Netherlands).
+             - AD FORMAT (adFormat): suggest Single Image, Carousel, or Video.
+             - PRIMARY TEXTS (primaryTexts): generate 3-5 variants of compelling Facebook/Instagram ad copy (captions), focusing on benefits and hook angles.
+             - HEADLINES: generate 3-5 variants of short, attention-grabbing headlines (max 40 chars). NO EXCLAMATION MARKS (!).
+             - DESCRIPTIONS: generate 3-5 variants of descriptive copy (max 30 chars).
+             - IMAGE PROMPTS (imagePrompts): generate 3-5 creative visual descriptions/prompts for images/videos.
+             - CALL TO ACTION (callToAction): select a valid Meta CTA (e.g., "Shop Now", "Learn More", "Sign Up", "Contact Us").
+           - If 'linkedin':
+             - KEYWORDS: leave empty.
+             - TARGETING BRIEF (targetingBrief): specify job titles, companies, seniorities, or industries on LinkedIn.
+             - AD FORMAT (adFormat): suggest Single Image, Document, or Carousel.
+             - PRIMARY TEXTS (primaryTexts): generate 3-5 variants of introductory text (max 600 chars).
+             - HEADLINES: generate 3-5 variants of ad headlines (max 70 chars). NO EXCLAMATION MARKS (!).
+             - DESCRIPTIONS: generate 3-5 variants of ad descriptions (max 30 chars).
+             - IMAGE PROMPTS (imagePrompts): generate 3-5 creative visual prompts.
+             - CALL TO ACTION (callToAction): select a valid LinkedIn CTA (e.g., "Apply Now", "Download", "Learn More", "Request Demo").
 
         **HEADLINE STRUCTURE STRATEGY (15 headlines total):**
         The 15 headlines must be generated in exactly 3 groups, returned in this exact order in the headlines array:
@@ -161,7 +179,7 @@ const generateAdGroupsFlow = ai.defineFlow(
         - Objective: ${input.campaign.objective}
 
         **TASK DETAILS:**
-        1. **AD GROUPS**: Create 2 to 4 distinct Ad Groups for this campaign.
+        1. **AD GROUPS**: Create 2 to 4 distinct Ad Groups/concepts for this campaign.
         2. **ASSETS**: Depending on type (${input.campaign.type}):
            - If 'search': 
              - 10-15 keywords. The keywords MUST be formatted using proper Google Ads match type syntax based on the campaign's strategic rationale/objective (${input.campaign.objective}):
@@ -178,6 +196,24 @@ const generateAdGroupsFlow = ai.defineFlow(
              - 5 descriptions (max 90 chars).
              - 3-5 creative image prompts.
              - **AUDIENCE SIGNALS**: Custom intent, in-market, customer match ideas, and demographics.
+           - If 'meta':
+             - KEYWORDS: leave empty.
+             - TARGETING BRIEF (targetingBrief): specify Facebook/Instagram targeting details (e.g. Interests: Small Business Owners, Age: 25-54, Location: Netherlands).
+             - AD FORMAT (adFormat): suggest Single Image, Carousel, or Video.
+             - PRIMARY TEXTS (primaryTexts): generate 3-5 variants of compelling Facebook/Instagram ad copy (captions), focusing on benefits and hook angles.
+             - HEADLINES: generate 3-5 variants of short, attention-grabbing headlines (max 40 chars). NO EXCLAMATION MARKS (!).
+             - DESCRIPTIONS: generate 3-5 variants of descriptive copy (max 30 chars).
+             - IMAGE PROMPTS (imagePrompts): generate 3-5 creative visual descriptions/prompts for images/videos.
+             - CALL TO ACTION (callToAction): select a valid Meta CTA (e.g., "Shop Now", "Learn More", "Sign Up", "Contact Us").
+           - If 'linkedin':
+             - KEYWORDS: leave empty.
+             - TARGETING BRIEF (targetingBrief): specify job titles, companies, seniorities, or industries on LinkedIn.
+             - AD FORMAT (adFormat): suggest Single Image, Document, or Carousel.
+             - PRIMARY TEXTS (primaryTexts): generate 3-5 variants of introductory text (max 600 chars).
+             - HEADLINES: generate 3-5 variants of ad headlines (max 70 chars). NO EXCLAMATION MARKS (!).
+             - DESCRIPTIONS: generate 3-5 variants of ad descriptions (max 30 chars).
+             - IMAGE PROMPTS (imagePrompts): generate 3-5 creative visual prompts.
+             - CALL TO ACTION (callToAction): select a valid LinkedIn CTA (e.g., "Apply Now", "Download", "Learn More", "Request Demo").
         
         3. **EXTENSIONS**: Generate for this campaign:
            - 4-6 Sitelinks (title + description).

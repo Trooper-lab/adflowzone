@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -352,6 +352,13 @@ export default function ChildAccountForm({
       });
     }
   }, [initialData, form]);
+
+  // Auto-assign to current user if not edit mode and user is loaded
+  useEffect(() => {
+    if (!isEdit && user && !form.getValues('assignedEmployeeId')) {
+      form.setValue('assignedEmployeeId', user.uid);
+    }
+  }, [user, isEdit, form]);
 
   // Automatically calculate fixed hours if services or packages change
   useEffect(() => {

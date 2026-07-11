@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useFirestore, useUser, useCollection } from '@/firebase';
@@ -60,6 +60,25 @@ export default function AccountChat({
       setMessages(msgs);
     }
   }, [fetchedMessages]);
+
+  // Send initial prompt when there are no messages in the database
+  useEffect(() => {
+    if (firestore && fetchedMessages && fetchedMessages.length === 0 && user) {
+      const chatMessagesCol = collection(
+        firestore,
+        'parentClients',
+        parentClientId,
+        'childAccounts',
+        accountId,
+        'chatMessages'
+      );
+      addDoc(chatMessagesCol, {
+        sender: 'assistant',
+        text: "Hoi! Ik ben je OnlyForward AI-campagnepartner. Wil je de data van het dashboard van de afgelopen 7, 14 en 30 dagen met me delen zodat ik die kan analyseren? Op basis van die data gaan we campagnes maken.",
+        createdAt: Timestamp.now()
+      }).catch(err => console.error("Error creating initial chatbot message:", err));
+    }
+  }, [firestore, fetchedMessages, parentClientId, accountId, user]);
 
   // Scroll to bottom when messages update
   useEffect(() => {

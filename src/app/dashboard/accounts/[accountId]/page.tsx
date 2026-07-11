@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useMemo, useState, useEffect } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
@@ -144,6 +144,23 @@ export default function AccountDetailPage() {
   const [activeChecklist, setActiveChecklist] = useState<ConnectedChecklist | null>(null);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const [briefings, setBriefings] = useState<any[]>([]);
+  const [loadingBriefings, setLoadingBriefings] = useState(false);
+
+  useEffect(() => {
+    if (!firestore || !accountId) return;
+    setLoadingBriefings(true);
+    const q = query(
+      collection(firestore, 'briefings'), 
+      where('context.childAccountId', '==', accountId)
+    );
+    getDocs(q)
+      .then((snap) => {
+        setBriefings(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      })
+      .catch(console.error)
+      .finally(() => setLoadingBriefings(false));
+  }, [firestore, accountId, refetchTrigger]);
   const [stats, setStats] = useState({
     checklists30d: 0,
     comments30d: 0,
@@ -170,6 +187,20 @@ export default function AccountDetailPage() {
       user?.email === 'billy@pearsonline.nl' ||
       user?.email === 'billy@trooper.es' ||
       user?.email?.toLowerCase() === 'admin@onlyforward.nl'
+    );
+  }, [appUser, user?.email]);
+
+  const isInternalUser = useMemo(() => {
+    const role = (appUser as AppUser)?.role?.toLowerCase();
+    const email = user?.email?.toLowerCase() || '';
+    return (
+      role === 'admin' ||
+      role === 'employee' ||
+      email === 'billy@pearsonline.nl' ||
+      email === 'billy@trooper.es' ||
+      email.endsWith('@onlyforward.nl') ||
+      email.endsWith('@trooper.es') ||
+      email.endsWith('@pearsonline.nl')
     );
   }, [appUser, user?.email]);
 
@@ -209,13 +240,13 @@ export default function AccountDetailPage() {
   // ── Access guard ──────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (isAccountLoaded && !isAdmin && user?.uid) {
+    if (isAccountLoaded && !isInternalUser && user?.uid) {
       if (assignedEmployeeId !== user.uid) {
         toast({ variant: 'destructive', title: 'Toegang Geweigerd', description: 'Je bent niet toegewezen aan dit account.' });
         router.push('/dashboard');
       }
     }
-  }, [isAccountLoaded, isAdmin, user?.uid, assignedEmployeeId, router, toast]);
+  }, [isAccountLoaded, isInternalUser, user?.uid, assignedEmployeeId, router, toast]);
 
   // ── Load assigned employee name ───────────────────────────────────────────
 
@@ -666,7 +697,8 @@ export default function AccountDetailPage() {
             { value: 'overzicht', icon: Activity, label: 'Overzicht' },
             { value: 'chat', icon: MessageSquare, label: 'AI Chatbot' },
             { value: 'checklists', icon: ListChecks, label: 'Checklists & Taken' },
-            { value: 'campagnes', icon: TrendingUp, label: "Campagnes & KPI's" },
+            { value: 'campagnes', icon: Zap, label: 'Campagnes' },
+            { value: 'kpis', icon: TrendingUp, label: 'KPI Tracker' },
             { value: 'diensten', icon: Package, label: 'Diensten & Pakketten' },
             { value: 'documenten', icon: FolderOpen, label: 'Documenten & Links' },
             { value: 'rapportages', icon: BarChart2, label: 'Rapportages' },
@@ -919,8 +951,8 @@ export default function AccountDetailPage() {
           </div>
         </TabsContent>
 
-        {/* ── TAB: CAMPAGNES & KPI's ── */}
-        <TabsContent value="campagnes" className="space-y-6 animate-in fade-in duration-500">
+        {/* ── TAB: KPI TRACKER ── */}
+        <TabsContent value="kpis" className="space-y-6 animate-in fade-in duration-500">
            <div className="grid grid-cols-1 gap-6">
               <Section title="KPI Tracker" icon={TrendingUp} iconCn="text-emerald-400">
                 <div className="p-5">
@@ -936,8 +968,88 @@ export default function AccountDetailPage() {
                   <KpiStandardTable childAccount={account} onSave={handleSaveKpiData} isSaving={isSaving} onRefetchNeeded={() => setRefetchTrigger((p) => p + 1)} />
                 </div>
               </Section>
+            </div>
+        </TabsContent>
 
-              <Section title="Google Ads Campagnes (Blueprints)" icon={BarChart2} iconCn="text-blue-400">
+        {/* ── TAB: CAMPAGNES ── */}
+        <TabsContent value="campagnes" className="space-y-6 animate-in fade-in duration-500">
+           <div className="grid grid-cols-1 gap-6">
+              <Section 
+                title="AI Campagne Architect (Strategie & Blueprints)" 
+                icon={Zap} 
+                iconCn="text-indigo-400"
+                right={
+                  <Link href={`/dashboard/campaign-briefings/new?accountId=${accountId}&parent=${effectiveParentId}`}>
+                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider h-8">
+                      Nieuwe Campagne Architect
+                    </Button>
+                  </Link>
+                }
+              >
+                <div className="p-5">
+                  {loadingBriefings ? (
+                    <div className="flex items-center justify-center p-8">
+                      <Loader2 className="size-6 animate-spin text-indigo-500" />
+                    </div>
+                  ) : briefings.length === 0 ? (
+                    <div className="text-center p-8 border border-dashed border-slate-800 text-slate-500 rounded-xl text-sm">
+                      Geen actieve campagne briefings of blueprints gevonden voor dit account. Klik hierboven op 'Nieuwe Campagne Architect' om te starten.
+                    </div>
+                  ) : (
+                    <div className="rounded-md border border-slate-800 overflow-hidden bg-slate-900/10">
+                      <table className="w-full text-left text-sm text-slate-350">
+                        <thead className="text-[10px] uppercase bg-slate-900/55 text-slate-500 tracking-wider">
+                          <tr>
+                            <th className="px-4 py-3 font-semibold">Titel / Focus</th>
+                            <th className="px-4 py-3 font-semibold">Status</th>
+                            <th className="px-4 py-3 font-semibold">Kanalen</th>
+                            <th className="px-4 py-3 font-semibold">Uren / Maand</th>
+                            <th className="px-4 py-3 font-semibold text-right">Beheer</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800">
+                          {briefings.map((b) => {
+                            const totalHours = b.campaigns?.reduce((acc: number, c: any) => acc + (c.tasks?.reduce((tAcc: number, t: any) => tAcc + (Number(t.hours) || 0), 0) || 0), 0) || 0;
+                            return (
+                              <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
+                                <td className="px-4 py-3 font-bold text-slate-200">
+                                  {b.title}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <Badge className={b.status === 'approved' ? 'bg-emerald-500/10 text-emerald-450 border-emerald-550/20' : 'bg-orange-500/10 text-orange-450 border-orange-550/20'}>
+                                    {b.status === 'approved' ? 'Goedgekeurd' : 'Concept'}
+                                  </Badge>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex flex-wrap gap-1">
+                                    {(b.context?.campaignTypes || []).map((t: string) => (
+                                      <Badge key={t} variant="outline" className="text-[8px] uppercase font-bold tracking-wider px-1.5 py-0 bg-slate-950/20">
+                                        {t}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 font-mono text-xs text-slate-400">
+                                  {totalHours} uur
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <Link href={`/dashboard/campaign-briefings/${b.id}`}>
+                                    <Button variant="ghost" size="sm" className="h-7 text-xs text-indigo-400 hover:text-indigo-300">
+                                      Bekijken
+                                    </Button>
+                                  </Link>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </Section>
+
+              <Section title="Google Ads Live Prestaties (Synchronisatie)" icon={BarChart2} iconCn="text-blue-400">
                 <div className="p-5">
                   <AccountCampaigns childAccount={account} />
                 </div>

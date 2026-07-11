@@ -1,4 +1,4 @@
-﻿
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -336,7 +336,8 @@ export default function DataImportPage() {
                 googleAdsClientId: '',
                 googleAdsAccountName: '',
                 primaryGoal: 'lead_generation',
-                kpisToTrack: []
+                kpisToTrack: [],
+                assignedEmployeeId: user.uid
             });
             
             const newAccount: ChildAccount = {
@@ -347,7 +348,8 @@ export default function DataImportPage() {
                 googleAdsClientId: '',
                 googleAdsAccountName: '',
                 primaryGoal: 'lead_generation',
-                kpisToTrack: []
+                kpisToTrack: [],
+                assignedEmployeeId: user.uid
             };
             
             setAccounts(prev => [...prev, newAccount]);

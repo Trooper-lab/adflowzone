@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { Briefing, BriefingContext, CampaignBriefing, AdGroupBriefing } from '@/lib/types';
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc } from 'firebase/firestore';
+import { Briefing, BriefingContext, CampaignBriefing, AdGroupBriefing, AppUser, ChecklistTemplate } from '@/lib/types';
 import { generateCampaignStructure } from '@/ai/flows/generate-campaign-structure';
 import { generateAdGroups, suggestAdGroups, generateSingleAdGroup } from '@/ai/flows/generate-ad-groups';
 import { extractBriefingContext } from '@/ai/flows/extract-briefing-context';
@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, WandSparkles, Save, ChevronLeft, Trash2, Type, Key, LayoutGrid, Briefcase, Globe, Target, Coins, MessageSquareText, FileText, Plus, Users, Euro, CheckCircle2, AlertCircle, Send as SendIcon } from 'lucide-react';
+import { Loader2, WandSparkles, Save, ChevronLeft, Trash2, Type, Key, LayoutGrid, Briefcase, Globe, Target, Coins, MessageSquareText, FileText, Plus, Users, Euro, CheckCircle2, AlertCircle, Settings, Send as SendIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -38,15 +38,114 @@ const CAMPAIGN_TYPES = [
   { id: 'shopping', label: 'Standard Shopping' },
 ];
 
-function AdPreview({ headlines, descriptions, website }: { headlines: string[], descriptions: string[], website: string }) {
+function AdPreview({ 
+  type = 'search', 
+  headlines = [], 
+  descriptions = [], 
+  primaryTexts = [], 
+  imagePrompts = [], 
+  callToAction = 'Meer informatie', 
+  website 
+}: { 
+  type?: 'search' | 'pmax' | 'meta' | 'linkedin', 
+  headlines?: string[], 
+  descriptions?: string[], 
+  primaryTexts?: string[], 
+  imagePrompts?: string[], 
+  callToAction?: string, 
+  website: string 
+}) {
+  const cleanUrl = website.replace(/^https?:\/\//, '');
+  
+  if (type === 'meta') {
+    return (
+      <div className="bg-slate-950 rounded-2xl p-4 shadow-xl border border-slate-800/80 text-sm w-full max-w-sm flex flex-col gap-3 text-left">
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-indigo-650 flex items-center justify-center text-[10px] font-black text-white bg-indigo-900 border border-indigo-700">
+            f
+          </div>
+          <div className="text-[10px] flex flex-col">
+            <span className="font-bold text-slate-200">Meta Ads Business</span>
+            <span className="text-slate-500 text-[8px] mt-0.5">Gesponsord</span>
+          </div>
+        </div>
+        {/* Primary Text */}
+        <p className="text-slate-300 text-xs leading-relaxed line-clamp-3">
+          {primaryTexts[0] || 'Dit is de primaire tekst variant die bovenaan de Meta advertentie verschijnt.'}
+        </p>
+        {/* Media Placeholder */}
+        <div className="bg-slate-900 aspect-video rounded-lg border border-slate-800 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+          <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold mb-1">Meta Visual Placement</span>
+          <p className="text-[9px] text-slate-650 text-center italic line-clamp-2 px-4">
+            {imagePrompts[0] || 'Afbeelding visualisatie o.b.v. gegenereerde visual prompt.'}
+          </p>
+        </div>
+        {/* Bottom Bar */}
+        <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 flex justify-between items-center gap-3">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[9px] uppercase tracking-wider text-slate-500">{cleanUrl}</span>
+            <span className="font-bold text-slate-200 text-xs truncate mt-0.5">{headlines[0] || 'Meta Ad Headline'}</span>
+            <span className="text-[10px] text-slate-500 truncate mt-0.5">{descriptions[0] || 'Beschrijving'}</span>
+          </div>
+          <Button variant="secondary" size="sm" className="h-8 text-[10px] uppercase font-bold shrink-0 bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-800">
+            {callToAction}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'linkedin') {
+    return (
+      <div className="bg-slate-950 rounded-2xl p-4 shadow-xl border border-slate-800/80 text-sm w-full max-w-sm flex flex-col gap-3 text-left">
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-blue-900/50 border border-blue-700/50 flex items-center justify-center text-[10px] font-black text-blue-400">
+            in
+          </div>
+          <div className="text-[10px] flex flex-col">
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-slate-200">LinkedIn Business</span>
+              <span className="text-slate-500 text-[9px]">· 1e</span>
+            </div>
+            <span className="text-slate-500 text-[8px] mt-0.5">Gesponsord</span>
+          </div>
+        </div>
+        {/* Primary Text / Intro */}
+        <p className="text-slate-300 text-xs leading-relaxed line-clamp-3">
+          {primaryTexts[0] || 'Dit is de introductietekst die boven de LinkedIn advertentie verschijnt.'}
+        </p>
+        {/* Media Placeholder */}
+        <div className="bg-slate-900 aspect-video rounded-lg border border-slate-800 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+          <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold mb-1">LinkedIn Visual Placement</span>
+          <p className="text-[9px] text-slate-650 text-center italic line-clamp-2 px-4">
+            {imagePrompts[0] || 'Visual briefing o.b.v. LinkedIn image prompt.'}
+          </p>
+        </div>
+        {/* Bottom Bar */}
+        <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 flex justify-between items-center gap-3">
+          <div className="flex flex-col min-w-0">
+            <span className="font-bold text-slate-200 text-xs truncate">{headlines[0] || 'LinkedIn Ad Headline'}</span>
+            <span className="text-[9px] text-slate-500 truncate mt-0.5">{cleanUrl}</span>
+          </div>
+          <Button variant="secondary" size="sm" className="h-8 text-[10px] uppercase font-bold shrink-0 bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-800">
+            {callToAction}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Google Ads (Default)
   return (
-    <div className="bg-slate-950 rounded-2xl p-6 shadow-xl shadow-black/40 border border-slate-800/80 text-sm w-full max-w-md print:bg-white print:border-slate-200 print:shadow-none">
+    <div className="bg-slate-950 rounded-2xl p-6 shadow-xl shadow-black/40 border border-slate-800/80 text-sm w-full max-w-md print:bg-white print:border-slate-200 print:shadow-none text-left">
       <div className="flex items-center gap-3 mb-3">
         <div className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-[10px] font-black text-slate-200 print:bg-slate-50 print:border-slate-200 print:text-slate-900">
             G
         </div>
         <div className="text-[10px] text-slate-400 flex flex-col">
-            <span className="font-bold text-slate-300 print:text-slate-750">{website.replace(/^https?:\/\//, '')}</span>
+            <span className="font-bold text-slate-300 print:text-slate-750">{cleanUrl}</span>
             <span className="opacity-70 print:text-slate-500">Gesponsord</span>
         </div>
       </div>
@@ -134,7 +233,7 @@ export default function CampaignBriefingEditor() {
   const [extracting, setExtracting] = useState(false);
   const [generatingAdGroupsFor, setGeneratingAdGroupsFor] = useState<string | null>(null);
   const [suggestingFor, setSuggestingFor] = useState<string | null>(null);
-  const [rewritingAsset, setRewritingAsset] = useState<{ cIdx: number, agIdx: number, type: 'headline' | 'description', index: number } | null>(null);
+  const [rewritingAsset, setRewritingAsset] = useState<{ cIdx: number, agIdx: number, type: 'headline' | 'description' | 'primaryText', index: number } | null>(null);
   const [adGroupSuggestions, setAdGroupSuggestions] = useState<Record<string, { title: string, description: string }[]>>({});
   const [closedSuggestions, setClosedSuggestions] = useState<Record<string, boolean>>({});
   const [manualAdGroup, setManualAdGroup] = useState<Record<string, { title: string, description: string }>>({});
@@ -170,6 +269,36 @@ export default function CampaignBriefingEditor() {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
+
+  const [employees, setEmployees] = useState<AppUser[]>([]);
+  const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplate[]>([]);
+
+  useEffect(() => {
+    if (!firestore) return;
+    const fetchEmployees = async () => {
+      try {
+        const snap = await getDocs(collection(firestore, 'users'));
+        setEmployees(snap.docs.map(d => ({ ...d.data(), uid: d.id } as AppUser)));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchEmployees();
+  }, [firestore]);
+
+  useEffect(() => {
+    if (!firestore || !user || !briefing.ownerId) return;
+    const fetchTemplates = async () => {
+      try {
+        const ownerUid = briefing.ownerId || user.uid;
+        const snap = await getDocs(collection(firestore, 'users', ownerUid, 'checklistTemplates'));
+        setChecklistTemplates(snap.docs.map(d => ({ id: d.id, ...d.data() } as ChecklistTemplate)));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchTemplates();
+  }, [firestore, user, briefing.ownerId]);
 
   useEffect(() => {
     if (!firestore || !user) return;
@@ -250,16 +379,70 @@ export default function CampaignBriefingEditor() {
         ...briefing,
         updatedAt: new Date().toISOString()
       }));
+
+      let planningGeneratedJustNow = false;
+      if (briefing.status === 'approved' && !briefing.planningGenerated) {
+        const parentClientId = briefing.context.parentClientId;
+        const childAccountId = briefing.context.childAccountId;
+        
+        if (parentClientId && childAccountId) {
+          // Get child account nickname
+          let childNick = briefing.context.clientName || 'Account';
+          try {
+            const accSnap = await getDoc(doc(firestore, 'parentClients', parentClientId, 'childAccounts', childAccountId));
+            if (accSnap.exists()) {
+              childNick = accSnap.data().nickname || childNick;
+            }
+          } catch (e) {
+            console.error("Error fetching child account nickname:", e);
+          }
+          
+          // Generate Todos for each campaign tasks
+          for (const campaign of briefing.campaigns) {
+            if (campaign.tasks && campaign.tasks.length > 0) {
+              for (const task of campaign.tasks) {
+                const todoData = {
+                  ownerId: briefing.ownerId || user.uid,
+                  parentClientId: parentClientId,
+                  parentClientName: briefing.context.clientName || '',
+                  childAccountId: childAccountId,
+                  childAccountNickname: childNick,
+                  content: `${campaign.name} - ${task.description}`,
+                  completed: false,
+                  createdAt: new Date().toISOString(),
+                  dueDate: task.dueDate || new Date().toISOString(),
+                  status: 'todo',
+                  workedHours: 0,
+                  assigneeId: task.assignedEmployeeId || null,
+                  assigneeName: employees.find(e => e.uid === task.assignedEmployeeId)?.displayName || 'Geen toewijzing'
+                };
+                await addDoc(collection(firestore, 'todos'), todoData);
+              }
+            }
+          }
+          dataToSave.planningGenerated = true;
+          planningGeneratedJustNow = true;
+          
+          // Update local state
+          setBriefing(prev => ({ ...prev, planningGenerated: true }));
+        }
+      }
       
       if (isNew) {
         await setDoc(docRef, dataToSave);
-        toast({ title: 'Briefing aangemaakt!', description: 'De AI analyseert nu je input...' });
+        toast({ 
+          title: planningGeneratedJustNow ? 'Briefing goedgekeurd & planning aangemaakt!' : 'Briefing aangemaakt!', 
+          description: planningGeneratedJustNow ? 'De setup taken zijn toegevoegd aan de planning.' : 'De AI analyseert nu je input...' 
+        });
         setSaveStatus('saved');
         router.push(`/dashboard/campaign-briefings/${briefing.id}`);
       } else {
         await updateDoc(docRef, dataToSave);
         setSaveStatus('saved');
-        toast({ title: 'Wijzigingen opgeslagen' });
+        toast({ 
+          title: planningGeneratedJustNow ? 'Briefing goedgekeurd & planning aangemaakt!' : 'Wijzigingen opgeslagen',
+          description: planningGeneratedJustNow ? 'De setup taken zijn toegevoegd aan de planning.' : undefined
+        });
       }
     } catch (e) {
       console.error(e);
@@ -270,17 +453,17 @@ export default function CampaignBriefingEditor() {
     }
   };
 
-  const handleRewriteAsset = async (cIdx: number, agIdx: number, type: 'headline' | 'description', index: number, currentValue: string, groupContext?: string) => {
+  const handleRewriteAsset = async (cIdx: number, agIdx: number, type: 'headline' | 'description' | 'primaryText', index: number, currentValue: string, groupContext?: string) => {
     if (!currentValue) return;
     setRewritingAsset({ cIdx, agIdx, type, index });
     try {
       const campaign = briefing.campaigns[cIdx];
       const adGroup = campaign.adGroups[agIdx];
-      const newValue = await rewriteAsset(briefing.context, type, currentValue, campaign.name, adGroup.name, groupContext);
+      const newValue = await rewriteAsset(briefing.context, type as any, currentValue, campaign.name, adGroup.name, groupContext);
       
       setBriefing(prev => {
         const nc = [...prev.campaigns];
-        const current = [...nc[cIdx].adGroups[agIdx][type + 's' as 'headlines' | 'descriptions']];
+        const current = [...(nc[cIdx].adGroups[agIdx][type + 's' as 'headlines' | 'descriptions' | 'primaryTexts'] || [])];
         current[index] = newValue;
         (nc[cIdx].adGroups[agIdx] as any)[type + 's'] = current;
         return {...prev, campaigns: nc};
@@ -685,7 +868,12 @@ export default function CampaignBriefingEditor() {
                     <div className="flex justify-between items-start gap-6">
                       <div className="flex-1 space-y-4">
                         <div className="flex items-center gap-4">
-                            <Badge className={`h-7 px-3 text-[10px] font-black uppercase tracking-widest ${campaign.type === 'search' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-purple-500/20 text-purple-400 border-purple-500/30'}`}>
+                            <Badge className={`h-7 px-3 text-[10px] font-black uppercase tracking-widest ${
+                              campaign.type === 'search' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 
+                              campaign.type === 'pmax' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
+                              campaign.type === 'meta' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' :
+                              'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+                            }`}>
                                 {campaign.type}
                             </Badge>
                             <Input 
@@ -728,9 +916,11 @@ export default function CampaignBriefingEditor() {
                                 <SelectTrigger className="h-9 text-sm bg-slate-900 border-slate-800">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="search">Search</SelectItem>
+                                <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                                    <SelectItem value="search">Google Search</SelectItem>
                                     <SelectItem value="pmax">Performance Max</SelectItem>
+                                    <SelectItem value="meta">Meta Ads</SelectItem>
+                                    <SelectItem value="linkedin">LinkedIn Ads</SelectItem>
                                 </SelectContent>
                             </Select>
                           </div>
@@ -882,274 +1072,606 @@ export default function CampaignBriefingEditor() {
                           </div>
 
                           <div className="space-y-8 mt-10">
+                            {campaign.type === 'meta' || campaign.type === 'linkedin' ? (
+                              <div className="space-y-6">
+                                {/* ROW 1: Targeting & Format */}
+                                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                                  <div className="xl:col-span-2 space-y-6 text-left">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                      <div className="space-y-2">
+                                        <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
+                                          <Globe className="size-3" /> Landingspagina
+                                        </Label>
+                                        <Input 
+                                          value={ag.landingPage || ''}
+                                          onChange={e => setBriefing(prev => {
+                                            const nc = [...prev.campaigns];
+                                            nc[cIdx].adGroups[agIdx].landingPage = e.target.value;
+                                            return {...prev, campaigns: nc};
+                                          })}
+                                          placeholder={briefing.context.website || 'https://...'}
+                                          className="h-10 bg-slate-950 border-slate-800 text-slate-200 focus:border-indigo-500/50"
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
+                                          <Settings className="size-3" /> Advertentie Formaat
+                                        </Label>
+                                        <Input 
+                                          value={ag.adFormat || ''}
+                                          onChange={e => setBriefing(prev => {
+                                            const nc = [...prev.campaigns];
+                                            nc[cIdx].adGroups[agIdx].adFormat = e.target.value;
+                                            return {...prev, campaigns: nc};
+                                          })}
+                                          placeholder="bijv. Single Image, Carousel, Video"
+                                          className="h-10 bg-slate-950 border-slate-800 text-slate-200 focus:border-indigo-500/50"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
+                                        <Target className="size-3" /> Doelgroep Targeting (Targeting Brief)
+                                      </Label>
+                                      <Textarea 
+                                        value={ag.targetingBrief || ''}
+                                        onChange={e => setBriefing(prev => {
+                                          const nc = [...prev.campaigns];
+                                          nc[cIdx].adGroups[agIdx].targetingBrief = e.target.value;
+                                          return {...prev, campaigns: nc};
+                                        })}
+                                        className="h-24 text-xs bg-slate-950 border-slate-800 leading-relaxed text-slate-200 focus:border-indigo-500/50"
+                                        placeholder="bijv. Interesses: Marketing, Demografie: 25-54, Locatie: Nederland"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2 text-left">
+                                    <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
+                                      <Globe className="size-3" /> Advertentie Preview
+                                    </Label>
+                                    <div className="bg-slate-950/30 rounded-2xl border border-slate-800/50 p-6 min-h-[220px] flex items-center justify-center">
+                                      <AdPreview 
+                                        type={campaign.type}
+                                        headlines={ag.headlines} 
+                                        descriptions={ag.descriptions} 
+                                        primaryTexts={ag.primaryTexts}
+                                        imagePrompts={ag.imagePrompts}
+                                        callToAction={ag.callToAction}
+                                        website={ag.landingPage || briefing.context.website || 'www.jouwwebsite.nl'} 
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <Separator className="bg-secondary" />
+
+                                {/* Primaire Teksten */}
+                                <div className="space-y-4 text-left">
+                                  <Label className="text-[10px] uppercase text-indigo-400 font-black tracking-[0.15em] flex items-center gap-2">
+                                    <Briefcase className="size-3" /> Primaire Tekst (Captions / Introductie)
+                                  </Label>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {[0, 1, 2].map(i => (
+                                      <AssetDescriptionInput 
+                                        key={i}
+                                        index={i}
+                                        placeholder="Primaire Tekst variant"
+                                        value={ag.primaryTexts?.[i] || ''}
+                                        loading={rewritingAsset?.cIdx === cIdx && rewritingAsset?.agIdx === agIdx && rewritingAsset?.type === 'primaryText' && rewritingAsset?.index === i}
+                                        onChange={val => setBriefing(prev => {
+                                          const nc = [...prev.campaigns];
+                                          const current = [...(nc[cIdx].adGroups[agIdx].primaryTexts || [])];
+                                          current[i] = val;
+                                          nc[cIdx].adGroups[agIdx].primaryTexts = current;
+                                          return {...prev, campaigns: nc};
+                                        })}
+                                        onRewrite={() => handleRewriteAsset(cIdx, agIdx, 'primaryText', i, ag.primaryTexts?.[i] || '')}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Koppen & Beschrijvingen */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                                  <div className="space-y-4">
+                                    <Label className="text-[10px] uppercase text-blue-400 font-black tracking-[0.15em]">Koppen (max 5)</Label>
+                                    <div className="space-y-2 bg-slate-950/20 p-4 rounded-2xl border border-slate-800/50">
+                                      {[0, 1, 2, 3, 4].map(i => (
+                                        <AssetInput 
+                                          key={i}
+                                          index={i}
+                                          value={ag.headlines[i] || ''}
+                                          placeholder="Ad Kop"
+                                          loading={rewritingAsset?.cIdx === cIdx && rewritingAsset?.agIdx === agIdx && rewritingAsset?.type === 'headline' && rewritingAsset?.index === i}
+                                          onChange={val => setBriefing(prev => {
+                                            const nc = [...prev.campaigns];
+                                            const current = [...nc[cIdx].adGroups[agIdx].headlines];
+                                            current[i] = val;
+                                            nc[cIdx].adGroups[agIdx].headlines = current;
+                                            return {...prev, campaigns: nc};
+                                          })}
+                                          onRewrite={() => handleRewriteAsset(cIdx, agIdx, 'headline', i, ag.headlines[i])}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-4">
+                                    <Label className="text-[10px] uppercase text-purple-400 font-black tracking-[0.15em]">Beschrijvingen (max 5)</Label>
+                                    <div className="space-y-2 bg-slate-950/20 p-4 rounded-2xl border border-slate-800/50">
+                                      {[0, 1, 2, 3, 4].map(i => (
+                                        <AssetInput 
+                                          key={i}
+                                          index={i}
+                                          value={ag.descriptions[i] || ''}
+                                          placeholder="Ad Beschrijving"
+                                          loading={rewritingAsset?.cIdx === cIdx && rewritingAsset?.agIdx === agIdx && rewritingAsset?.type === 'description' && rewritingAsset?.index === i}
+                                          onChange={val => setBriefing(prev => {
+                                            const nc = [...prev.campaigns];
+                                            const current = [...nc[cIdx].adGroups[agIdx].descriptions];
+                                            current[i] = val;
+                                            nc[cIdx].adGroups[agIdx].descriptions = current;
+                                            return {...prev, campaigns: nc};
+                                          })}
+                                          onRewrite={() => handleRewriteAsset(cIdx, agIdx, 'description', i, ag.descriptions[i])}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* CTA & Image Prompts */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 text-left">
+                                  <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest font-sans">Call To Action (CTA)</Label>
+                                    <Select 
+                                      value={ag.callToAction || 'Meer informatie'} 
+                                      onValueChange={val => setBriefing(prev => {
+                                        const nc = [...prev.campaigns];
+                                        nc[cIdx].adGroups[agIdx].callToAction = val;
+                                        return {...prev, campaigns: nc};
+                                      })}
+                                    >
+                                      <SelectTrigger className="bg-slate-950 border-slate-800 h-10 text-slate-200 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                                        <SelectItem value="Shop Now" className="text-xs">Nu winkelen / Shop Now</SelectItem>
+                                        <SelectItem value="Learn More" className="text-xs">Meer informatie / Learn More</SelectItem>
+                                        <SelectItem value="Sign Up" className="text-xs">Registreren / Sign Up</SelectItem>
+                                        <SelectItem value="Contact Us" className="text-xs">Contact / Contact Us</SelectItem>
+                                        <SelectItem value="Download" className="text-xs">Downloaden / Download</SelectItem>
+                                        <SelectItem value="Apply Now" className="text-xs">Nu solliciteren / Apply Now</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase text-purple-400 font-black tracking-[0.15em]">Image / Creative Prompts</Label>
+                                    <Textarea 
+                                      value={ag.imagePrompts?.join('\n') || ''}
+                                      onChange={e => setBriefing(prev => {
+                                        const nc = [...prev.campaigns];
+                                        nc[cIdx].adGroups[agIdx].imagePrompts = e.target.value.split('\n');
+                                        return {...prev, campaigns: nc};
+                                      })}
+                                      className="h-20 text-xs bg-slate-950 border-slate-800 text-slate-200"
+                                      placeholder="Beschrijf beelden voor deze advertentie..."
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              // Default Google layout (Search & PMax)
+                              <div className="space-y-8">
                                 {/* ROW 1: Keywords & Preview */}
                                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                                    <div className="xl:col-span-2 space-y-6">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
-                                                <Globe className="size-3" /> Landingspagina (Specifiek voor deze groep)
-                                            </Label>
-                                            <Input 
-                                                value={ag.landingPage || ''}
-                                                onChange={e => setBriefing(prev => {
-                                                    const nc = [...prev.campaigns];
-                                                    nc[cIdx].adGroups[agIdx].landingPage = e.target.value;
-                                                    return {...prev, campaigns: nc};
-                                                })}
-                                                placeholder={briefing.context.website || 'https://...'}
-                                                className="h-10 bg-slate-950 border-slate-800 text-slate-200 focus:border-indigo-500/50"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
-                                                <Key className="size-3" />
-                                                {campaign.type === 'search' ? 'Zoekwoorden (één per regel)' : 'Search Themes / Assets'}
-                                            </Label>
-                                            <Textarea 
-                                                value={ag.keywords?.join('\n') || ''}
-                                                onChange={e => setBriefing(prev => {
-                                                    const nc = [...prev.campaigns];
-                                                    nc[cIdx].adGroups[agIdx].keywords = e.target.value.split('\n');
-                                                    return {...prev, campaigns: nc};
-                                                })}
-                                                className="h-32 text-xs font-mono bg-slate-950 border-slate-800 leading-relaxed text-slate-200 focus:border-indigo-500/50"
-                                                placeholder="Voer keywords in..."
-                                            />
-                                        </div>
-                                    </div>
-
+                                  <div className="xl:col-span-2 space-y-6 text-left">
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
-                                            <Globe className="size-3" /> Advertentie Preview
-                                        </Label>
-                                        <div className="bg-slate-950/30 rounded-2xl border border-slate-800/50 p-6 h-[220px] flex items-center justify-center">
-                                            <AdPreview 
-                                                headlines={ag.headlines} 
-                                                descriptions={ag.descriptions} 
-                                                website={ag.landingPage || briefing.context.website || 'www.jouwwebsite.nl'} 
-                                            />
-                                        </div>
+                                      <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
+                                        <Globe className="size-3" /> Landingspagina (Specifiek voor deze groep)
+                                      </Label>
+                                      <Input 
+                                        value={ag.landingPage || ''}
+                                        onChange={e => setBriefing(prev => {
+                                          const nc = [...prev.campaigns];
+                                          nc[cIdx].adGroups[agIdx].landingPage = e.target.value;
+                                          return {...prev, campaigns: nc};
+                                        })}
+                                        placeholder={briefing.context.website || 'https://...'}
+                                        className="h-10 bg-slate-950 border-slate-800 text-slate-200 focus:border-indigo-500/50"
+                                      />
                                     </div>
+                                    <div className="space-y-2">
+                                      <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
+                                        <Key className="size-3" />
+                                        {campaign.type === 'search' ? 'Zoekwoorden (één per regel)' : 'Search Themes / Assets'}
+                                      </Label>
+                                      <Textarea 
+                                        value={ag.keywords?.join('\n') || ''}
+                                        onChange={e => setBriefing(prev => {
+                                          const nc = [...prev.campaigns];
+                                          nc[cIdx].adGroups[agIdx].keywords = e.target.value.split('\n');
+                                          return {...prev, campaigns: nc};
+                                        })}
+                                        className="h-32 text-xs font-mono bg-slate-950 border-slate-800 leading-relaxed text-slate-200 focus:border-indigo-500/50"
+                                        placeholder="Voer keywords in..."
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2 text-left">
+                                    <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest flex items-center gap-2">
+                                      <Globe className="size-3" /> Advertentie Preview
+                                    </Label>
+                                    <div className="bg-slate-950/30 rounded-2xl border border-slate-800/50 p-6 h-[220px] flex items-center justify-center">
+                                      <AdPreview 
+                                        type={campaign.type}
+                                        headlines={ag.headlines} 
+                                        descriptions={ag.descriptions} 
+                                        website={ag.landingPage || briefing.context.website || 'www.jouwwebsite.nl'} 
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
 
                                 <Separator className="bg-secondary" />
 
                                 {/* ROW 2: Descriptions */}
-                                <div className="space-y-4">
-                                    <Label className="text-[10px] uppercase text-indigo-400 font-black tracking-[0.15em] flex items-center gap-2">
-                                        <Type className="size-3" /> Beschrijvingen (max 90 tekens)
-                                    </Label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {[0, 1, 2, 3].map(i => (
-                                            <AssetDescriptionInput 
-                                                key={i}
-                                                index={i}
-                                                value={ag.descriptions[i] || ''}
-                                                placeholder="Beschrijving"
-                                                loading={rewritingAsset?.cIdx === cIdx && rewritingAsset?.agIdx === agIdx && rewritingAsset?.type === 'description' && rewritingAsset?.index === i}
-                                                onChange={val => setBriefing(prev => {
-                                                    const nc = [...prev.campaigns];
-                                                    const current = [...nc[cIdx].adGroups[agIdx].descriptions];
-                                                    current[i] = val;
-                                                    nc[cIdx].adGroups[agIdx].descriptions = current;
-                                                    return {...prev, campaigns: nc};
-                                                })}
-                                                onRewrite={() => handleRewriteAsset(cIdx, agIdx, 'description', i, ag.descriptions[i])}
-                                            />
-                                        ))}
-                                    </div>
+                                <div className="space-y-4 text-left">
+                                  <Label className="text-[10px] uppercase text-indigo-400 font-black tracking-[0.15em] flex items-center gap-2">
+                                    <Type className="size-3" /> Beschrijvingen (max 90 tekens)
+                                  </Label>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {[0, 1, 2, 3].map(i => (
+                                      <AssetDescriptionInput 
+                                        key={i}
+                                        index={i}
+                                        value={ag.descriptions[i] || ''}
+                                        placeholder="Beschrijving"
+                                        loading={rewritingAsset?.cIdx === cIdx && rewritingAsset?.agIdx === agIdx && rewritingAsset?.type === 'description' && rewritingAsset?.index === i}
+                                        onChange={val => setBriefing(prev => {
+                                          const nc = [...prev.campaigns];
+                                          const current = [...nc[cIdx].adGroups[agIdx].descriptions];
+                                          current[i] = val;
+                                          nc[cIdx].adGroups[agIdx].descriptions = current;
+                                          return {...prev, campaigns: nc};
+                                        })}
+                                        onRewrite={() => handleRewriteAsset(cIdx, agIdx, 'description', i, ag.descriptions[i])}
+                                      />
+                                    ))}
+                                  </div>
                                 </div>
 
                                 {/* ROW 3: Headlines */}
-                                <div className="space-y-4">
-                                    <Label className="text-[10px] uppercase text-blue-400 font-black tracking-[0.15em] flex items-center gap-2">
-                                        <Type className="size-3" /> Koppen (max 30 tekens)
-                                    </Label>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        {[0, 1, 2].map(colIdx => (
-                                            <div key={colIdx} className="space-y-2 bg-slate-950/20 p-4 rounded-2xl border border-slate-800/50">
-                                                <div className="text-[9px] font-black uppercase text-slate-500 mb-2 tracking-widest">
-                                                    {colIdx === 0 && 'Groep 1: Zoekwoord gericht'}
-                                                    {colIdx === 1 && 'Groep 2: USPs'}
-                                                    {colIdx === 2 && 'Groep 3: CTAs'}
-                                                </div>
-                                                <div className="space-y-2">
-                                                    {[0, 1, 2, 3, 4].map(i => (
-                                                        <AssetInput 
-                                                            key={i}
-                                                            index={colIdx * 5 + i}
-                                                            value={ag.headlines[colIdx * 5 + i] || ''}
-                                                            placeholder="Kop"
-                                                            loading={rewritingAsset?.cIdx === cIdx && rewritingAsset?.agIdx === agIdx && rewritingAsset?.type === 'headline' && rewritingAsset?.index === colIdx * 5 + i}
-                                                            onChange={val => setBriefing(prev => {
-                                                                const nc = [...prev.campaigns];
-                                                                const current = [...nc[cIdx].adGroups[agIdx].headlines];
-                                                                current[colIdx * 5 + i] = val;
-                                                                nc[cIdx].adGroups[agIdx].headlines = current;
-                                                                return {...prev, campaigns: nc};
-                                                            })}
-                                                            onRewrite={() => handleRewriteAsset(cIdx, agIdx, 'headline', colIdx * 5 + i, ag.headlines[colIdx * 5 + i], colIdx === 0 ? 'Group 1: Keyword-focused' : colIdx === 1 ? 'Group 2: USP/Hook-focused' : 'Group 3: CTA-focused')}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                <div className="space-y-4 text-left">
+                                  <Label className="text-[10px] uppercase text-blue-400 font-black tracking-[0.15em] flex items-center gap-2">
+                                    <Type className="size-3" /> Koppen (max 30 tekens)
+                                  </Label>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {[0, 1, 2].map(colIdx => (
+                                      <div key={colIdx} className="space-y-2 bg-slate-950/20 p-4 rounded-2xl border border-slate-800/50">
+                                        <div className="text-[9px] font-black uppercase text-slate-500 mb-2 tracking-widest">
+                                          {colIdx === 0 && 'Groep 1: Zoekwoord gericht'}
+                                          {colIdx === 1 && 'Groep 2: USPs'}
+                                          {colIdx === 2 && 'Groep 3: CTAs'}
+                                        </div>
+                                        <div className="space-y-2">
+                                          {[0, 1, 2, 3, 4].map(i => (
+                                            <AssetInput 
+                                              key={i}
+                                              index={colIdx * 5 + i}
+                                              value={ag.headlines[colIdx * 5 + i] || ''}
+                                              placeholder="Kop"
+                                              loading={rewritingAsset?.cIdx === cIdx && rewritingAsset?.agIdx === agIdx && rewritingAsset?.type === 'headline' && rewritingAsset?.index === colIdx * 5 + i}
+                                              onChange={val => setBriefing(prev => {
+                                                const nc = [...prev.campaigns];
+                                                const current = [...nc[cIdx].adGroups[agIdx].headlines];
+                                                current[colIdx * 5 + i] = val;
+                                                nc[cIdx].adGroups[agIdx].headlines = current;
+                                                return {...prev, campaigns: nc};
+                                              })}
+                                              onRewrite={() => handleRewriteAsset(cIdx, agIdx, 'headline', colIdx * 5 + i, ag.headlines[colIdx * 5 + i], colIdx === 0 ? 'Group 1: Keyword-focused' : colIdx === 1 ? 'Group 2: USP/Hook-focused' : 'Group 3: CTA-focused')}
+                                            />
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
 
                                 {/* ROW 4: Audience Signals */}
-                                <div className="space-y-4">
-                                    <Label className="text-[10px] uppercase text-emerald-400 font-black tracking-[0.15em] flex items-center gap-2">
-                                        <Users className="size-3" /> Doelgroep Signalen (Audience)
-                                    </Label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-slate-950/50 p-6 rounded-2xl border border-slate-800/80">
-                                        <div className="space-y-2">
-                                            <span className="text-[10px] uppercase text-slate-300 font-black tracking-widest flex items-center gap-2">
-                                                <div className="w-1 h-1 bg-emerald-500 rounded-full" />
-                                                Custom Intent
-                                            </span>
-                                            <Textarea 
-                                                value={ag.audienceSignals?.customIntent?.join('\n') || ''}
-                                                onChange={e => setBriefing(prev => {
-                                                    const nc = [...prev.campaigns];
-                                                    nc[cIdx].adGroups[agIdx].audienceSignals = {
-                                                        ...(nc[cIdx].adGroups[agIdx].audienceSignals || { customIntent: [], inMarket: [], customerMatch: [], demographics: '' }),
-                                                        customIntent: e.target.value.split('\n')
-                                                    };
-                                                    return {...prev, campaigns: nc};
-                                                })}
-                                                className="h-24 text-[11px] bg-slate-900 border-slate-800 text-slate-200 focus:border-emerald-500/30"
-                                                placeholder="Interesses, zoektermen..."
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <span className="text-[10px] uppercase text-slate-300 font-black tracking-widest flex items-center gap-2">
-                                                <div className="w-1 h-1 bg-emerald-500 rounded-full" />
-                                                In-Market
-                                            </span>
-                                            <Textarea 
-                                                value={ag.audienceSignals?.inMarket?.join('\n') || ''}
-                                                onChange={e => setBriefing(prev => {
-                                                    const nc = [...prev.campaigns];
-                                                    nc[cIdx].adGroups[agIdx].audienceSignals = {
-                                                        ...(nc[cIdx].adGroups[agIdx].audienceSignals || { customIntent: [], inMarket: [], customerMatch: [], demographics: '' }),
-                                                        inMarket: e.target.value.split('\n')
-                                                    };
-                                                    return {...prev, campaigns: nc};
-                                                })}
-                                                className="h-24 text-[11px] bg-slate-900 border-slate-800 text-slate-200 focus:border-emerald-500/30"
-                                                placeholder="Koopintentie categorieën..."
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <span className="text-[10px] uppercase text-slate-300 font-black tracking-widest flex items-center gap-2">
-                                                <div className="w-1 h-1 bg-emerald-500 rounded-full" />
-                                                Customer Match
-                                            </span>
-                                            <Textarea 
-                                                value={ag.audienceSignals?.customerMatch?.join('\n') || ''}
-                                                onChange={e => setBriefing(prev => {
-                                                    const nc = [...prev.campaigns];
-                                                    nc[cIdx].adGroups[agIdx].audienceSignals = {
-                                                        ...(nc[cIdx].adGroups[agIdx].audienceSignals || { customIntent: [], inMarket: [], customerMatch: [], demographics: '' }),
-                                                        customerMatch: e.target.value.split('\n')
-                                                    };
-                                                    return {...prev, campaigns: nc};
-                                                })}
-                                                className="h-24 text-[11px] bg-slate-900 border-slate-800 text-slate-200 focus:border-emerald-500/30"
-                                                placeholder="Eigen data lijsten..."
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <span className="text-[10px] uppercase text-slate-300 font-black tracking-widest flex items-center gap-2">
-                                                <div className="w-1 h-1 bg-emerald-500 rounded-full" />
-                                                Demografie
-                                            </span>
-                                            <Input 
-                                                value={ag.audienceSignals?.demographics || ''}
-                                                onChange={e => setBriefing(prev => {
-                                                    const nc = [...prev.campaigns];
-                                                    nc[cIdx].adGroups[agIdx].audienceSignals = {
-                                                        ...(nc[cIdx].adGroups[agIdx].audienceSignals || { customIntent: [], inMarket: [], customerMatch: [], demographics: '' }),
-                                                        demographics: e.target.value
-                                                    };
-                                                    return {...prev, campaigns: nc};
-                                                })}
-                                                className="h-10 text-[11px] bg-slate-900 border-slate-800 text-slate-200 focus:border-emerald-500/30"
-                                                placeholder="Leeftijd, geslacht, inkomen..."
-                                            />
-                                        </div>
+                                <div className="space-y-4 text-left">
+                                  <Label className="text-[10px] uppercase text-emerald-400 font-black tracking-[0.15em] flex items-center gap-2">
+                                    <Users className="size-3" /> Doelgroep Signalen (Audience)
+                                  </Label>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-slate-950/50 p-6 rounded-2xl border border-slate-800/80">
+                                    <div className="space-y-2">
+                                      <span className="text-[10px] uppercase text-slate-300 font-black tracking-widest flex items-center gap-2">
+                                        <div className="w-1 h-1 bg-emerald-500 rounded-full" />
+                                        Custom Intent
+                                      </span>
+                                      <Textarea 
+                                        value={ag.audienceSignals?.customIntent?.join('\n') || ''}
+                                        onChange={e => setBriefing(prev => {
+                                          const nc = [...prev.campaigns];
+                                          nc[cIdx].adGroups[agIdx].audienceSignals = {
+                                            ...(nc[cIdx].adGroups[agIdx].audienceSignals || { customIntent: [], inMarket: [], customerMatch: [], demographics: '' }),
+                                            customIntent: e.target.value.split('\n')
+                                          };
+                                          return {...prev, campaigns: nc};
+                                        })}
+                                        className="h-24 text-[11px] bg-slate-900 border-slate-800 text-slate-200 focus:border-emerald-500/30"
+                                        placeholder="Interesses, zoektermen..."
+                                      />
                                     </div>
+                                    <div className="space-y-2">
+                                      <span className="text-[10px] uppercase text-slate-300 font-black tracking-widest flex items-center gap-2">
+                                        <div className="w-1 h-1 bg-emerald-500 rounded-full" />
+                                        In-Market
+                                      </span>
+                                      <Textarea 
+                                        value={ag.audienceSignals?.inMarket?.join('\n') || ''}
+                                        onChange={e => setBriefing(prev => {
+                                          const nc = [...prev.campaigns];
+                                          nc[cIdx].adGroups[agIdx].audienceSignals = {
+                                            ...(nc[cIdx].adGroups[agIdx].audienceSignals || { customIntent: [], inMarket: [], customerMatch: [], demographics: '' }),
+                                            inMarket: e.target.value.split('\n')
+                                          };
+                                          return {...prev, campaigns: nc};
+                                        })}
+                                        className="h-24 text-[11px] bg-slate-900 border-slate-800 text-slate-200 focus:border-emerald-500/30"
+                                        placeholder="Koopintentie categorieën..."
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <span className="text-[10px] uppercase text-slate-300 font-black tracking-widest flex items-center gap-2">
+                                        <div className="w-1 h-1 bg-emerald-500 rounded-full" />
+                                        Customer Match
+                                      </span>
+                                      <Textarea 
+                                        value={ag.audienceSignals?.customerMatch?.join('\n') || ''}
+                                        onChange={e => setBriefing(prev => {
+                                          const nc = [...prev.campaigns];
+                                          nc[cIdx].adGroups[agIdx].audienceSignals = {
+                                            ...(nc[cIdx].adGroups[agIdx].audienceSignals || { customIntent: [], inMarket: [], customerMatch: [], demographics: '' }),
+                                            customerMatch: e.target.value.split('\n')
+                                          };
+                                          return {...prev, campaigns: nc};
+                                        })}
+                                        className="h-24 text-[11px] bg-slate-900 border-slate-800 text-slate-200 focus:border-emerald-500/30"
+                                        placeholder="Eigen data lijsten..."
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <span className="text-[10px] uppercase text-slate-300 font-black tracking-widest flex items-center gap-2">
+                                        <div className="w-1 h-1 bg-emerald-500 rounded-full" />
+                                        Demografie
+                                      </span>
+                                      <Input 
+                                        value={ag.audienceSignals?.demographics || ''}
+                                        onChange={e => setBriefing(prev => {
+                                          const nc = [...prev.campaigns];
+                                          nc[cIdx].adGroups[agIdx].audienceSignals = {
+                                            ...(nc[cIdx].adGroups[agIdx].audienceSignals || { customIntent: [], inMarket: [], customerMatch: [], demographics: '' }),
+                                            demographics: e.target.value
+                                          };
+                                          return {...prev, campaigns: nc};
+                                        })}
+                                        className="h-10 text-[11px] bg-slate-900 border-slate-800 text-slate-200 focus:border-emerald-500/30"
+                                        placeholder="Leeftijd, geslacht, inkomen..."
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
 
                                 {campaign.type === 'pmax' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-800/50">
-                                        <div className="space-y-4">
-                                            <Label className="text-[10px] uppercase text-purple-400 font-black tracking-[0.15em] flex items-center gap-2">
-                                                <Type className="size-3" /> PMax Lange Koppen (max 5)
-                                            </Label>
-                                            <div className="space-y-2 bg-slate-950/20 p-4 rounded-2xl border border-slate-800/50">
-                                                {[0, 1, 2, 3, 4].map(i => (
-                                                    <div key={i} className="relative">
-                                                        <Input 
-                                                            value={ag.longHeadlines?.[i] || ''}
-                                                            onChange={e => setBriefing(prev => {
-                                                                const nc = [...prev.campaigns];
-                                                                const current = [...(nc[cIdx].adGroups[agIdx].longHeadlines || [])];
-                                                                current[i] = e.target.value;
-                                                                nc[cIdx].adGroups[agIdx].longHeadlines = current;
-                                                                return {...prev, campaigns: nc};
-                                                            })}
-                                                            placeholder={`Lange Kop ${i+1}`}
-                                                            className="h-9 text-xs bg-slate-900 border-slate-800 pr-12 text-slate-200 focus:border-purple-500/30"
-                                                        />
-                                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-600 font-black">
-                                                            {ag.longHeadlines?.[i]?.length || 0}/90
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <Label className="text-[10px] uppercase text-purple-400 font-black tracking-[0.15em] flex items-center gap-2">
-                                                <LayoutGrid className="size-3" /> PMax Image Prompts
-                                            </Label>
-                                            <Textarea 
-                                                value={ag.imagePrompts?.join('\n') || ''}
-                                                onChange={e => setBriefing(prev => {
-                                                    const nc = [...prev.campaigns];
-                                                    nc[cIdx].adGroups[agIdx].imagePrompts = e.target.value.split('\n');
-                                                    return {...prev, campaigns: nc};
-                                                })}
-                                                className="h-full min-h-[160px] text-xs bg-slate-950 border-slate-800 text-slate-200 focus:border-purple-500/30 leading-relaxed"
-                                                placeholder="Beschrijf beelden voor deze asset group..."
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-800/50 text-left">
+                                    <div className="space-y-4">
+                                      <Label className="text-[10px] uppercase text-purple-400 font-black tracking-[0.15em] flex items-center gap-2">
+                                        <Type className="size-3" /> PMax Lange Koppen (max 5)
+                                      </Label>
+                                      <div className="space-y-2 bg-slate-950/20 p-4 rounded-2xl border border-slate-800/50">
+                                        {[0, 1, 2, 3, 4].map(i => (
+                                          <div key={i} className="relative">
+                                            <Input 
+                                              value={ag.longHeadlines?.[i] || ''}
+                                              onChange={e => setBriefing(prev => {
+                                                const nc = [...prev.campaigns];
+                                                const current = [...(nc[cIdx].adGroups[agIdx].longHeadlines || [])];
+                                                current[i] = e.target.value;
+                                                nc[cIdx].adGroups[agIdx].longHeadlines = current;
+                                                return {...prev, campaigns: nc};
+                                              })}
+                                              placeholder={`Lange Kop ${i+1}`}
+                                              className="h-9 text-xs bg-slate-900 border-slate-800 pr-12 text-slate-200 focus:border-purple-500/30"
                                             />
-                                        </div>
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-600 font-black">
+                                              {ag.longHeadlines?.[i]?.length || 0}/90
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
+                                    <div className="space-y-4">
+                                      <Label className="text-[10px] uppercase text-purple-400 font-black tracking-[0.15em] flex items-center gap-2">
+                                        <LayoutGrid className="size-3" /> PMax Image Prompts
+                                      </Label>
+                                      <Textarea 
+                                        value={ag.imagePrompts?.join('\n') || ''}
+                                        onChange={e => setBriefing(prev => {
+                                          const nc = [...prev.campaigns];
+                                          nc[cIdx].adGroups[agIdx].imagePrompts = e.target.value.split('\n');
+                                          return {...prev, campaigns: nc};
+                                        })}
+                                        className="h-full min-h-[160px] text-xs bg-slate-950 border-slate-800 text-slate-200 focus:border-purple-500/30 leading-relaxed"
+                                        placeholder="Beschrijf beelden voor deze asset group..."
+                                      />
+                                    </div>
+                                  </div>
                                 )}
-                            </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
+                      
                       <Button 
                         variant="outline" 
                         className="h-auto py-12 border-dashed border-2 border-slate-700 bg-slate-900/10 hover:bg-slate-800/20 rounded-2xl flex flex-col items-center justify-center gap-3 text-slate-400 hover:text-white transition-all hover:border-slate-500"
                         onClick={() => setBriefing(prev => {
-                            const nc = [...prev.campaigns];
-                            nc[cIdx].adGroups.push({
-                                id: crypto.randomUUID(),
-                                name: 'Nieuwe Ad Group',
-                                headlines: [],
-                                descriptions: [],
-                                keywords: []
-                            });
-                            return {...prev, campaigns: nc};
+                          const nc = [...prev.campaigns];
+                          nc[cIdx].adGroups.push({
+                            id: crypto.randomUUID(),
+                            name: 'Nieuwe Ad Group/Concept',
+                            headlines: [],
+                            descriptions: [],
+                            keywords: []
+                          });
+                          return {...prev, campaigns: nc};
                         })}
                       >
                         <div className="bg-secondary p-3 rounded-full group-hover:bg-slate-700">
-                            <Plus className="size-6" />
+                          <Plus className="size-6" />
                         </div>
                         <span className="font-black uppercase tracking-widest text-xs text-slate-200">Handmatig toevoegen</span>
                       </Button>
+                    </div>
+
+                    {/* SETUP TAKEN KOPPELEN SECTION */}
+                    <div className="mt-8 pt-8 border-t border-slate-800/80 space-y-4 text-left animate-in fade-in duration-300">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="size-4 text-emerald-450" />
+                          <h5 className="text-xs font-black uppercase text-slate-350 tracking-wider">Campagne Setup Taken & Uren</h5>
+                        </div>
+                        <div className="flex gap-3">
+                          <Select value="" onValueChange={(checklistId) => {
+                            if (!checklistId) return;
+                            const template = checklistTemplates.find(t => t.id === checklistId);
+                            if (template && template.tasks) {
+                              setBriefing(prev => {
+                                const nc = [...prev.campaigns];
+                                const existingTasks = nc[cIdx].tasks || [];
+                                const newTasks = template.tasks.map((t: any) => ({
+                                  id: crypto.randomUUID(),
+                                  description: t.description,
+                                  hours: 1,
+                                  assignedEmployeeId: user?.uid || ''
+                                }));
+                                nc[cIdx].tasks = [...existingTasks, ...newTasks];
+                                return {...prev, campaigns: nc};
+                              });
+                              toast({ title: 'Checklist gekoppeld!', description: `${template.tasks.length} taken toegevoegd.` });
+                            }
+                          }}>
+                            <SelectTrigger className="h-8 text-[10px] bg-slate-900 border-slate-800 text-slate-400 w-[180px]">
+                              <SelectValue placeholder="Koppel Checklist..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-slate-750 text-slate-200">
+                              {checklistTemplates.map(t => (
+                                <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 border-slate-700 bg-slate-900/50 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white"
+                            onClick={() => setBriefing(prev => {
+                              const nc = [...prev.campaigns];
+                              const existingTasks = nc[cIdx].tasks || [];
+                              nc[cIdx].tasks = [...existingTasks, {
+                                id: crypto.randomUUID(),
+                                description: '',
+                                hours: 1,
+                                assignedEmployeeId: user?.uid || ''
+                              }];
+                              return {...prev, campaigns: nc};
+                            })}
+                          >
+                            Taak Toevoegen
+                          </Button>
+                        </div>
+                      </div>
+
+                       {(campaign.tasks || []).length > 0 ? (
+                        <div className="grid grid-cols-1 gap-3 bg-slate-950/20 p-4 border border-slate-800 rounded-xl">
+                          {(campaign.tasks || []).map((task, tIdx) => (
+                            <div key={task.id} className="grid grid-cols-1 sm:grid-cols-[1fr_100px_160px_auto] gap-3 items-center">
+                              <Input
+                                value={task.description}
+                                onChange={e => setBriefing(prev => {
+                                  const nc = [...prev.campaigns];
+                                  const tasks = [...(nc[cIdx].tasks || [])];
+                                  if (tasks[tIdx]) {
+                                    tasks[tIdx] = { ...tasks[tIdx], description: e.target.value };
+                                  }
+                                  nc[cIdx].tasks = tasks;
+                                  return {...prev, campaigns: nc};
+                                })}
+                                placeholder="Taak omschrijving..."
+                                className="h-9 text-xs bg-slate-900 border-slate-800 text-slate-200"
+                              />
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  step="0.5"
+                                  min={0}
+                                  value={task.hours || 0}
+                                  onChange={e => setBriefing(prev => {
+                                    const nc = [...prev.campaigns];
+                                    const tasks = [...(nc[cIdx].tasks || [])];
+                                    if (tasks[tIdx]) {
+                                      tasks[tIdx] = { ...tasks[tIdx], hours: Number(e.target.value) };
+                                    }
+                                    nc[cIdx].tasks = tasks;
+                                    return {...prev, campaigns: nc};
+                                  })}
+                                  className="h-9 text-xs bg-slate-900 border-slate-800 text-slate-200 pr-8"
+                                />
+                                <span className="absolute inset-y-0 right-3 flex items-center text-[10px] text-slate-600 font-bold">uur</span>
+                              </div>
+                              <Select
+                                value={task.assignedEmployeeId || 'unassigned'}
+                                onValueChange={val => setBriefing(prev => {
+                                  const nc = [...prev.campaigns];
+                                  const tasks = [...(nc[cIdx].tasks || [])];
+                                  if (tasks[tIdx]) {
+                                    tasks[tIdx] = { ...tasks[tIdx], assignedEmployeeId: val === 'unassigned' ? '' : val };
+                                  }
+                                  nc[cIdx].tasks = tasks;
+                                  return {...prev, campaigns: nc};
+                                })}
+                              >
+                                <SelectTrigger className="h-9 text-xs bg-slate-900 border-slate-800 text-slate-200">
+                                  <SelectValue placeholder="Toewijzen..." />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                                  <SelectItem value="unassigned" className="text-xs">Niet toegewezen</SelectItem>
+                                  {employees.map(emp => (
+                                    <SelectItem key={emp.uid} value={emp.uid} className="text-xs">{emp.displayName || emp.email}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 size-9 shrink-0"
+                                onClick={() => setBriefing(prev => {
+                                  const nc = [...prev.campaigns];
+                                  nc[cIdx].tasks = (nc[cIdx].tasks || []).filter((_, i) => i !== tIdx);
+                                  return {...prev, campaigns: nc};
+                                })}
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-550 italic">Geen setup taken gekoppeld aan deze campagne.</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

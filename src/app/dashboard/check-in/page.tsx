@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore } from '@/firebase';
@@ -14,6 +14,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
+import AccountChat from '@/components/account/AccountChat';
 
 type EnrichedAccount = ChildAccount & {
     parentName: string;
@@ -50,6 +51,18 @@ export default function CheckInPage() {
                user?.email?.toLowerCase() === 'admin@onlyforward.nl';
     }, [appUser, user?.email]);
 
+    const isInternalUser = useMemo(() => {
+        const role = (appUser as any)?.role?.toLowerCase();
+        const email = user?.email?.toLowerCase() || '';
+        return role === 'admin' || 
+               role === 'employee' || 
+               email === 'billy@pearsonline.nl' || 
+               email === 'billy@trooper.es' || 
+               email.endsWith('@onlyforward.nl') ||
+               email.endsWith('@trooper.es') ||
+               email.endsWith('@pearsonline.nl');
+    }, [appUser, user?.email]);
+
     useEffect(() => {
         if (!firestore || !user || !appUser) return;
 
@@ -59,7 +72,7 @@ export default function CheckInPage() {
                 const allAccounts: EnrichedAccount[] = [];
                 const clientMap = new Map<string, string>();
 
-                if (isAdmin) {
+                if (isInternalUser) {
                     const clientsQuery = query(collection(firestore, 'parentClients'));
                     const clientsSnap = await getDocs(clientsQuery);
                     
@@ -115,7 +128,7 @@ export default function CheckInPage() {
         };
 
         fetchAccounts();
-    }, [firestore, user, appUser, isAdmin]);
+    }, [firestore, user, appUser, isInternalUser]);
 
     useEffect(() => {
         const fetchActivity = async () => {
@@ -259,7 +272,7 @@ export default function CheckInPage() {
                 </div>
             )}
 
-            {selectedAccountId && !activityLoading && (
+            {selectedAccountId && !activityLoading && selectedAccount && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -298,9 +311,9 @@ export default function CheckInPage() {
                         </Card>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Notes Feed */}
-                        <Card className="glass-card flex flex-col h-[600px]">
+                        <Card className="glass-card flex flex-col h-[650px]">
                             <CardHeader className="border-b border-border">
                                 <CardTitle className="flex items-center gap-2">
                                     <MessageSquare className="text-green-400 size-5" />
@@ -331,7 +344,7 @@ export default function CheckInPage() {
                         </Card>
 
                         {/* Todos Feed */}
-                        <Card className="glass-card flex flex-col h-[600px]">
+                        <Card className="glass-card flex flex-col h-[650px]">
                             <CardHeader className="border-b border-border">
                                 <CardTitle className="flex items-center gap-2">
                                     <CheckCircle2 className="text-purple-400 size-5" />
@@ -367,6 +380,11 @@ export default function CheckInPage() {
                                 </CardContent>
                             </ScrollArea>
                         </Card>
+
+                        {/* AI Sparringpartner */}
+                        <div className="lg:col-span-1">
+                            <AccountChat parentClientId={selectedAccount.parentClientId} accountId={selectedAccount.id} />
+                        </div>
                     </div>
                 </div>
             )}

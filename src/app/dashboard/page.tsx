@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
@@ -447,9 +447,21 @@ export default function DashboardPage() {
     return role === 'admin' || user?.email === 'billy@pearsonline.nl' || user?.email === 'billy@trooper.es' || user?.email?.toLowerCase() === 'admin@onlyforward.nl';
   }, [appUser, user?.email]);
 
+  const isInternalUser = useMemo(() => {
+    const role = (appUser as AppUser)?.role?.toLowerCase();
+    const email = user?.email?.toLowerCase() || '';
+    return role === 'admin' || 
+           role === 'employee' || 
+           email === 'billy@pearsonline.nl' || 
+           email === 'billy@trooper.es' || 
+           email.endsWith('@onlyforward.nl') ||
+           email.endsWith('@trooper.es') ||
+           email.endsWith('@pearsonline.nl');
+  }, [appUser, user?.email]);
+
   const managerUid = useMemo(() => {
     if (!user) return null;
-    return isAdmin ? user.uid : (appUser as AppUser)?.managerId || null;
+    return isAdmin ? user.uid : ((appUser as AppUser)?.managerId || user.uid);
   }, [isAdmin, user, appUser]);
 
   // Fetch team members & clients
@@ -522,20 +534,20 @@ export default function DashboardPage() {
             console.log("DASHBOARD_STEP: Start Load");
             
             // 1. Fetch Clients & Employees
-            const clientsQuery = isAdmin 
+            const clientsQuery = isInternalUser 
                 ? collection(firestore, 'parentClients') 
                 : query(collection(firestore, 'parentClients'), where('ownerId', '==', managerUid));
             
             const [clientsSnapshot, teamSnapshot] = await Promise.all([
                 getDocs(clientsQuery),
-                isAdmin ? getDocs(query(collection(firestore, 'users'), where('managerId', '==', user.uid))) : Promise.resolve({ docs: [] })
+                isInternalUser ? getDocs(query(collection(firestore, 'users'), where('managerId', '==', managerUid))) : Promise.resolve({ docs: [] })
             ]);
 
             const parentClients = clientsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as ParentClient));
             const parentClientMap = new Map(parentClients.map(c => [c.id, c.clientName]));
 
             const employeeMap = new Map<string, string>();
-            if (isAdmin) {
+            if (isInternalUser) {
                 teamSnapshot.docs.forEach(doc => {
                     const data = doc.data();
                     employeeMap.set(data.uid, data.displayName || data.email || 'Geen Naam');
@@ -550,7 +562,7 @@ export default function DashboardPage() {
 
             // 2. Fetch Accounts
             const childAccountPromises = parentClients.map(client => 
-                isAdmin
+                isInternalUser
                     ? getDocs(collection(firestore, 'parentClients', client.id, 'childAccounts'))
                     : getDocs(query(collection(firestore, 'parentClients', client.id, 'childAccounts'), where('assignedEmployeeId', '==', user.uid)))
             );
@@ -560,22 +572,22 @@ export default function DashboardPage() {
             
             const visibleChildAccounts = allChildAccounts.filter(account => {
                 if (account.isPaused) return false;
-                if (isAdmin) {
+                if (isInternalUser) {
                     return true;
                 }
                 return account.assignedEmployeeId === user.uid;
             });
 
             // 3. Fetch In Progress Runs, Projects & all Todos safely
-            const runsQuery = isAdmin 
+            const runsQuery = isInternalUser 
                 ? query(collection(firestore, 'checklistRuns'), where('status', '==', 'in_progress'))
                 : query(collection(firestore, 'checklistRuns'), where('ownerId', '==', user.uid), where('status', '==', 'in_progress'));
                 
-            const projectsQuery = isAdmin
+            const projectsQuery = isInternalUser
                 ? collection(firestore, 'projects')
                 : query(collection(firestore, 'projects'), where('ownerId', '==', user.uid));
                 
-            const todosQuery = isAdmin
+            const todosQuery = isInternalUser
                 ? collection(firestore, 'todos')
                 : query(collection(firestore, 'todos'), where('ownerId', '==', managerUid));
 

@@ -105,6 +105,11 @@ export default function NewBriefingPage() {
       website: rawContext.website?.trim() || '',
     };
 
+    if (!finalContext.childAccountId) {
+      toast({ variant: 'destructive', title: 'Selecteer een account', description: 'Het koppelen van een child account is verplicht.' });
+      return;
+    }
+
     if (!finalContext.clientName || !finalContext.website) {
       toast({ variant: 'destructive', title: 'Vul de basisgegevens in', description: 'Klantnaam en Website zijn verplicht.' });
       return;
